@@ -1,6 +1,6 @@
 {
-  "name": "Salesync.SalesRep.Pwa",
-  "short_name": "Salesync.SalesRep.Pwa",
+  "name": "Salesync Sales Representative",
+  "short_name": "Salesync",
   "id": "./",
   "start_url": "./",
   "display": "standalone",

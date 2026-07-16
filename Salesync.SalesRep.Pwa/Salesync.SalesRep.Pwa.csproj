@@ -17,4 +17,15 @@
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Auth\" />
+    <Folder Include="Components\" />
+    <Folder Include="Models\Requests\" />
+    <Folder Include="Models\Responses\" />
+    <Folder Include="Services\Interfaces\" />
+    <Folder Include="Services\Api\" />
+    <Folder Include="Storage\" />
+    <Folder Include="State\" />
+  </ItemGroup>
+
 </Project>
