@@ -21,7 +21,6 @@
     <Folder Include="Auth\" />
     <Folder Include="Components\" />
     <Folder Include="Models\Requests\" />
-    <Folder Include="Models\Responses\" />
     <Folder Include="Services\Interfaces\" />
     <Folder Include="Services\Api\" />
     <Folder Include="Storage\" />
