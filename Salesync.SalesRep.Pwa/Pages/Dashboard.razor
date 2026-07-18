@@ -1,0 +1,61 @@
+﻿@page "/dashboard"
+
+@attribute [Authorize]
+
+@using System.Security.Claims
+
+@inject SalesyncAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard - Salesync</PageTitle>
+
+<div class="container py-4">
+
+    <AuthorizeView>
+        <Authorized Context="authContext">
+
+            <h1>
+                مرحبًا
+                @authContext.User.Identity?.Name
+            </h1>
+
+            <p>
+                <strong>User name:</strong>
+                @authContext.User.FindFirst(
+                    "user_name")?.Value
+            </p>
+
+            <p>
+                <strong>Role:</strong>
+                @authContext.User.FindFirst(
+                    ClaimTypes.Role)?.Value
+            </p>
+
+            @if (authContext.User.HasClaim(
+                    claim => claim.Type == "branch_id"))
+            {
+                <p>
+                    <strong>Branch:</strong>
+                    @authContext.User.FindFirst(
+                        "branch_id")?.Value
+                </p>
+            }
+
+            <button class="btn btn-outline-danger"
+                    @onclick="LogoutAsync">
+                Logout
+            </button>
+
+        </Authorized>
+    </AuthorizeView>
+
+</div>
+
+@code {
+    private async Task LogoutAsync()
+    {
+        await AuthStateProvider.SignOutAsync();
+
+        Navigation.NavigateTo("/login");
+    }
+}

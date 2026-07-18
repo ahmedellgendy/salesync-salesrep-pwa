@@ -1,6 +1,11 @@
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Salesync.SalesRep.Pwa;
+using Salesync.SalesRep.Pwa.Auth;
+using Salesync.SalesRep.Pwa.Services.Api;
+using Salesync.SalesRep.Pwa.Services.Interfaces;
+using Salesync.SalesRep.Pwa.Storage;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -11,10 +16,30 @@ var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
     ?? throw new InvalidOperationException(
         "ApiBaseUrl is missing from appsettings.json.");
 
-builder.Services.AddScoped(_ =>
-    new HttpClient
-    {
-        BaseAddress = new Uri(apiBaseUrl)
-    });
+builder.Services.AddAuthorizationCore();
+builder.Services.AddCascadingAuthenticationState();
+
+builder.Services.AddScoped<AuthStorageService>();
+
+builder.Services.AddScoped<SalesyncAuthenticationStateProvider>();
+
+builder.Services.AddScoped<AuthenticationStateProvider>(serviceProvider => serviceProvider.GetRequiredService<SalesyncAuthenticationStateProvider>());
+
+builder.Services.AddScoped<AuthMessageHandler>();
+
+builder.Services.AddHttpClient(
+        "SalesyncApi",
+        client =>
+        {
+            client.BaseAddress = new Uri(apiBaseUrl);
+        })
+    .AddHttpMessageHandler<AuthMessageHandler>();
+
+builder.Services.AddScoped(
+    serviceProvider => serviceProvider
+    .GetRequiredService<IHttpClientFactory>()
+    .CreateClient("SalesyncApi"));
+
+builder.Services.AddScoped<IAuthApiService, AuthApiService>();
 
 await builder.Build().RunAsync();
