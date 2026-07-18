@@ -42,4 +42,6 @@ builder.Services.AddScoped(
 
 builder.Services.AddScoped<IAuthApiService, AuthApiService>();
 
+
+
 await builder.Build().RunAsync();
