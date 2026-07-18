@@ -1,77 +1,183 @@
-.page {
-    position: relative;
-    display: flex;
-    flex-direction: column;
+.app-shell {
+    min-height: 100dvh;
+    background-color: #f5f7fb;
 }
 
-main {
-    flex: 1;
+.desktop-sidebar {
+    display: none;
 }
 
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+.app-main {
+    min-width: 0;
+    min-height: 100dvh;
 }
 
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    min-height: 68px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgb(15 23 42 / 5%);
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
-
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
-
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
+.header-title {
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 700;
 }
 
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
+.header-user {
+    max-width: 220px;
+    overflow: hidden;
+    color: #64748b;
+    font-size: 0.8rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.header-logout-button {
+    padding: 0.45rem 0.75rem;
+    color: #dc3545;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background-color: transparent;
+    border: 1px solid #dc3545;
+    border-radius: 0.5rem;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+    .header-logout-button:hover {
+        color: #ffffff;
+        background-color: #dc3545;
     }
 
-    .sidebar {
-        width: 250px;
-        height: 100vh;
+.app-content {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 1rem 6rem;
+}
+
+.mobile-bottom-nav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 200;
+    height: 70px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding-bottom: env(safe-area-inset-bottom);
+    background-color: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 15px rgb(15 23 42 / 8%);
+}
+
+::deep .mobile-nav-link,
+.mobile-nav-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.4rem;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    background: transparent;
+    border: 0;
+}
+
+    ::deep .mobile-nav-link:hover,
+    .mobile-nav-button:hover {
+        color: #0d6efd;
+    }
+
+    ::deep .mobile-nav-link.active {
+        color: #0d6efd;
+        background-color: #eff6ff;
+    }
+
+.mobile-nav-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.brand-block {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    border-bottom: 1px solid rgb(255 255 255 / 12%);
+}
+
+.brand-logo {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    color: #0f2a5f;
+    font-size: 1.25rem;
+    font-weight: 800;
+    background-color: #ffffff;
+    border-radius: 0.75rem;
+}
+
+.brand-name {
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.brand-subtitle {
+    color: rgb(255 255 255 / 65%);
+    font-size: 0.7rem;
+}
+
+@media (min-width: 992px) {
+    .app-shell {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+    }
+
+    .desktop-sidebar {
         position: sticky;
         top: 0;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        background: linear-gradient( 180deg, #08265c 0%, #132968 55%, #35044c 100% );
     }
 
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
+    .app-header {
+        min-height: 76px;
+        padding: 0.9rem 1.5rem;
     }
 
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
+    .header-title {
+        font-size: 1.1rem;
     }
 
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
+    .header-user {
+        max-width: 400px;
+        font-size: 0.85rem;
+    }
+
+    .app-content {
+        padding: 1.5rem;
+    }
+
+    .mobile-bottom-nav {
+        display: none;
     }
 }

@@ -1,43 +1,33 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Salesync.SalesRep.Pwa</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+﻿<nav class="desktop-nav"
+     aria-label="القائمة الرئيسية">
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-        
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link"
-                             href="profile">
-                        الملف الشخصي
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
+    <NavLink class="desktop-nav-link"
+             href="/dashboard"
+             Match="NavLinkMatch.All">
 
-    </nav>
-</div>
+        <span class="desktop-nav-icon"
+              aria-hidden="true">
+            ⌂
+        </span>
 
+        <span>
+            الرئيسية
+        </span>
 
+    </NavLink>
 
-@code {
-    private bool collapseNavMenu = true;
+    <NavLink class="desktop-nav-link"
+             href="/profile">
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+        <span class="desktop-nav-icon"
+              aria-hidden="true">
+            ●
+        </span>
 
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
-}
+        <span>
+            الملف الشخصي
+        </span>
+
+    </NavLink>
+
+</nav>
