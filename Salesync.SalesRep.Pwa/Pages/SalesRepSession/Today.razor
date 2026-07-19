@@ -1,0 +1,218 @@
+﻿@page "/today"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ISalesRepSessionApiService SalesRepSessionApiService
+@inject NavigationManager NavigationManager
+
+<h3>يومي</h3>
+
+@if (_isLoading)
+{
+    <p>جاري تحميل بيانات اليوم...</p>
+}
+else if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger">
+        @_errorMessage
+    </div>
+}
+else
+{
+    <div class="card p-3 mb-3">
+        <h5>بيانات المندوب</h5>
+        <p>SalesRepId: @_salesRepId</p>
+    </div>
+
+    @if (_currentSession is null || _currentSession.EndTime.HasValue)
+    {
+        <div class="card p-3">
+            <h5>لا يوجد يوم مفتوح حاليًا</h5>
+            <p>ابدأ يومك علشان تقدر تسجل زيارات وفواتير.</p>
+
+            <button class="btn btn-primary"
+                    disabled="@_isProcessing"
+                    @onclick="StartDayAsync">
+                @if (_isProcessing)
+                {
+                    <span>جاري بدء اليوم...</span>
+                }
+                else
+                {
+                    <span>Start Day</span>
+                }
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="card p-3 mb-3">
+            <h5>اليوم مفتوح</h5>
+
+            <p><strong>Session Id:</strong> @_currentSession.Id</p>
+            <p><strong>Working Date:</strong> @_currentSession.WorkingDate</p>
+            <p><strong>Start Time:</strong> @_currentSession.StartTime.ToLocalTime()</p>
+            <p><strong>Total Sales:</strong> @_currentSession.GrossSales</p>
+            <p><strong>Net Sales:</strong> @_currentSession.NetSales</p>
+            <p><strong>Total Collection:</strong> @_currentSession.TotalCollection</p>
+            <p><strong>Total Returns:</strong> @_currentSession.TotalReturnAmount</p>
+            <p><strong>Total Invoices:</strong> @_currentSession.TotalInvoices</p>
+            <p><strong>Total Visits:</strong> @_currentSession.TotalVisits</p>
+
+            <button class="btn btn-danger"
+                    disabled="@_isProcessing"
+                    @onclick="CloseDayAsync">
+                @if (_isProcessing)
+                {
+                    <span>جاري قفل اليوم...</span>
+                }
+                else
+                {
+                    <span>Close Day</span>
+                }
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <div class="alert alert-success">
+            @_successMessage
+        </div>
+    }
+}
+
+@code {
+    private int? _salesRepId;
+    private bool _isLoading = true;
+    private bool _isProcessing;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private SalesRepSessionDto? _currentSession;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSalesRepIdAsync();
+
+        if (!_salesRepId.HasValue)
+        {
+            _errorMessage = "لم يتم العثور على SalesRepId داخل التوكن. برجاء تسجيل الدخول مرة أخرى.";
+            _isLoading = false;
+            return;
+        }
+
+        await LoadCurrentSessionAsync();
+
+        _isLoading = false;
+    }
+
+    private async Task LoadSalesRepIdAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        var salesRepIdValue = user.FindFirst("sales_rep_id")?.Value;
+
+        if (int.TryParse(salesRepIdValue, out var salesRepId) && salesRepId > 0)
+        {
+            _salesRepId = salesRepId;
+        }
+    }
+
+    private async Task LoadCurrentSessionAsync()
+    {
+        if (!_salesRepId.HasValue)
+            return;
+
+        var response = await SalesRepSessionApiService
+            .GetSessionsBySalesRepAsync(_salesRepId.Value);
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+            return;
+        }
+
+        if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل تحميل بيانات اليوم.";
+            return;
+        }
+
+        var sessions = response.Data?.ToList() ?? new List<SalesRepSessionDto>();
+
+        _currentSession = sessions
+            .Where(x => !x.EndTime.HasValue)
+            .OrderByDescending(x => x.StartTime)
+            .FirstOrDefault();
+    }
+
+    private async Task StartDayAsync()
+    {
+        if (!_salesRepId.HasValue)
+            return;
+
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        var response = await SalesRepSessionApiService
+            .StartDayAsync(_salesRepId.Value);
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+        }
+        else if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل بدء اليوم.";
+        }
+        else
+        {
+            _currentSession = response.Data;
+            _successMessage = "تم بدء اليوم بنجاح.";
+        }
+
+        _isProcessing = false;
+    }
+
+    private async Task CloseDayAsync()
+    {
+        if (_currentSession is null)
+            return;
+
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        var response = await SalesRepSessionApiService
+            .CloseDayAsync(_currentSession.Id);
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+        }
+        else if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل قفل اليوم.";
+        }
+        else
+        {
+            _currentSession = response.Data;
+            _successMessage = "تم قفل اليوم بنجاح.";
+        }
+
+        _isProcessing = false;
+    }
+}
