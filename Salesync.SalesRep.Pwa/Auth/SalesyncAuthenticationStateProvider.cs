@@ -8,6 +8,7 @@ namespace Salesync.SalesRep.Pwa.Auth;
 public sealed class SalesyncAuthenticationStateProvider : AuthenticationStateProvider
 {
     private static readonly ClaimsPrincipal AnonymousUser = new(new ClaimsIdentity());
+
     private readonly AuthStorageService _authStorage;
 
     public SalesyncAuthenticationStateProvider(AuthStorageService authStorage)
@@ -38,16 +39,19 @@ public sealed class SalesyncAuthenticationStateProvider : AuthenticationStatePro
 
         await _authStorage.SaveSessionAsync(session);
 
-        var authenticationState = CreateAuthenticatedState(session);
+        var authenticationState =
+            CreateAuthenticatedState(session);
 
-        NotifyAuthenticationStateChanged(Task.FromResult(authenticationState));
+        NotifyAuthenticationStateChanged(
+            Task.FromResult(authenticationState));
     }
 
     public async Task SignOutAsync()
     {
         await _authStorage.ClearSessionAsync();
 
-        NotifyAuthenticationStateChanged(Task.FromResult(CreateAnonymousState()));
+        NotifyAuthenticationStateChanged(
+            Task.FromResult(CreateAnonymousState()));
     }
 
     private static bool IsValidSession(TokenResponse? session)
@@ -98,11 +102,28 @@ public sealed class SalesyncAuthenticationStateProvider : AuthenticationStatePro
                     session.BusinessUnitId.Value.ToString()));
         }
 
+        AddSalesRepIdClaim(claims, session.Token);
+
         var identity = new ClaimsIdentity(claims, authenticationType: "SalesyncJwt");
 
         var user = new ClaimsPrincipal(identity);
 
         return new AuthenticationState(user);
+    }
+
+    private static void AddSalesRepIdClaim(ICollection<Claim> claims, string token)
+    {
+        var salesRepIdValue = JwtClaimReader.GetClaimValue(token, "SalesRepId");
+
+        if (!int.TryParse(
+                salesRepIdValue,
+                out var salesRepId) ||
+            salesRepId <= 0)
+        {
+            return;
+        }
+
+        claims.Add(new Claim("sales_rep_id", salesRepId.ToString()));
     }
 
     private static AuthenticationState CreateAnonymousState()
