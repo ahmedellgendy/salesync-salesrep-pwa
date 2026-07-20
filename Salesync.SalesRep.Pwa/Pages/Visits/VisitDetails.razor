@@ -1,0 +1,16 @@
+﻿@page "/visits/{VisitId:int}"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+
+<h3>زيارة مفتوحة</h3>
+
+<div class="card p-3">
+    <p><strong>Visit Id:</strong> @VisitId</p>
+    <p>تم بدء الزيارة. الخطوة الجاية هنضيف إكمال الزيارة Positive / Negative.</p>
+</div>
+
+@code {
+    [Parameter]
+    public int VisitId { get; set; }
+}

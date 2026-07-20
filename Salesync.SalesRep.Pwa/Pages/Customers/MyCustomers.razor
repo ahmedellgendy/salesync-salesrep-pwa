@@ -1,4 +1,6 @@
-﻿@page "/customers/{SessionId:int}"
+﻿@page "/customers"
+@page "/customers/{SessionId:int}"
+
 @attribute [Authorize]
 
 @using Microsoft.AspNetCore.Authorization
@@ -6,6 +8,7 @@
 @using Salesync.SalesRep.Pwa.Services.Interfaces
 
 @inject ISalesRepCustomerApiService SalesRepCustomerApiService
+@inject ISalesRepSessionApiService SalesRepSessionApiService
 @inject NavigationManager NavigationManager
 
 <h3>عملاء اليوم</h3>
@@ -89,7 +92,7 @@ else
 
 @code {
     [Parameter]
-    public int SessionId { get; set; }
+    public int? SessionId { get; set; }
 
     private bool _isLoading = true;
     private string? _errorMessage;
@@ -97,19 +100,56 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await EnsureSessionIdAsync();
+
+        if (!SessionId.HasValue || SessionId.Value <= 0)
+        {
+            _isLoading = false;
+            return;
+        }
+
         await LoadCustomersAsync();
+
         _isLoading = false;
+    }
+
+    private async Task EnsureSessionIdAsync()
+    {
+        if (SessionId.HasValue && SessionId.Value > 0)
+            return;
+
+        var todayResponse = await SalesRepSessionApiService.GetTodayAsync();
+
+        if (todayResponse is null)
+        {
+            _errorMessage = "لم يتم استلام بيانات اليوم من الخادم.";
+            return;
+        }
+
+        if (!todayResponse.Success)
+        {
+            _errorMessage = todayResponse.Message ?? "فشل تحميل بيانات اليوم.";
+            return;
+        }
+
+        if (todayResponse.Data?.HasOpenSession != true || todayResponse.Data.Session is null)
+        {
+            _errorMessage = "لا يوجد يوم مفتوح حاليًا. ابدأ اليوم أولًا.";
+            return;
+        }
+
+        SessionId = todayResponse.Data.Session.Id;
     }
 
     private async Task LoadCustomersAsync()
     {
-        if (SessionId <= 0)
+        if (!SessionId.HasValue || SessionId.Value <= 0)
         {
             _errorMessage = "SessionId غير صحيح.";
             return;
         }
 
-        var response = await SalesRepCustomerApiService.GetCustomersAsync(SessionId);
+        var response = await SalesRepCustomerApiService.GetCustomersAsync(SessionId.Value);
 
         if (response is null)
         {
@@ -128,7 +168,10 @@ else
 
     private void StartVisit(SalesRepMobileCustomerDto customer)
     {
+        if (!SessionId.HasValue || SessionId.Value <= 0)
+            return;
+
         NavigationManager.NavigateTo(
-            $"/visits/start?sessionId={SessionId}&customerId={customer.CustomerId}&routeId={customer.RouteId}");
+            $"/visits/start?sessionId={SessionId.Value}&customerId={customer.CustomerId}&routeId={customer.RouteId}");
     }
 }
