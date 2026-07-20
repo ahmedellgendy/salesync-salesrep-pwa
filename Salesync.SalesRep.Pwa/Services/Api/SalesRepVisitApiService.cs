@@ -47,6 +47,40 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             }
         }
 
+
+        public async Task<ApiResponse<CustomerVisitDto>?> CompleteVisitAsync(int visitId,CompleteSalesRepMobileVisitRequest request)
+        {
+            try
+            {
+                using var httpResponse = await _httpClient.PutAsJsonAsync(
+                    $"api/mobile/salesrep/visits/{visitId}/complete",
+                    request);
+
+                var response = await httpResponse.Content
+                    .ReadFromJsonAsync<ApiResponse<CustomerVisitDto>>();
+
+                return response ?? CreateErrorResponse<CustomerVisitDto>(
+                    "لم يتم استلام استجابة صحيحة من الخادم.",
+                    (int)httpResponse.StatusCode);
+            }
+            catch (HttpRequestException)
+            {
+                return CreateErrorResponse<CustomerVisitDto>(
+                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+            }
+            catch (JsonException)
+            {
+                return CreateErrorResponse<CustomerVisitDto>(
+                    "صيغة الاستجابة القادمة من الخادم غير صحيحة.");
+            }
+            catch (Exception)
+            {
+                return CreateErrorResponse<CustomerVisitDto>(
+                    "حدث خطأ غير متوقع أثناء إكمال الزيارة.");
+            }
+        }
+
+
         private static ApiResponse<T> CreateErrorResponse<T>(
             string message,
             int statusCode = 500)
