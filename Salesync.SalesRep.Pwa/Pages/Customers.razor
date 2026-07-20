@@ -1,0 +1,134 @@
+﻿@page "/customers/{SessionId:int}"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepCustomerApiService SalesRepCustomerApiService
+@inject NavigationManager NavigationManager
+
+<h3>عملاء اليوم</h3>
+
+@if (_isLoading)
+{
+    <p>جاري تحميل العملاء...</p>
+}
+else if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger">
+        @_errorMessage
+    </div>
+}
+else if (_customers.Count == 0)
+{
+    <div class="alert alert-warning">
+        لا يوجد عملاء على خط السير الحالي.
+    </div>
+}
+else
+{
+    <div class="mb-3">
+        <strong>عدد العملاء:</strong> @_customers.Count
+    </div>
+
+    @foreach (var customer in _customers)
+    {
+        <div class="card p-3 mb-3">
+            <h5>@customer.CustomerName</h5>
+
+            <p class="mb-1"><strong>Route:</strong> @customer.RouteName</p>
+            <p class="mb-1"><strong>Sequence:</strong> @customer.VisitSequence</p>
+
+            @if (!string.IsNullOrWhiteSpace(customer.Phone))
+            {
+                <p class="mb-1"><strong>Phone:</strong> @customer.Phone</p>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(customer.Address))
+            {
+                <p class="mb-1"><strong>Address:</strong> @customer.Address</p>
+            }
+
+            <p class="mb-1"><strong>Current Balance:</strong> @customer.CurrentBalance</p>
+            <p class="mb-1"><strong>Credit Limit:</strong> @customer.CreditLimit</p>
+
+            @if (customer.HasVisitToday)
+            {
+                <div class="alert alert-success mt-2 mb-2">
+                    تم تسجيل زيارة لهذا العميل اليوم.
+                </div>
+
+                <p class="mb-1"><strong>Visit Id:</strong> @customer.VisitId</p>
+                <p class="mb-1"><strong>Visit Status:</strong> @customer.VisitStatus</p>
+                <p class="mb-1"><strong>Visit Type:</strong> @customer.VisitType</p>
+            }
+            else
+            {
+                <div class="alert alert-info mt-2 mb-2">
+                    لم تتم زيارة هذا العميل اليوم.
+                </div>
+            }
+
+            @if (customer.CanStartVisit)
+            {
+                <button class="btn btn-primary"
+                        @onclick="() => StartVisit(customer)">
+                    Start Visit
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-secondary" disabled>
+                    Visit Completed
+                </button>
+            }
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public int SessionId { get; set; }
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private List<SalesRepMobileCustomerDto> _customers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomersAsync();
+        _isLoading = false;
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        if (SessionId <= 0)
+        {
+            _errorMessage = "SessionId غير صحيح.";
+            return;
+        }
+
+        var response = await SalesRepCustomerApiService.GetCustomersAsync(SessionId);
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+            return;
+        }
+
+        if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل تحميل العملاء.";
+            return;
+        }
+
+        _customers = response.Data?.ToList() ?? new List<SalesRepMobileCustomerDto>();
+    }
+
+    private void StartVisit(SalesRepMobileCustomerDto customer)
+    {
+        NavigationManager.NavigateTo(
+            $"/visits/start?sessionId={SessionId}&customerId={customer.CustomerId}&routeId={customer.RouteId}");
+    }
+}

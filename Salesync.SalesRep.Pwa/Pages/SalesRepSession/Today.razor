@@ -6,6 +6,7 @@
 @using Salesync.SalesRep.Pwa.Services.Interfaces
 
 @inject ISalesRepSessionApiService SalesRepSessionApiService
+@inject NavigationManager NavigationManager
 
 <h3>يومي</h3>
 
@@ -48,6 +49,11 @@ else
             <p><strong>Total Returns:</strong> @_currentSession.TotalReturnAmount</p>
             <p><strong>Total Invoices:</strong> @_currentSession.TotalInvoices</p>
             <p><strong>Total Visits:</strong> @_currentSession.TotalVisits</p>
+
+            <button class="btn btn-success mb-2"
+                    @onclick="GoToCustomers">
+                My Customers
+            </button>
 
             <button class="btn btn-danger"
                     disabled="@_isProcessing"
@@ -153,5 +159,13 @@ else
         }
 
         _isProcessing = false;
+    }
+
+    private void GoToCustomers()
+    {
+        if (_currentSession is null)
+            return;
+
+        NavigationManager.NavigateTo($"/customers/{_currentSession.Id}");
     }
 }
