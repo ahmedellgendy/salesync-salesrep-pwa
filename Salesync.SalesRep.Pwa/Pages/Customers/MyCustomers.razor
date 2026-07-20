@@ -63,8 +63,8 @@ else
                 </div>
 
                 <p class="mb-1"><strong>Visit Id:</strong> @customer.VisitId</p>
-                <p class="mb-1"><strong>Visit Status:</strong> @customer.VisitStatus</p>
-                <p class="mb-1"><strong>Visit Type:</strong> @customer.VisitType</p>
+                <p class="mb-1"><strong>Visit Status:</strong> @GetVisitStatusText(customer.VisitStatus)</p>
+                <p class="mb-1"><strong>Visit Type:</strong> @GetVisitTypeText(customer.VisitType)</p>
             }
             else
             {
@@ -173,5 +173,27 @@ else
 
         NavigationManager.NavigateTo(
             $"/visits/start?sessionId={SessionId.Value}&customerId={customer.CustomerId}&routeId={customer.RouteId}");
+    }
+
+    private static string GetVisitStatusText(int? status)
+    {
+        return status switch
+        {
+            1 => "Planned",
+            2 => "In Progress",
+            3 => "Completed",
+            4 => "Cancelled",
+            _ => "-"
+        };
+    }
+
+    private static string GetVisitTypeText(int? type)
+    {
+        return type switch
+        {
+            1 => "Positive",
+            2 => "Negative",
+            _ => "-"
+        };
     }
 }
