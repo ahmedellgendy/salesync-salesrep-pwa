@@ -150,7 +150,7 @@
 
             await AuthStateProvider.SignInAsync(response.Data);
 
-            Navigation.NavigateTo(GetDestination());
+            Navigation.NavigateTo(GetDestination(), replace: true);
         }
         catch
         {

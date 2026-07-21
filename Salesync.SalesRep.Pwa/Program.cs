@@ -41,7 +41,10 @@ builder.Services.AddScoped(
     .CreateClient("SalesyncApi"));
 
 builder.Services.AddScoped<IAuthApiService, AuthApiService>();
-
-
+builder.Services.AddScoped<ISalesRepSessionApiService, SalesRepSessionApiService>();
+builder.Services.AddScoped<ISalesRepCustomerApiService, SalesRepCustomerApiService>();
+builder.Services.AddScoped<ISalesRepVisitApiService, SalesRepVisitApiService>();
+builder.Services.AddScoped<ISalesRepInvoiceApiService, SalesRepInvoiceApiService>();
+builder.Services.AddScoped<ISalesRepLoadRequestApiService, SalesRepLoadRequestApiService>();
 
 await builder.Build().RunAsync();

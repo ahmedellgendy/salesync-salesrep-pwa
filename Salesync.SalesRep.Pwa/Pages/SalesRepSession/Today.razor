@@ -1,0 +1,171 @@
+﻿@page "/today"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepSessionApiService SalesRepSessionApiService
+@inject NavigationManager NavigationManager
+
+<h3>يومي</h3>
+
+@if (_isLoading)
+{
+    <p>جاري تحميل بيانات اليوم...</p>
+}
+else if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger">
+        @_errorMessage
+    </div>
+}
+else
+{
+    @if (_currentSession is null)
+    {
+        <div class="card p-3">
+            <h5>لا يوجد يوم مفتوح حاليًا</h5>
+            <p>ابدأ يومك علشان تقدر تسجل زيارات وفواتير.</p>
+
+            <button class="btn btn-primary"
+                    disabled="@_isProcessing"
+                    @onclick="StartDayAsync">
+                @(_isProcessing ? "جاري بدء اليوم..." : "Start Day")
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="card p-3 mb-3">
+            <h5>اليوم مفتوح</h5>
+
+            <p><strong>Session Id:</strong> @_currentSession.Id</p>
+            <p><strong>Working Date:</strong> @_currentSession.WorkingDate.ToShortDateString()</p>
+            <p><strong>Start Time:</strong> @_currentSession.StartTime.ToLocalTime()</p>
+            <p><strong>Total Sales:</strong> @_currentSession.GrossSales</p>
+            <p><strong>Net Sales:</strong> @_currentSession.NetSales</p>
+            <p><strong>Total Collection:</strong> @_currentSession.TotalCollection</p>
+            <p><strong>Total Returns:</strong> @_currentSession.TotalReturnAmount</p>
+            <p><strong>Total Invoices:</strong> @_currentSession.TotalInvoices</p>
+            <p><strong>Total Visits:</strong> @_currentSession.TotalVisits</p>
+
+            <button class="btn btn-success mb-2"
+                    @onclick="GoToCustomers">
+                My Customers
+            </button>
+
+            <button class="btn btn-danger"
+                    disabled="@_isProcessing"
+                    @onclick="CloseDayAsync">
+                @(_isProcessing ? "جاري قفل اليوم..." : "Close Day")
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <div class="alert alert-success">
+            @_successMessage
+        </div>
+    }
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isProcessing;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private SalesRepSessionDto? _currentSession;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTodayAsync();
+        _isLoading = false;
+    }
+
+    private async Task LoadTodayAsync()
+    {
+        _errorMessage = null;
+        _successMessage = null;
+
+        var response = await SalesRepSessionApiService.GetTodayAsync();
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+            return;
+        }
+
+        if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل تحميل بيانات اليوم.";
+            return;
+        }
+
+        _currentSession = response.Data?.HasOpenSession == true
+            ? response.Data.Session
+            : null;
+    }
+
+    private async Task StartDayAsync()
+    {
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        var response = await SalesRepSessionApiService.StartDayAsync();
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+        }
+        else if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل بدء اليوم.";
+        }
+        else
+        {
+            _currentSession = response.Data;
+            _successMessage = "تم بدء اليوم بنجاح.";
+        }
+
+        _isProcessing = false;
+    }
+
+    private async Task CloseDayAsync()
+    {
+        if (_currentSession is null)
+            return;
+
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        var response = await SalesRepSessionApiService.CloseDayAsync(_currentSession.Id);
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+        }
+        else if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل قفل اليوم.";
+        }
+        else
+        {
+            _currentSession = null;
+            _successMessage = "تم قفل اليوم بنجاح.";
+        }
+
+        _isProcessing = false;
+    }
+
+    private void GoToCustomers()
+    {
+        if (_currentSession is null)
+            return;
+
+        NavigationManager.NavigateTo($"/customers/{_currentSession.Id}");
+    }
+}

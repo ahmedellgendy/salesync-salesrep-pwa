@@ -1,0 +1,123 @@
+﻿@page "/visits/start"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Requests
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject NavigationManager NavigationManager
+@inject ISalesRepVisitApiService SalesRepVisitApiService
+
+<h3>بدء زيارة</h3>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_successMessage))
+{
+    <div class="alert alert-success">@_successMessage</div>
+}
+
+<div class="card p-3">
+    <p><strong>Session Id:</strong> @SessionId</p>
+    <p><strong>Customer Id:</strong> @CustomerId</p>
+    <p><strong>Route Id:</strong> @RouteId</p>
+
+    <div class="mb-3">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" @bind="_notes"></textarea>
+    </div>
+
+    <button class="btn btn-primary"
+            disabled="@_isProcessing"
+            @onclick="StartVisitAsync">
+        @(_isProcessing ? "جاري بدء الزيارة..." : "Start Visit")
+    </button>
+
+    <button class="btn btn-secondary mt-2"
+            @onclick="BackToCustomers">
+        رجوع للعملاء
+    </button>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "sessionId")]
+    public int SessionId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "customerId")]
+    public int CustomerId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "routeId")]
+    public int RouteId { get; set; }
+
+    
+    private string? _notes;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private bool _isProcessing;
+
+    
+
+    private async Task StartVisitAsync()
+    {
+        if (SessionId <= 0 || CustomerId <= 0 || RouteId <= 0)
+        {
+            _errorMessage = "بيانات الزيارة غير صحيحة.";
+            return;
+        }
+
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        var request = new StartSalesRepMobileVisitRequest
+        {
+            SalesRepSessionId = SessionId,
+            CustomerId = CustomerId,
+            RouteId = RouteId,
+            Latitude = null,
+            Longitude = null,
+            Notes = _notes
+        };
+
+        var response = await SalesRepVisitApiService.StartVisitAsync(request);
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+        }
+        else if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل بدء الزيارة.";
+        }
+        else
+        {
+            _successMessage = "تم بدء الزيارة بنجاح.";
+
+            var visitId = response.Data?.Id;
+
+            if (visitId.HasValue && visitId.Value > 0)
+            {
+                NavigationManager.NavigateTo(
+    $"/visits/{response.Data.Id}?sessionId={SessionId}&customerId={CustomerId}&routeId={RouteId}");
+            }
+        }
+
+        _isProcessing = false;
+    }
+
+    private void BackToCustomers()
+    {
+        NavigationManager.NavigateTo($"/customers/{SessionId}");
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (SessionId <= 0 || CustomerId <= 0 || RouteId <= 0)
+        {
+            _errorMessage = "بيانات الزيارة غير مكتملة.";
+        }
+    }
+}
