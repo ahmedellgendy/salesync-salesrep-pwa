@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 
 @using Salesync.SalesRep.Pwa.Auth
+@using Salesync.SalesRep.Pwa.Components
 
 @inject SalesyncAuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
@@ -64,54 +65,7 @@
 
     </section>
 
-    <nav class="mobile-bottom-nav"
-         aria-label="القائمة الرئيسية">
-
-        <NavLink class="mobile-nav-link"
-                 href="/dashboard"
-                 Match="NavLinkMatch.All">
-
-            <span class="mobile-nav-icon"
-                  aria-hidden="true">
-                ⌂
-            </span>
-
-            <span>
-                الرئيسية
-            </span>
-
-        </NavLink>
-
-        <NavLink class="mobile-nav-link"
-                 href="/profile">
-
-            <span class="mobile-nav-icon"
-                  aria-hidden="true">
-                ●
-            </span>
-
-            <span>
-                حسابي
-            </span>
-
-        </NavLink>
-
-        <button type="button"
-                class="mobile-nav-button"
-                @onclick="LogoutAsync">
-
-            <span class="mobile-nav-icon"
-                  aria-hidden="true">
-                ↪
-            </span>
-
-            <span>
-                خروج
-            </span>
-
-        </button>
-
-    </nav>
+    <MobileBottomNav />
 
 </div>
 

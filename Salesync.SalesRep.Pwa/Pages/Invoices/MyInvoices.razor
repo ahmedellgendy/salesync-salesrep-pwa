@@ -140,9 +140,9 @@ else
             return;
         }
 
-        if (todayResponse.Data?.HasOpenSession != true || todayResponse.Data.Session is null)
+        if (todayResponse.Data?.HasTodaySession != true || todayResponse.Data.Session is null)
         {
-            _errorMessage = "لا يوجد يوم مفتوح حاليًا.";
+            _errorMessage = "لا يوجد Session لليوم الحالي.";
             return;
         }
 
