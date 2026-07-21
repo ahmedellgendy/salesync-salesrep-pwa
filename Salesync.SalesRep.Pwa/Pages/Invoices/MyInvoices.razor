@@ -1,0 +1,203 @@
+﻿@page "/invoices"
+@page "/invoices/{SessionId:int}"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepInvoiceApiService SalesRepInvoiceApiService
+@inject ISalesRepSessionApiService SalesRepSessionApiService
+@inject NavigationManager NavigationManager
+
+<h3>My Invoices</h3>
+
+@if (_isLoading)
+{
+    <p>جاري تحميل الفواتير...</p>
+}
+else if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger">
+        @_errorMessage
+    </div>
+}
+else
+{
+    <div class="d-grid gap-2 mb-3">
+        <button class="btn btn-secondary"
+                @onclick="GoToDashboard">
+            Back To Dashboard
+        </button>
+
+        <button class="btn btn-outline-primary"
+                @onclick="GoToCustomers">
+            My Customers
+        </button>
+    </div>
+
+    @if (_invoices.Count == 0)
+    {
+        <div class="alert alert-warning">
+            لا يوجد فواتير في السيشن الحالية.
+        </div>
+    }
+    else
+    {
+        <div class="card p-3 mb-3">
+            <h5>ملخص الفواتير</h5>
+
+            <p class="mb-1"><strong>عدد الفواتير:</strong> @_invoices.Count</p>
+            <p class="mb-1"><strong>Total Amount:</strong> @_invoices.Sum(x => x.TotalAmount)</p>
+            <p class="mb-1"><strong>Paid Amount:</strong> @_invoices.Sum(x => x.PaidAmount)</p>
+            <p class="mb-1"><strong>Remaining:</strong> @_invoices.Sum(x => x.RemainingAmount)</p>
+        </div>
+
+        @foreach (var invoice in _invoices)
+        {
+            <div class="card p-3 mb-3">
+                <h5>@invoice.InvoiceNumber</h5>
+
+                <p class="mb-1"><strong>Customer:</strong> @invoice.CustomerName</p>
+                <p class="mb-1"><strong>Customer Id:</strong> @invoice.CustomerId</p>
+                <p class="mb-1"><strong>Status:</strong> @GetInvoiceStatusText(invoice.Status)</p>
+                <p class="mb-1"><strong>Payment:</strong> @GetPaymentStatusText(invoice.PaymentStatus)</p>
+
+                <hr />
+
+                <p class="mb-1"><strong>SubTotal:</strong> @invoice.SubTotal</p>
+                <p class="mb-1"><strong>Discount:</strong> @invoice.DiscountAmount</p>
+                <p class="mb-1"><strong>Tax:</strong> @invoice.TaxAmount</p>
+                <p class="mb-1"><strong>Total:</strong> @invoice.TotalAmount</p>
+                <p class="mb-1"><strong>Paid:</strong> @invoice.PaidAmount</p>
+                <p class="mb-1"><strong>Remaining:</strong> @invoice.RemainingAmount</p>
+
+                <hr />
+
+                <p class="mb-1"><strong>Created:</strong> @invoice.CreatedAt.ToLocalTime()</p>
+
+                @if (!string.IsNullOrWhiteSpace(invoice.Notes))
+                {
+                    <p class="mb-1"><strong>Notes:</strong> @invoice.Notes</p>
+                }
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter]
+    public int? SessionId { get; set; }
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private List<SalesRepMobileInvoiceDto> _invoices = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await EnsureSessionIdAsync();
+
+        if (!SessionId.HasValue || SessionId.Value <= 0)
+        {
+            _isLoading = false;
+            return;
+        }
+
+        await LoadInvoicesAsync();
+
+        _isLoading = false;
+    }
+
+    private async Task EnsureSessionIdAsync()
+    {
+        if (SessionId.HasValue && SessionId.Value > 0)
+            return;
+
+        var todayResponse = await SalesRepSessionApiService.GetTodayAsync();
+
+        if (todayResponse is null)
+        {
+            _errorMessage = "لم يتم استلام بيانات اليوم من الخادم.";
+            return;
+        }
+
+        if (!todayResponse.Success)
+        {
+            _errorMessage = todayResponse.Message ?? "فشل تحميل بيانات اليوم.";
+            return;
+        }
+
+        if (todayResponse.Data?.HasOpenSession != true || todayResponse.Data.Session is null)
+        {
+            _errorMessage = "لا يوجد يوم مفتوح حاليًا.";
+            return;
+        }
+
+        SessionId = todayResponse.Data.Session.Id;
+    }
+
+    private async Task LoadInvoicesAsync()
+    {
+        if (!SessionId.HasValue || SessionId.Value <= 0)
+        {
+            _errorMessage = "SessionId غير صحيح.";
+            return;
+        }
+
+        var response =
+            await SalesRepInvoiceApiService.GetMyInvoicesAsync(SessionId.Value);
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+            return;
+        }
+
+        if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل تحميل الفواتير.";
+            return;
+        }
+
+        _invoices = response.Data?.ToList() ?? new List<SalesRepMobileInvoiceDto>();
+    }
+
+    private static string GetInvoiceStatusText(int status)
+    {
+        return status switch
+        {
+            1 => "Draft",
+            2 => "Confirmed",
+            3 => "Cancelled",
+            _ => status.ToString()
+        };
+    }
+
+    private static string GetPaymentStatusText(int status)
+    {
+        return status switch
+        {
+            1 => "Pending",
+            2 => "Partial",
+            3 => "Paid",
+            _ => status.ToString()
+        };
+    }
+
+    private void GoToDashboard()
+    {
+        NavigationManager.NavigateTo("/dashboard");
+    }
+
+    private void GoToCustomers()
+    {
+        if (SessionId.HasValue && SessionId.Value > 0)
+        {
+            NavigationManager.NavigateTo($"/customers/{SessionId.Value}");
+            return;
+        }
+
+        NavigationManager.NavigateTo("/customers");
+    }
+}
