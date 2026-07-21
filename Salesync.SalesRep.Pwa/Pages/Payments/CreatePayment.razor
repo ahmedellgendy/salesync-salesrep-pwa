@@ -1,0 +1,189 @@
+﻿@page "/payments/create"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Requests
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepPaymentApiService SalesRepPaymentApiService
+@inject NavigationManager NavigationManager
+
+<h3>Collect Payment</h3>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_successMessage))
+{
+    <div class="alert alert-success">@_successMessage</div>
+}
+
+<div class="card p-3 mb-3">
+    <h5>Invoice Info</h5>
+
+    <p class="mb-1"><strong>Invoice Id:</strong> @InvoiceId</p>
+    <p class="mb-1"><strong>Invoice Number:</strong> @InvoiceNumber</p>
+    <p class="mb-1"><strong>Session Id:</strong> @SessionId</p>
+    <p class="mb-1"><strong>Remaining:</strong> @RemainingAmount</p>
+</div>
+
+<div class="card p-3">
+    <div class="mb-3">
+        <label class="form-label">Amount</label>
+        <input type="number"
+               class="form-control"
+               step="0.01"
+               @bind="_amount" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Payment Method</label>
+        <select class="form-select" @bind="_paymentMethod">
+            <option value="1">Cash</option>
+            <option value="2">Check</option>
+            <option value="3">Transfer</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" @bind="_notes"></textarea>
+    </div>
+
+    <button class="btn btn-success w-100"
+            disabled="@_isProcessing"
+            @onclick="CreatePaymentAsync">
+        @(_isProcessing ? "جاري تسجيل التحصيل..." : "Collect Payment")
+    </button>
+
+    <button class="btn btn-secondary w-100 mt-2"
+            disabled="@_isProcessing"
+            @onclick="GoBack">
+        Back To Invoices
+    </button>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "invoiceId")]
+    public int InvoiceId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "sessionId")]
+    public int SessionId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "remainingAmount")]
+    public decimal RemainingAmount { get; set; }
+
+    [SupplyParameterFromQuery(Name = "invoiceNumber")]
+    public string? InvoiceNumber { get; set; }
+
+    private decimal _amount;
+    private int _paymentMethod = 1;
+    private string? _notes;
+
+    private bool _isProcessing;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override void OnParametersSet()
+    {
+        if (RemainingAmount > 0 && _amount <= 0)
+        {
+            _amount = RemainingAmount;
+        }
+    }
+
+    private async Task CreatePaymentAsync()
+    {
+        if (!Validate())
+            return;
+
+        try
+        {
+            _isProcessing = true;
+            _errorMessage = null;
+            _successMessage = null;
+
+            var request = new CreateSalesRepMobilePaymentRequest
+            {
+                InvoiceId = InvoiceId,
+                SalesRepSessionId = SessionId,
+                Amount = _amount,
+                PaymentMethod = _paymentMethod,
+                Notes = _notes
+            };
+
+            var response =
+                await SalesRepPaymentApiService.CreatePaymentAsync(request);
+
+            if (response is null)
+            {
+                _errorMessage = "لم يتم استلام استجابة من الخادم.";
+                return;
+            }
+
+            if (!response.Success)
+            {
+                _errorMessage = response.Message ?? "فشل تسجيل التحصيل.";
+
+                if (response.Errors is { Count: > 0 })
+                {
+                    _errorMessage += " " + string.Join(" ", response.Errors);
+                }
+
+                return;
+            }
+
+            _successMessage = "تم تسجيل التحصيل بنجاح.";
+
+            await Task.Delay(700);
+
+            NavigationManager.NavigateTo($"/invoices/{SessionId}", replace: true);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private bool Validate()
+    {
+        if (InvoiceId <= 0)
+        {
+            _errorMessage = "InvoiceId غير صحيح.";
+            return false;
+        }
+
+        if (SessionId <= 0)
+        {
+            _errorMessage = "SessionId غير صحيح.";
+            return false;
+        }
+
+        if (_amount <= 0)
+        {
+            _errorMessage = "Amount لازم يكون أكبر من صفر.";
+            return false;
+        }
+
+        if (RemainingAmount > 0 && _amount > RemainingAmount)
+        {
+            _errorMessage = "Amount لا يمكن يكون أكبر من المتبقي.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void GoBack()
+    {
+        if (SessionId > 0)
+        {
+            NavigationManager.NavigateTo($"/invoices/{SessionId}");
+            return;
+        }
+
+        NavigationManager.NavigateTo("/invoices");
+    }
+}

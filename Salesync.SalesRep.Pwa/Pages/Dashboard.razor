@@ -54,6 +54,11 @@ else
                     My Customers
                 </button>
 
+                <button class="btn btn-outline-success"
+                        @onclick="GoToInvoices">
+                    My Invoices
+                </button>
+
                 <button class="btn btn-danger"
                         disabled="@_isProcessing"
                         @onclick="CloseDayAsync">
@@ -288,5 +293,12 @@ else
     private void GoToInventory()
     {
         NavigationManager.NavigateTo("/inventory");
+    }
+    private void GoToInvoices()
+    {
+        if (_currentSession is null)
+            return;
+
+        NavigationManager.NavigateTo($"/invoices/{_currentSession.Id}");
     }
 }
