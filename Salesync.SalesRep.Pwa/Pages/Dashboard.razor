@@ -99,6 +99,27 @@ else
             </div>
         </div>
 
+        <div class="card p-3 mb-3">
+            <h5>المخزون والتحميل</h5>
+
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary"
+                        @onclick="GoToCreateLoadRequest">
+                    Create Load Request
+                </button>
+
+                <button class="btn btn-outline-primary"
+                        @onclick="GoToLoadRequests">
+                    My Load Requests
+                </button>
+
+                <button class="btn btn-outline-dark"
+                        @onclick="GoToInventory">
+                    My Inventory
+                </button>
+            </div>
+        </div>
+
         <div class="card p-3">
             <h5>الأرقام المالية</h5>
 
@@ -252,5 +273,20 @@ else
             return;
 
         NavigationManager.NavigateTo($"/customers/{_currentSession.Id}");
+    }
+
+    private void GoToCreateLoadRequest()
+    {
+        NavigationManager.NavigateTo("/load-requests/create");
+    }
+
+    private void GoToLoadRequests()
+    {
+        NavigationManager.NavigateTo("/load-requests");
+    }
+
+    private void GoToInventory()
+    {
+        NavigationManager.NavigateTo("/inventory");
     }
 }

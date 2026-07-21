@@ -51,8 +51,8 @@
 
     [SupplyParameterFromQuery(Name = "routeId")]
     public int RouteId { get; set; }
-    
 
+    
     private string? _notes;
     private string? _errorMessage;
     private string? _successMessage;
@@ -100,7 +100,8 @@
 
             if (visitId.HasValue && visitId.Value > 0)
             {
-                NavigationManager.NavigateTo($"/visits/{visitId.Value}");
+                NavigationManager.NavigateTo(
+    $"/visits/{response.Data.Id}?sessionId={SessionId}&customerId={CustomerId}&routeId={RouteId}");
             }
         }
 

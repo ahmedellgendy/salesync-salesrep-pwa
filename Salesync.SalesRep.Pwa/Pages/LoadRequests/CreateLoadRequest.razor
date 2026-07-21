@@ -1,0 +1,214 @@
+﻿@page "/load-requests/create"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+@using Salesync.SalesRep.Pwa.Models.Requests
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepLoadRequestApiService LoadRequestApiService
+@inject NavigationManager NavigationManager
+@inject IHttpClientFactory HttpClientFactory
+
+<h3>Create Load Request</h3>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_successMessage))
+{
+    <div class="alert alert-success">@_successMessage</div>
+}
+
+@if (_isLoading)
+{
+    <p>جاري تحميل بيانات المندوب...</p>
+}
+else
+{
+    <div class="card p-3">
+        <p class="mb-2">
+            <strong>SalesRep Id:</strong> @_salesRepId
+        </p>
+
+        <div class="mb-3">
+            <label class="form-label">Warehouse Id</label>
+            <input type="number"
+                   class="form-control"
+                   @bind="_warehouseId" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Product Id</label>
+            <input type="number"
+                   class="form-control"
+                   @bind="_productId" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Requested Quantity</label>
+            <input type="number"
+                   class="form-control"
+                   @bind="_requestedQuantity" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" @bind="_notes"></textarea>
+        </div>
+
+        <button class="btn btn-primary w-100"
+                disabled="@_isProcessing"
+                @onclick="CreateLoadRequestAsync">
+            @(_isProcessing ? "جاري إرسال الطلب..." : "Submit Load Request")
+        </button>
+
+        <button class="btn btn-secondary w-100 mt-2"
+                disabled="@_isProcessing"
+                @onclick="GoBack">
+            Back
+        </button>
+    </div>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isProcessing;
+
+    private int _salesRepId;
+    private int _warehouseId = 1;
+    private int _productId = 1;
+    private int _requestedQuantity = 1;
+
+    private string? _notes;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _salesRepId = await GetCurrentSalesRepIdAsync();
+
+        if (_salesRepId <= 0)
+        {
+            _errorMessage = "لم يتم العثور على SalesRepId للمندوب الحالي.";
+        }
+
+        _isLoading = false;
+    }
+
+    private async Task CreateLoadRequestAsync()
+    {
+        if (!Validate())
+            return;
+
+        try
+        {
+            _isProcessing = true;
+            _errorMessage = null;
+            _successMessage = null;
+
+            var request = new CreateLoadRequestRequest
+            {
+                SalesRepId = _salesRepId,
+                WarehouseId = _warehouseId,
+                Notes = _notes,
+                Items =
+                {
+                    new CreateLoadRequestItemRequest
+                    {
+                        ProductId = _productId,
+                        RequestedQuantity = _requestedQuantity,
+                        Notes = _notes
+                    }
+                }
+            };
+
+            var response = await LoadRequestApiService.CreateAsync(request);
+
+            if (response is null)
+            {
+                _errorMessage = "لم يتم استلام استجابة من الخادم.";
+                return;
+            }
+
+            if (!response.Success)
+            {
+                _errorMessage = response.Message ?? "فشل إنشاء طلب التحميل.";
+
+                if (response.Errors is { Count: > 0 })
+                {
+                    _errorMessage += " " + string.Join(" ", response.Errors);
+                }
+
+                return;
+            }
+
+            _successMessage = "تم إنشاء طلب التحميل بنجاح.";
+
+            await Task.Delay(700);
+
+            NavigationManager.NavigateTo("/load-requests", replace: true);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private bool Validate()
+    {
+        if (_salesRepId <= 0)
+        {
+            _errorMessage = "SalesRepId غير صحيح.";
+            return false;
+        }
+
+        if (_warehouseId <= 0)
+        {
+            _errorMessage = "WarehouseId مطلوب.";
+            return false;
+        }
+
+        if (_productId <= 0)
+        {
+            _errorMessage = "ProductId مطلوب.";
+            return false;
+        }
+
+        if (_requestedQuantity <= 0)
+        {
+            _errorMessage = "Requested Quantity لازم تكون أكبر من صفر.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task<int> GetCurrentSalesRepIdAsync()
+    {
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("SalesyncApi");
+
+            var response =
+                await httpClient.GetFromJsonAsync<ApiResponse<SalesRepMobileProfileDto>>(
+                    "api/mobile/salesrep/me");
+
+            return response?.Success == true && response.Data is not null
+                ? response.Data.SalesRepId
+                : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/load-requests");
+    }
+}

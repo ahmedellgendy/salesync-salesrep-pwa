@@ -1,0 +1,136 @@
+﻿@page "/inventory"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepLoadRequestApiService LoadRequestApiService
+@inject NavigationManager NavigationManager
+@inject IHttpClientFactory HttpClientFactory
+
+<h3>My Inventory</h3>
+
+@if (_isLoading)
+{
+    <p>جاري تحميل مخزون المندوب...</p>
+}
+else if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+else
+{
+    <div class="card p-3 mb-3">
+        <p class="mb-1">
+            <strong>SalesRep Id:</strong> @_salesRepId
+        </p>
+    </div>
+
+    <div class="d-grid gap-2 mb-3">
+        <button class="btn btn-primary"
+                @onclick="GoToCreateLoadRequest">
+            Create Load Request
+        </button>
+
+        <button class="btn btn-secondary"
+                @onclick="GoToLoadRequests">
+            My Load Requests
+        </button>
+    </div>
+
+    @if (_inventory.Count == 0)
+    {
+        <div class="alert alert-warning">
+            لا يوجد مخزون للمندوب حاليًا.
+        </div>
+    }
+    else
+    {
+        @foreach (var item in _inventory)
+        {
+            <div class="card p-3 mb-3">
+                <h5>@item.ProductName</h5>
+
+                <p class="mb-1"><strong>Product Id:</strong> @item.ProductId</p>
+                <p class="mb-1"><strong>Item Code:</strong> @item.ItemCode</p>
+                <p class="mb-1"><strong>Quantity:</strong> @item.Quantity</p>
+                <p class="mb-1"><strong>Last Updated:</strong> @item.LastUpdatedAt.ToLocalTime()</p>
+            </div>
+        }
+    }
+}
+
+@code {
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private int _salesRepId;
+    private List<SalesRepInventoryDto> _inventory = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _salesRepId = await GetCurrentSalesRepIdAsync();
+
+        if (_salesRepId <= 0)
+        {
+            _errorMessage = "لم يتم العثور على SalesRepId للمندوب الحالي.";
+            _isLoading = false;
+            return;
+        }
+
+        await LoadInventoryAsync();
+
+        _isLoading = false;
+    }
+
+    private async Task LoadInventoryAsync()
+    {
+        var response = await LoadRequestApiService.GetInventoryAsync(_salesRepId);
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+            return;
+        }
+
+        if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل تحميل مخزون المندوب.";
+            return;
+        }
+
+        _inventory = response.Data?.ToList() ?? new List<SalesRepInventoryDto>();
+    }
+
+    private async Task<int> GetCurrentSalesRepIdAsync()
+    {
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("SalesyncApi");
+
+            var response =
+                await httpClient.GetFromJsonAsync<ApiResponse<SalesRepMobileProfileDto>>(
+                    "api/mobile/salesrep/me");
+
+            return response?.Success == true && response.Data is not null
+                ? response.Data.SalesRepId
+                : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private void GoToCreateLoadRequest()
+    {
+        NavigationManager.NavigateTo("/load-requests/create");
+    }
+
+    private void GoToLoadRequests()
+    {
+        NavigationManager.NavigateTo("/load-requests");
+    }
+}

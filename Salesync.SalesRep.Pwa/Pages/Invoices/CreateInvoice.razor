@@ -1,0 +1,252 @@
+﻿@page "/invoices/create"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Requests
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepInvoiceApiService SalesRepInvoiceApiService
+@inject ISalesRepVisitApiService SalesRepVisitApiService
+@inject NavigationManager NavigationManager
+
+<h3>Create Invoice</h3>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_successMessage))
+{
+    <div class="alert alert-success">@_successMessage</div>
+}
+
+<div class="card p-3 mb-3">
+    <h5>Invoice Info</h5>
+
+    <p class="mb-1"><strong>Visit Id:</strong> @VisitId</p>
+    <p class="mb-1"><strong>Session Id:</strong> @SessionId</p>
+    <p class="mb-1"><strong>Customer Id:</strong> @CustomerId</p>
+</div>
+
+<div class="card p-3">
+    <div class="mb-3">
+        <label class="form-label">Warehouse Id</label>
+        <input type="number"
+               class="form-control"
+               @bind="_warehouseId" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Product Id</label>
+        <input type="number"
+               class="form-control"
+               @bind="_productId" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Quantity</label>
+        <input type="number"
+               class="form-control"
+               @bind="_quantity" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Bonus Quantity</label>
+        <input type="number"
+               class="form-control"
+               @bind="_bonusQuantity" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Item Discount Amount</label>
+        <input type="number"
+               class="form-control"
+               step="0.01"
+               @bind="_itemDiscountAmount" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Invoice Discount Amount</label>
+        <input type="number"
+               class="form-control"
+               step="0.01"
+               @bind="_invoiceDiscountAmount" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" @bind="_notes"></textarea>
+    </div>
+
+    <button class="btn btn-success w-100"
+            disabled="@_isProcessing"
+            @onclick="CreateConfirmAndCompleteAsync">
+        @(_isProcessing ? "جاري إنشاء الفاتورة..." : "Create Invoice & Complete Visit")
+    </button>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "visitId")]
+    public int VisitId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "sessionId")]
+    public int SessionId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "customerId")]
+    public int CustomerId { get; set; }
+
+    private int _warehouseId = 1;
+    private int _productId = 1;
+    private int _quantity = 1;
+    private int _bonusQuantity;
+
+    private decimal _itemDiscountAmount;
+    private decimal _invoiceDiscountAmount;
+
+    private string? _notes;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    private bool _isProcessing;
+
+    private async Task CreateConfirmAndCompleteAsync()
+    {
+        if (!Validate())
+            return;
+
+        _isProcessing = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        var createInvoiceRequest = new CreateInvoiceRequest
+        {
+            CustomerId = CustomerId,
+            WarehouseId = _warehouseId,
+            SalesRepSessionId = SessionId,
+            SalesChannel = 1,
+            DiscountAmount = _invoiceDiscountAmount,
+            TaxAmount = 0,
+            Notes = _notes,
+            Items =
+            {
+                new CreateInvoiceItemRequest
+                {
+                    ProductId = _productId,
+                    Quantity = _quantity,
+                    UnitPrice = 0,
+                    DiscountAmount = _itemDiscountAmount,
+                    DiscountPercentage = 0,
+                    BonusQuantity = _bonusQuantity,
+                    Notes = _notes
+                }
+            }
+        };
+
+        var createResponse =
+            await SalesRepInvoiceApiService.CreateInvoiceAsync(createInvoiceRequest);
+
+        if (createResponse is null || !createResponse.Success || createResponse.Data is null)
+        {
+            _errorMessage = createResponse?.Message ?? "فشل إنشاء الفاتورة.";
+            _isProcessing = false;
+            return;
+        }
+
+        var invoiceId = createResponse.Data.Id;
+
+        var confirmResponse =
+            await SalesRepInvoiceApiService.ConfirmInvoiceAsync(invoiceId);
+
+        if (confirmResponse is null || !confirmResponse.Success)
+        {
+            _errorMessage = confirmResponse?.Message ?? "تم إنشاء الفاتورة لكن فشل تأكيدها.";
+            _isProcessing = false;
+            return;
+        }
+
+        var completeVisitRequest = new CompleteSalesRepMobileVisitRequest
+        {
+            VisitType = 1,
+            NegativeReason = null,
+            InvoiceId = invoiceId,
+            PaymentId = null,
+            InvoiceReturnId = null,
+            Notes = _notes
+        };
+
+        var completeVisitResponse =
+            await SalesRepVisitApiService.CompleteVisitAsync(
+                VisitId,
+                completeVisitRequest);
+
+        if (completeVisitResponse is null || !completeVisitResponse.Success)
+        {
+            _errorMessage = completeVisitResponse?.Message
+                ?? "تم إنشاء وتأكيد الفاتورة لكن فشل إغلاق الزيارة.";
+            _isProcessing = false;
+            return;
+        }
+
+        _successMessage = "تم إنشاء الفاتورة وإغلاق الزيارة بنجاح.";
+
+        await Task.Delay(700);
+
+        NavigationManager.NavigateTo("/customers", replace: true);
+
+        _isProcessing = false;
+    }
+
+    private bool Validate()
+    {
+        if (VisitId <= 0)
+        {
+            _errorMessage = "VisitId غير صحيح.";
+            return false;
+        }
+
+        if (SessionId <= 0)
+        {
+            _errorMessage = "SessionId غير صحيح.";
+            return false;
+        }
+
+        if (CustomerId <= 0)
+        {
+            _errorMessage = "CustomerId غير صحيح.";
+            return false;
+        }
+
+        if (_warehouseId <= 0)
+        {
+            _errorMessage = "WarehouseId مطلوب.";
+            return false;
+        }
+
+        if (_productId <= 0)
+        {
+            _errorMessage = "ProductId مطلوب.";
+            return false;
+        }
+
+        if (_quantity <= 0)
+        {
+            _errorMessage = "Quantity لازم تكون أكبر من صفر.";
+            return false;
+        }
+
+        if (_bonusQuantity < 0)
+        {
+            _errorMessage = "Bonus Quantity لا يمكن يكون أقل من صفر.";
+            return false;
+        }
+
+        if (_itemDiscountAmount < 0 || _invoiceDiscountAmount < 0)
+        {
+            _errorMessage = "Discount لا يمكن يكون أقل من صفر.";
+            return false;
+        }
+
+        return true;
+    }
+}
