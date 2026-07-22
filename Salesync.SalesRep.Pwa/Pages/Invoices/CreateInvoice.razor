@@ -8,7 +8,6 @@
 @using Salesync.SalesRep.Pwa.Services.Interfaces
 
 @inject ISalesRepInvoiceApiService SalesRepInvoiceApiService
-@inject ISalesRepVisitApiService SalesRepVisitApiService
 @inject ISalesRepLoadRequestApiService SalesRepLoadRequestApiService
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
@@ -287,72 +286,38 @@ else
 
         try
         {
-            var createInvoiceRequest = new CreateInvoiceRequest
+            var request = new CreateSalesRepMobileInvoiceRequest
             {
+                VisitId = VisitId,
                 CustomerId = CustomerId,
-                WarehouseId = _warehouseId,
                 SalesRepSessionId = SessionId,
-                SalesChannel = 1,
                 DiscountAmount = _invoiceDiscountAmount,
-                TaxAmount = 0,
                 Notes = _notes,
                 Items =
+            {
+                new CreateSalesRepMobileInvoiceItemRequest
                 {
-                    new CreateInvoiceItemRequest
-                    {
-                        ProductId = _productId,
-                        Quantity = _quantity,
-                        UnitPrice = 0,
-                        DiscountAmount = _itemDiscountAmount,
-                        DiscountPercentage = 0,
-                        BonusQuantity = _bonusQuantity,
-                        Notes = _notes
-                    }
+                    ProductId = _productId,
+                    Quantity = _quantity,
+                    BonusQuantity = _bonusQuantity,
+                    DiscountAmount = _itemDiscountAmount,
+                    DiscountPercentage = 0
                 }
+            }
             };
 
-            var createResponse =
-                await SalesRepInvoiceApiService.CreateInvoiceAsync(createInvoiceRequest);
+            var response =
+                await SalesRepInvoiceApiService.CreateMobileInvoiceAsync(request);
 
-            if (createResponse is null || !createResponse.Success || createResponse.Data is null)
+            if (response is null)
             {
-                _errorMessage = createResponse?.Message ?? "فشل إنشاء الفاتورة.";
+                _errorMessage = "لم يتم استلام استجابة من الخادم.";
                 return;
             }
 
-            var invoiceId = createResponse.Data.Id;
-
-            var confirmResponse =
-                await SalesRepInvoiceApiService.ConfirmInvoiceAsync(invoiceId);
-
-            if (confirmResponse is null || !confirmResponse.Success)
+            if (!response.Success || response.Data is null)
             {
-                _errorMessage = confirmResponse?.Message
-                    ?? "تم إنشاء الفاتورة لكن فشل تأكيدها.";
-
-                return;
-            }
-
-            var completeVisitRequest = new CompleteSalesRepMobileVisitRequest
-            {
-                VisitType = 1,
-                NegativeReason = null,
-                InvoiceId = invoiceId,
-                PaymentId = null,
-                InvoiceReturnId = null,
-                Notes = _notes
-            };
-
-            var completeVisitResponse =
-                await SalesRepVisitApiService.CompleteVisitAsync(
-                    VisitId,
-                    completeVisitRequest);
-
-            if (completeVisitResponse is null || !completeVisitResponse.Success)
-            {
-                _errorMessage = completeVisitResponse?.Message
-                    ?? "تم إنشاء وتأكيد الفاتورة لكن فشل إغلاق الزيارة.";
-
+                _errorMessage = response.Message ?? "فشل إنشاء الفاتورة.";
                 return;
             }
 
@@ -404,11 +369,7 @@ else
             return false;
         }
 
-        if (_warehouseId <= 0)
-        {
-            _errorMessage = "WarehouseId غير صحيح.";
-            return false;
-        }
+        
 
         if (_productId <= 0)
         {
