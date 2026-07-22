@@ -41,8 +41,11 @@ else
         <div class="progress">
             <div class="progress-bar"
                  role="progressbar"
-                 style="width: @ProgressPercentage%">
-                @ProgressPercentage
+                 style="@ProgressBarStyle"
+                 aria-valuenow="@ProgressValue"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+                @ProgressValue%
             </div>
         </div>
     </div>
@@ -204,18 +207,21 @@ else
     private int _remainingCustomers =>
         _customers.Count(x => !x.HasVisitToday);
 
-    private string ProgressPercentage
+    private int ProgressValue
     {
         get
         {
             if (_totalCustomers == 0)
-                return "0%";
+                return 0;
 
             var percentage = (decimal)_visitedCustomers / _totalCustomers * 100;
 
-            return $"{Math.Round(percentage, 0)}%";
+            return (int)Math.Round(percentage, 0);
         }
     }
+
+    private string ProgressBarStyle =>
+        $"width: {ProgressValue}%;";
 
     private List<SalesRepMobileCustomerDto> FilteredCustomers =>
         _customers
