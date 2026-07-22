@@ -1,12 +1,16 @@
 ﻿@page "/invoices/create"
 @attribute [Authorize]
 
+@using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
 @using Salesync.SalesRep.Pwa.Models.Requests
+@using Salesync.SalesRep.Pwa.Models.Responses
 @using Salesync.SalesRep.Pwa.Services.Interfaces
 
 @inject ISalesRepInvoiceApiService SalesRepInvoiceApiService
 @inject ISalesRepVisitApiService SalesRepVisitApiService
+@inject ISalesRepLoadRequestApiService SalesRepLoadRequestApiService
+@inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
 
 <h3 class="mb-3">إنشاء فاتورة</h3>
@@ -25,87 +29,127 @@
     </div>
 }
 
-<div class="card p-3 mb-3">
-    <h5 class="mb-3">بيانات الزيارة</h5>
-
-    <div class="small">
-        <div><strong>Visit Id:</strong> @VisitId</div>
-        <div><strong>Session Id:</strong> @SessionId</div>
-        <div><strong>Customer Id:</strong> @CustomerId</div>
-        <div><strong>Route Id:</strong> @RouteId</div>
+@if (_isLoadingInventory)
+{
+    <div class="card p-3 mb-3">
+        <p class="mb-0">جاري تحميل مخزون المندوب...</p>
     </div>
-</div>
+}
+else
+{
+    <div class="card p-3 mb-3">
+        <h5 class="mb-3">بيانات الزيارة</h5>
 
-<div class="card p-3 mb-3">
-    <h5 class="mb-3">بيانات الفاتورة</h5>
-
-    <div class="mb-3">
-        <label class="form-label">Warehouse Id</label>
-        <input type="number"
-               class="form-control"
-               @bind="_warehouseId" />
+        <div class="small">
+            <div><strong>Visit Id:</strong> @VisitId</div>
+            <div><strong>Session Id:</strong> @SessionId</div>
+            <div><strong>Customer Id:</strong> @CustomerId</div>
+            <div><strong>Route Id:</strong> @RouteId</div>
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label class="form-label">Product Id</label>
-        <input type="number"
-               class="form-control"
-               @bind="_productId" />
+    <div class="card p-3 mb-3">
+        <h5 class="mb-3">بيانات الفاتورة</h5>
+
+        @if (_inventoryItems.Count == 0)
+        {
+            <div class="alert alert-warning">
+                لا يوجد مخزون متاح للمندوب الحالي.
+            </div>
+        }
+        else
+        {
+            <div class="mb-3">
+                <label class="form-label">المنتج</label>
+
+                <select class="form-select"
+                        value="@_productId"
+                        @onchange="OnProductChanged">
+                    <option value="0">اختار المنتج</option>
+
+                    @foreach (var item in _inventoryItems)
+                    {
+                        <option value="@item.ProductId">
+                            @item.ProductName - المتاح: @FormatQuantity(item.Quantity)
+                        </option>
+                    }
+                </select>
+            </div>
+
+            @if (_selectedInventoryItem is not null)
+            {
+                <div class="alert alert-info">
+                    <div>
+                        <strong>المنتج:</strong>
+                        @_selectedInventoryItem.ProductName
+                    </div>
+
+                    <div>
+                        <strong>الكمية المتاحة:</strong>
+                        @FormatQuantity(_selectedInventoryItem.Quantity)
+                    </div>
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label">Quantity</label>
+                <input type="number"
+                       class="form-control"
+                       min="1"
+                       @bind="_quantity" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Bonus Quantity</label>
+                <input type="number"
+                       class="form-control"
+                       min="0"
+                       @bind="_bonusQuantity" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Item Discount Amount</label>
+                <input type="number"
+                       class="form-control"
+                       step="0.01"
+                       min="0"
+                       @bind="_itemDiscountAmount" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Invoice Discount Amount</label>
+                <input type="number"
+                       class="form-control"
+                       step="0.01"
+                       min="0"
+                       @bind="_invoiceDiscountAmount" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea class="form-control"
+                          rows="3"
+                          placeholder="ملاحظات الفاتورة..."
+                          @bind="_notes">
+                </textarea>
+            </div>
+
+            <button class="btn btn-success w-100"
+                    disabled="@_isProcessing"
+                    @onclick="CreateConfirmAndCompleteAsync">
+                @(_isProcessing ? "جاري إنشاء الفاتورة..." : "Create Invoice & Complete Visit")
+            </button>
+        }
     </div>
 
-    <div class="mb-3">
-        <label class="form-label">Quantity</label>
-        <input type="number"
-               class="form-control"
-               @bind="_quantity" />
+    <div class="d-grid">
+        <button class="btn btn-outline-secondary"
+                disabled="@_isProcessing"
+                @onclick="GoBackToRouteCustomers">
+            رجوع لعملاء خط السير
+        </button>
     </div>
-
-    <div class="mb-3">
-        <label class="form-label">Bonus Quantity</label>
-        <input type="number"
-               class="form-control"
-               @bind="_bonusQuantity" />
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Item Discount Amount</label>
-        <input type="number"
-               class="form-control"
-               step="0.01"
-               @bind="_itemDiscountAmount" />
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Invoice Discount Amount</label>
-        <input type="number"
-               class="form-control"
-               step="0.01"
-               @bind="_invoiceDiscountAmount" />
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Notes</label>
-        <textarea class="form-control"
-                  rows="3"
-                  placeholder="ملاحظات الفاتورة..."
-                  @bind="_notes">
-        </textarea>
-    </div>
-
-    <button class="btn btn-success w-100"
-            disabled="@_isProcessing"
-            @onclick="CreateConfirmAndCompleteAsync">
-        @(_isProcessing ? "جاري إنشاء الفاتورة..." : "Create Invoice & Complete Visit")
-    </button>
-</div>
-
-<div class="d-grid">
-    <button class="btn btn-outline-secondary"
-            disabled="@_isProcessing"
-            @onclick="GoBackToRouteCustomers">
-        رجوع لعملاء خط السير
-    </button>
-</div>
+}
 
 @code {
     [SupplyParameterFromQuery(Name = "visitId")]
@@ -121,9 +165,11 @@
     public int RouteId { get; set; }
 
     private int _warehouseId = 1;
-    private int _productId = 1;
+    private int _productId;
     private int _quantity = 1;
     private int _bonusQuantity;
+
+    private int _salesRepId;
 
     private decimal _itemDiscountAmount;
     private decimal _invoiceDiscountAmount;
@@ -133,10 +179,101 @@
     private string? _successMessage;
 
     private bool _isProcessing;
+    private bool _isLoadingInventory = true;
 
-    protected override void OnInitialized()
+    private List<SalesRepInventoryDto> _inventoryItems = new();
+
+    private SalesRepInventoryDto? _selectedInventoryItem;
+
+    protected override async Task OnInitializedAsync()
     {
         ValidateInitialData();
+
+        if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            _isLoadingInventory = false;
+            return;
+        }
+
+        await LoadInventoryAsync();
+    }
+
+    private async Task LoadInventoryAsync()
+    {
+        _isLoadingInventory = true;
+
+        try
+        {
+            _salesRepId = await GetCurrentSalesRepIdAsync();
+
+            if (_salesRepId <= 0)
+            {
+                _errorMessage = "لم يتم تحديد المندوب الحالي.";
+                return;
+            }
+
+            var inventoryResponse =
+                    await SalesRepLoadRequestApiService.GetInventoryAsync(_salesRepId);
+    
+            if (inventoryResponse is null)
+            {
+                _errorMessage = "لم يتم استلام بيانات المخزون من الخادم.";
+                return;
+            }
+
+            if (!inventoryResponse.Success)
+            {
+                _errorMessage = inventoryResponse.Message ?? "فشل تحميل مخزون المندوب.";
+                return;
+            }
+
+            _inventoryItems = inventoryResponse.Data?
+                .Where(x => x.Quantity > 0)
+                .OrderBy(x => x.ProductName)
+                .ToList()
+                ?? new List<SalesRepInventoryDto>();
+        }
+        finally
+        {
+            _isLoadingInventory = false;
+        }
+    }
+
+    private async Task<int> GetCurrentSalesRepIdAsync()
+    {
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("SalesyncApi");
+
+            var response =
+                await httpClient.GetFromJsonAsync<ApiResponse<SalesRepMobileProfileDto>>(
+                    "api/mobile/salesrep/me");
+
+            return response?.Success == true && response.Data is not null
+                ? response.Data.SalesRepId
+                : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private void OnProductChanged(ChangeEventArgs e)
+    {
+        _errorMessage = null;
+
+        if (!int.TryParse(e.Value?.ToString(), out var productId))
+        {
+            _productId = 0;
+            _selectedInventoryItem = null;
+            return;
+        }
+
+        _productId = productId;
+
+        _selectedInventoryItem = _inventoryItems
+            .FirstOrDefault(x => x.ProductId == _productId);
     }
 
     private async Task CreateConfirmAndCompleteAsync()
@@ -269,13 +406,22 @@
 
         if (_warehouseId <= 0)
         {
-            _errorMessage = "WarehouseId مطلوب.";
+            _errorMessage = "WarehouseId غير صحيح.";
             return false;
         }
 
         if (_productId <= 0)
         {
-            _errorMessage = "ProductId مطلوب.";
+            _errorMessage = "اختار المنتج.";
+            return false;
+        }
+
+        _selectedInventoryItem = _inventoryItems
+            .FirstOrDefault(x => x.ProductId == _productId);
+
+        if (_selectedInventoryItem is null)
+        {
+            _errorMessage = "اختار منتج صحيح من المخزون.";
             return false;
         }
 
@@ -288,6 +434,16 @@
         if (_bonusQuantity < 0)
         {
             _errorMessage = "Bonus Quantity لا يمكن يكون أقل من صفر.";
+            return false;
+        }
+
+        var requestedQuantity = _quantity + _bonusQuantity;
+
+        if (requestedQuantity > _selectedInventoryItem.Quantity)
+        {
+            _errorMessage =
+                $"الكمية المطلوبة أكبر من المتاح. المتاح: {FormatQuantity(_selectedInventoryItem.Quantity)}";
+
             return false;
         }
 
@@ -312,5 +468,10 @@
         }
 
         NavigationManager.NavigateTo("/routes", replace: true);
+    }
+
+    private static string FormatQuantity(decimal value)
+    {
+        return value.ToString("N0");
     }
 }
