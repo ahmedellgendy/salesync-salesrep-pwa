@@ -48,7 +48,15 @@ else
     </div>
 
     <div class="card p-3 mb-3">
-        <h5 class="mb-3">بيانات الفاتورة</h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">منتجات الفاتورة</h5>
+
+            <button class="btn btn-sm btn-outline-primary"
+                    disabled="@(_inventoryItems.Count == 0 || _isProcessing)"
+                    @onclick="AddInvoiceLine">
+                إضافة منتج
+            </button>
+        </div>
 
         @if (_inventoryItems.Count == 0)
         {
@@ -58,62 +66,109 @@ else
         }
         else
         {
-            <div class="mb-3">
-                <label class="form-label">المنتج</label>
-
-                <select class="form-select"
-                        value="@_productId"
-                        @onchange="OnProductChanged">
-                    <option value="0">اختار المنتج</option>
-
-                    @foreach (var item in _inventoryItems)
-                    {
-                        <option value="@item.ProductId">
-                            @item.ProductName - المتاح: @FormatQuantity(item.Quantity)
-                        </option>
-                    }
-                </select>
-            </div>
-
-            @if (_selectedInventoryItem is not null)
+            @foreach (var line in _invoiceLines)
             {
-                <div class="alert alert-info">
-                    <div>
-                        <strong>المنتج:</strong>
-                        @_selectedInventoryItem.ProductName
+                <div class="border rounded p-3 mb-3" @key="line.LineId">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <strong>منتج رقم @_invoiceLines.IndexOf(line) + 1</strong>
+
+                        <button class="btn btn-sm btn-outline-danger"
+                                disabled="@(_invoiceLines.Count == 1 || _isProcessing)"
+                                @onclick="() => RemoveInvoiceLine(line)">
+                            حذف
+                        </button>
                     </div>
 
-                    <div>
-                        <strong>الكمية المتاحة:</strong>
-                        @FormatQuantity(_selectedInventoryItem.Quantity)
+                    <div class="mb-3">
+                        <label class="form-label">المنتج</label>
+
+                        <select class="form-select"
+                                value="@line.ProductId"
+                                @onchange="(e) => OnProductChanged(line, e)">
+                            <option value="0">اختار المنتج</option>
+
+                            @foreach (var item in _inventoryItems)
+                            {
+                                <option value="@item.ProductId"
+                                        disabled="@IsProductSelectedInAnotherLine(item.ProductId, line)">
+                                    @item.ProductName - المتاح: @FormatQuantity(item.Quantity)
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    @if (line.SelectedInventoryItem is not null)
+                    {
+                        <div class="alert alert-info">
+                            <div>
+                                <strong>المنتج:</strong>
+                                @line.SelectedInventoryItem.ProductName
+                            </div>
+
+                            <div>
+                                <strong>الكمية المتاحة:</strong>
+                                @FormatQuantity(line.SelectedInventoryItem.Quantity)
+                            </div>
+
+                            <div>
+                                <strong>المطلوب من نفس المنتج في الفاتورة:</strong>
+                                @GetRequestedQuantityForProduct(line.ProductId)
+                            </div>
+                        </div>
+                    }
+                    @if (line.SelectedInventoryItem is not null)
+                    {
+                        <div class="alert alert-info">
+                            <div>
+                                <strong>المنتج:</strong>
+                                @line.SelectedInventoryItem.ProductName
+                            </div>
+
+                            <div>
+                                <strong>الكمية المتاحة:</strong>
+                                @FormatQuantity(line.SelectedInventoryItem.Quantity)
+                            </div>
+
+                            <div>
+                                <strong>المطلوب:</strong>
+                                @GetRequestedQuantityForProduct(line.ProductId)
+                            </div>
+                        </div>
+
+                        @if (IsRequestedQuantityGreaterThanAvailable(line))
+                        {
+                            <div class="alert alert-danger">
+                                الكمية المطلوبة أكبر من المتاح في المخزون.
+                            </div>
+                        }
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Quantity</label>
+                        <input type="number"
+                               class="form-control"
+                               min="1"
+                               @bind="line.Quantity" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Bonus Quantity</label>
+                        <input type="number"
+                               class="form-control"
+                               min="0"
+                               @bind="line.BonusQuantity" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Item Discount Amount</label>
+                        <input type="number"
+                               class="form-control"
+                               step="0.01"
+                               min="0"
+                               @bind="line.ItemDiscountAmount" />
                     </div>
                 </div>
             }
-
-            <div class="mb-3">
-                <label class="form-label">Quantity</label>
-                <input type="number"
-                       class="form-control"
-                       min="1"
-                       @bind="_quantity" />
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Bonus Quantity</label>
-                <input type="number"
-                       class="form-control"
-                       min="0"
-                       @bind="_bonusQuantity" />
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Item Discount Amount</label>
-                <input type="number"
-                       class="form-control"
-                       step="0.01"
-                       min="0"
-                       @bind="_itemDiscountAmount" />
-            </div>
 
             <div class="mb-3">
                 <label class="form-label">Invoice Discount Amount</label>
@@ -163,14 +218,8 @@ else
     [SupplyParameterFromQuery(Name = "routeId")]
     public int RouteId { get; set; }
 
-    private int _warehouseId = 1;
-    private int _productId;
-    private int _quantity = 1;
-    private int _bonusQuantity;
-
     private int _salesRepId;
 
-    private decimal _itemDiscountAmount;
     private decimal _invoiceDiscountAmount;
 
     private string? _notes;
@@ -182,7 +231,10 @@ else
 
     private List<SalesRepInventoryDto> _inventoryItems = new();
 
-    private SalesRepInventoryDto? _selectedInventoryItem;
+    private List<InvoiceLineModel> _invoiceLines = new()
+    {
+        new InvoiceLineModel()
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -212,8 +264,8 @@ else
             }
 
             var inventoryResponse =
-                    await SalesRepLoadRequestApiService.GetInventoryAsync(_salesRepId);
-    
+                await SalesRepLoadRequestApiService.GetInventoryAsync(_salesRepId);
+
             if (inventoryResponse is null)
             {
                 _errorMessage = "لم يتم استلام بيانات المخزون من الخادم.";
@@ -258,21 +310,48 @@ else
         }
     }
 
-    private void OnProductChanged(ChangeEventArgs e)
+    private void AddInvoiceLine()
+    {
+        _invoiceLines.Add(new InvoiceLineModel());
+    }
+
+    private void RemoveInvoiceLine(InvoiceLineModel line)
+    {
+        if (_invoiceLines.Count == 1)
+            return;
+
+        _invoiceLines.Remove(line);
+    }
+
+    private void OnProductChanged(InvoiceLineModel line, ChangeEventArgs e)
     {
         _errorMessage = null;
 
-        if (!int.TryParse(e.Value?.ToString(), out var productId))
+        if (!int.TryParse(e.Value?.ToString(), out var productId) || productId <= 0)
         {
-            _productId = 0;
-            _selectedInventoryItem = null;
+            line.ProductId = 0;
+            line.SelectedInventoryItem = null;
             return;
         }
 
-        _productId = productId;
+        if (IsProductSelectedInAnotherLine(productId, line))
+        {
+            var productName = _inventoryItems
+                .FirstOrDefault(x => x.ProductId == productId)?
+                .ProductName ?? "المنتج";
 
-        _selectedInventoryItem = _inventoryItems
-            .FirstOrDefault(x => x.ProductId == _productId);
+            _errorMessage = $"المنتج {productName} مضاف بالفعل في الفاتورة.";
+
+            line.ProductId = 0;
+            line.SelectedInventoryItem = null;
+
+            return;
+        }
+
+        line.ProductId = productId;
+
+        line.SelectedInventoryItem = _inventoryItems
+            .FirstOrDefault(x => x.ProductId == line.ProductId);
     }
 
     private async Task CreateConfirmAndCompleteAsync()
@@ -293,17 +372,14 @@ else
                 SalesRepSessionId = SessionId,
                 DiscountAmount = _invoiceDiscountAmount,
                 Notes = _notes,
-                Items =
-            {
-                new CreateSalesRepMobileInvoiceItemRequest
+                Items = _invoiceLines.Select(x => new CreateSalesRepMobileInvoiceItemRequest
                 {
-                    ProductId = _productId,
-                    Quantity = _quantity,
-                    BonusQuantity = _bonusQuantity,
-                    DiscountAmount = _itemDiscountAmount,
+                    ProductId = x.ProductId,
+                    Quantity = x.Quantity,
+                    BonusQuantity = x.BonusQuantity,
+                    DiscountAmount = x.ItemDiscountAmount,
                     DiscountPercentage = 0
-                }
-            }
+                }).ToList()
             };
 
             var response =
@@ -369,52 +445,102 @@ else
             return false;
         }
 
-        
-
-        if (_productId <= 0)
+        if (_invoiceLines.Count == 0)
         {
-            _errorMessage = "اختار المنتج.";
+            _errorMessage = "الفاتورة لازم تحتوي على منتج واحد على الأقل.";
             return false;
         }
+        var duplicateProductGroup = _invoiceLines
+    .Where(x => x.ProductId > 0)
+    .GroupBy(x => x.ProductId)
+    .FirstOrDefault(x => x.Count() > 1);
 
-        _selectedInventoryItem = _inventoryItems
-            .FirstOrDefault(x => x.ProductId == _productId);
-
-        if (_selectedInventoryItem is null)
+        if (duplicateProductGroup is not null)
         {
-            _errorMessage = "اختار منتج صحيح من المخزون.";
-            return false;
-        }
+            var productName = _inventoryItems
+                .FirstOrDefault(x => x.ProductId == duplicateProductGroup.Key)?
+                .ProductName ?? "المنتج";
 
-        if (_quantity <= 0)
-        {
-            _errorMessage = "Quantity لازم تكون أكبر من صفر.";
-            return false;
-        }
-
-        if (_bonusQuantity < 0)
-        {
-            _errorMessage = "Bonus Quantity لا يمكن يكون أقل من صفر.";
-            return false;
-        }
-
-        var requestedQuantity = _quantity + _bonusQuantity;
-
-        if (requestedQuantity > _selectedInventoryItem.Quantity)
-        {
-            _errorMessage =
-                $"الكمية المطلوبة أكبر من المتاح. المتاح: {FormatQuantity(_selectedInventoryItem.Quantity)}";
+            _errorMessage = $"المنتج {productName} مكرر في الفاتورة. اختاره مرة واحدة فقط.";
 
             return false;
         }
 
-        if (_itemDiscountAmount < 0 || _invoiceDiscountAmount < 0)
+        foreach (var line in _invoiceLines)
         {
-            _errorMessage = "Discount لا يمكن يكون أقل من صفر.";
+            if (line.ProductId <= 0)
+            {
+                _errorMessage = "اختار المنتج في كل سطر.";
+                return false;
+            }
+
+            line.SelectedInventoryItem = _inventoryItems
+                .FirstOrDefault(x => x.ProductId == line.ProductId);
+
+            if (line.SelectedInventoryItem is null)
+            {
+                _errorMessage = "يوجد منتج غير صحيح في الفاتورة.";
+                return false;
+            }
+
+            if (line.Quantity <= 0)
+            {
+                _errorMessage = "Quantity لازم تكون أكبر من صفر.";
+                return false;
+            }
+
+            if (line.BonusQuantity < 0)
+            {
+                _errorMessage = "Bonus Quantity لا يمكن يكون أقل من صفر.";
+                return false;
+            }
+
+            if (line.ItemDiscountAmount < 0)
+            {
+                _errorMessage = "Item Discount لا يمكن يكون أقل من صفر.";
+                return false;
+            }
+        }
+
+        foreach (var group in _invoiceLines.GroupBy(x => x.ProductId))
+        {
+            var inventoryItem = _inventoryItems
+                .FirstOrDefault(x => x.ProductId == group.Key);
+
+            if (inventoryItem is null)
+            {
+                _errorMessage = "يوجد منتج غير موجود في المخزون.";
+                return false;
+            }
+
+            var requestedQuantity = group.Sum(x => x.Quantity + x.BonusQuantity);
+
+            if (requestedQuantity > inventoryItem.Quantity)
+            {
+                _errorMessage =
+                    $"الكمية المطلوبة من المنتج {inventoryItem.ProductName} أكبر من المتاح. المتاح: {FormatQuantity(inventoryItem.Quantity)}";
+
+                return false;
+            }
+        }
+
+        if (_invoiceDiscountAmount < 0)
+        {
+            _errorMessage = "Invoice Discount لا يمكن يكون أقل من صفر.";
             return false;
         }
 
         return true;
+    }
+
+    private int GetRequestedQuantityForProduct(int productId)
+    {
+        if (productId <= 0)
+            return 0;
+
+        return _invoiceLines
+            .Where(x => x.ProductId == productId)
+            .Sum(x => x.Quantity + x.BonusQuantity);
     }
 
     private void GoBackToRouteCustomers()
@@ -430,9 +556,45 @@ else
 
         NavigationManager.NavigateTo("/routes", replace: true);
     }
+    private bool IsProductSelectedInAnotherLine(
+    int productId,
+    InvoiceLineModel currentLine)
+    {
+        if (productId <= 0)
+            return false;
+
+        return _invoiceLines.Any(x =>
+            x.LineId != currentLine.LineId &&
+            x.ProductId == productId);
+    }
+
+    private bool IsRequestedQuantityGreaterThanAvailable(InvoiceLineModel line)
+    {
+        if (line.ProductId <= 0 || line.SelectedInventoryItem is null)
+            return false;
+
+        var requestedQuantity = GetRequestedQuantityForProduct(line.ProductId);
+
+        return requestedQuantity > line.SelectedInventoryItem.Quantity;
+    }
 
     private static string FormatQuantity(decimal value)
     {
         return value.ToString("N0");
+    }
+
+    private class InvoiceLineModel
+    {
+        public Guid LineId { get; set; } = Guid.NewGuid();
+
+        public int ProductId { get; set; }
+
+        public int Quantity { get; set; } = 1;
+
+        public int BonusQuantity { get; set; }
+
+        public decimal ItemDiscountAmount { get; set; }
+
+        public SalesRepInventoryDto? SelectedInventoryItem { get; set; }
     }
 }
