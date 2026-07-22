@@ -9,27 +9,36 @@
 @inject ISalesRepVisitApiService SalesRepVisitApiService
 @inject NavigationManager NavigationManager
 
-<h3>Create Invoice</h3>
+<h3 class="mb-3">إنشاء فاتورة</h3>
 
 @if (!string.IsNullOrWhiteSpace(_errorMessage))
 {
-    <div class="alert alert-danger">@_errorMessage</div>
+    <div class="alert alert-danger">
+        @_errorMessage
+    </div>
 }
 
 @if (!string.IsNullOrWhiteSpace(_successMessage))
 {
-    <div class="alert alert-success">@_successMessage</div>
+    <div class="alert alert-success">
+        @_successMessage
+    </div>
 }
 
 <div class="card p-3 mb-3">
-    <h5>Invoice Info</h5>
+    <h5 class="mb-3">بيانات الزيارة</h5>
 
-    <p class="mb-1"><strong>Visit Id:</strong> @VisitId</p>
-    <p class="mb-1"><strong>Session Id:</strong> @SessionId</p>
-    <p class="mb-1"><strong>Customer Id:</strong> @CustomerId</p>
+    <div class="small">
+        <div><strong>Visit Id:</strong> @VisitId</div>
+        <div><strong>Session Id:</strong> @SessionId</div>
+        <div><strong>Customer Id:</strong> @CustomerId</div>
+        <div><strong>Route Id:</strong> @RouteId</div>
+    </div>
 </div>
 
-<div class="card p-3">
+<div class="card p-3 mb-3">
+    <h5 class="mb-3">بيانات الفاتورة</h5>
+
     <div class="mb-3">
         <label class="form-label">Warehouse Id</label>
         <input type="number"
@@ -76,13 +85,25 @@
 
     <div class="mb-3">
         <label class="form-label">Notes</label>
-        <textarea class="form-control" @bind="_notes"></textarea>
+        <textarea class="form-control"
+                  rows="3"
+                  placeholder="ملاحظات الفاتورة..."
+                  @bind="_notes">
+        </textarea>
     </div>
 
     <button class="btn btn-success w-100"
             disabled="@_isProcessing"
             @onclick="CreateConfirmAndCompleteAsync">
         @(_isProcessing ? "جاري إنشاء الفاتورة..." : "Create Invoice & Complete Visit")
+    </button>
+</div>
+
+<div class="d-grid">
+    <button class="btn btn-outline-secondary"
+            disabled="@_isProcessing"
+            @onclick="GoBackToRouteCustomers">
+        رجوع لعملاء خط السير
     </button>
 </div>
 
@@ -95,6 +116,9 @@
 
     [SupplyParameterFromQuery(Name = "customerId")]
     public int CustomerId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "routeId")]
+    public int RouteId { get; set; }
 
     private int _warehouseId = 1;
     private int _productId = 1;
@@ -110,6 +134,11 @@
 
     private bool _isProcessing;
 
+    protected override void OnInitialized()
+    {
+        ValidateInitialData();
+    }
+
     private async Task CreateConfirmAndCompleteAsync()
     {
         if (!Validate())
@@ -119,86 +148,101 @@
         _errorMessage = null;
         _successMessage = null;
 
-        var createInvoiceRequest = new CreateInvoiceRequest
+        try
         {
-            CustomerId = CustomerId,
-            WarehouseId = _warehouseId,
-            SalesRepSessionId = SessionId,
-            SalesChannel = 1,
-            DiscountAmount = _invoiceDiscountAmount,
-            TaxAmount = 0,
-            Notes = _notes,
-            Items =
+            var createInvoiceRequest = new CreateInvoiceRequest
             {
-                new CreateInvoiceItemRequest
+                CustomerId = CustomerId,
+                WarehouseId = _warehouseId,
+                SalesRepSessionId = SessionId,
+                SalesChannel = 1,
+                DiscountAmount = _invoiceDiscountAmount,
+                TaxAmount = 0,
+                Notes = _notes,
+                Items =
                 {
-                    ProductId = _productId,
-                    Quantity = _quantity,
-                    UnitPrice = 0,
-                    DiscountAmount = _itemDiscountAmount,
-                    DiscountPercentage = 0,
-                    BonusQuantity = _bonusQuantity,
-                    Notes = _notes
+                    new CreateInvoiceItemRequest
+                    {
+                        ProductId = _productId,
+                        Quantity = _quantity,
+                        UnitPrice = 0,
+                        DiscountAmount = _itemDiscountAmount,
+                        DiscountPercentage = 0,
+                        BonusQuantity = _bonusQuantity,
+                        Notes = _notes
+                    }
                 }
+            };
+
+            var createResponse =
+                await SalesRepInvoiceApiService.CreateInvoiceAsync(createInvoiceRequest);
+
+            if (createResponse is null || !createResponse.Success || createResponse.Data is null)
+            {
+                _errorMessage = createResponse?.Message ?? "فشل إنشاء الفاتورة.";
+                return;
             }
-        };
 
-        var createResponse =
-            await SalesRepInvoiceApiService.CreateInvoiceAsync(createInvoiceRequest);
+            var invoiceId = createResponse.Data.Id;
 
-        if (createResponse is null || !createResponse.Success || createResponse.Data is null)
-        {
-            _errorMessage = createResponse?.Message ?? "فشل إنشاء الفاتورة.";
-            _isProcessing = false;
-            return;
+            var confirmResponse =
+                await SalesRepInvoiceApiService.ConfirmInvoiceAsync(invoiceId);
+
+            if (confirmResponse is null || !confirmResponse.Success)
+            {
+                _errorMessage = confirmResponse?.Message
+                    ?? "تم إنشاء الفاتورة لكن فشل تأكيدها.";
+
+                return;
+            }
+
+            var completeVisitRequest = new CompleteSalesRepMobileVisitRequest
+            {
+                VisitType = 1,
+                NegativeReason = null,
+                InvoiceId = invoiceId,
+                PaymentId = null,
+                InvoiceReturnId = null,
+                Notes = _notes
+            };
+
+            var completeVisitResponse =
+                await SalesRepVisitApiService.CompleteVisitAsync(
+                    VisitId,
+                    completeVisitRequest);
+
+            if (completeVisitResponse is null || !completeVisitResponse.Success)
+            {
+                _errorMessage = completeVisitResponse?.Message
+                    ?? "تم إنشاء وتأكيد الفاتورة لكن فشل إغلاق الزيارة.";
+
+                return;
+            }
+
+            _successMessage = "تم إنشاء الفاتورة وإغلاق الزيارة بنجاح.";
+
+            await Task.Delay(700);
+
+            GoBackToRouteCustomers();
         }
-
-        var invoiceId = createResponse.Data.Id;
-
-        var confirmResponse =
-            await SalesRepInvoiceApiService.ConfirmInvoiceAsync(invoiceId);
-
-        if (confirmResponse is null || !confirmResponse.Success)
+        finally
         {
-            _errorMessage = confirmResponse?.Message ?? "تم إنشاء الفاتورة لكن فشل تأكيدها.";
             _isProcessing = false;
-            return;
         }
+    }
 
-        var completeVisitRequest = new CompleteSalesRepMobileVisitRequest
+    private void ValidateInitialData()
+    {
+        if (VisitId <= 0 || SessionId <= 0 || CustomerId <= 0 || RouteId <= 0)
         {
-            VisitType = 1,
-            NegativeReason = null,
-            InvoiceId = invoiceId,
-            PaymentId = null,
-            InvoiceReturnId = null,
-            Notes = _notes
-        };
-
-        var completeVisitResponse =
-            await SalesRepVisitApiService.CompleteVisitAsync(
-                VisitId,
-                completeVisitRequest);
-
-        if (completeVisitResponse is null || !completeVisitResponse.Success)
-        {
-            _errorMessage = completeVisitResponse?.Message
-                ?? "تم إنشاء وتأكيد الفاتورة لكن فشل إغلاق الزيارة.";
-            _isProcessing = false;
-            return;
+            _errorMessage = "بيانات الزيارة غير مكتملة.";
         }
-
-        _successMessage = "تم إنشاء الفاتورة وإغلاق الزيارة بنجاح.";
-
-        await Task.Delay(700);
-
-        NavigationManager.NavigateTo("/customers", replace: true);
-
-        _isProcessing = false;
     }
 
     private bool Validate()
     {
+        _errorMessage = null;
+
         if (VisitId <= 0)
         {
             _errorMessage = "VisitId غير صحيح.";
@@ -214,6 +258,12 @@
         if (CustomerId <= 0)
         {
             _errorMessage = "CustomerId غير صحيح.";
+            return false;
+        }
+
+        if (RouteId <= 0)
+        {
+            _errorMessage = "RouteId غير صحيح.";
             return false;
         }
 
@@ -248,5 +298,19 @@
         }
 
         return true;
+    }
+
+    private void GoBackToRouteCustomers()
+    {
+        if (SessionId > 0 && RouteId > 0)
+        {
+            NavigationManager.NavigateTo(
+                $"/routes/{RouteId}/customers?sessionId={SessionId}",
+                replace: true);
+
+            return;
+        }
+
+        NavigationManager.NavigateTo("/routes", replace: true);
     }
 }
