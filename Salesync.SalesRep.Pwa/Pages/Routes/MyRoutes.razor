@@ -167,6 +167,15 @@ else
         }
 
         _routes = response.Data?.ToList() ?? new List<SalesRepMobileRouteDto>();
+
+        if (_routes.Count == 1 && SessionId.HasValue && SessionId.Value > 0)
+        {
+            var route = _routes.First();
+
+            NavigationManager.NavigateTo(
+                $"/routes/{route.RouteId}/customers?sessionId={SessionId.Value}",
+                replace: true);
+        }
     }
 
     private void ShowRouteCustomers(SalesRepMobileRouteDto route)
