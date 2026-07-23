@@ -4,32 +4,35 @@
 @using Microsoft.AspNetCore.Authorization
 @using Salesync.SalesRep.Pwa.Models.Responses
 @using Salesync.SalesRep.Pwa.Services.Interfaces
-@using Salesync.SalesRep.Pwa.Components
 
 @inject ISalesRepSessionApiService SalesRepSessionApiService
 @inject ISalesRepCustomerApiService SalesRepCustomerApiService
 @inject NavigationManager NavigationManager
 
-<div class="mobile-app-page">
+<div class="field-page">
 
-    <div class="mobile-app-header">
+    <div class="field-header-card">
         <div>
-            <h3 class="mobile-app-title">لوحة المندوب</h3>
-
-            <div class="mobile-app-subtitle">
+            <div class="field-header-title">
                 Salesync Rep
+            </div>
+
+            <div class="field-header-subtitle">
+                لوحة المندوب اليومية
             </div>
         </div>
 
-        <div class="mobile-avatar">
-            S
+        <div class="field-header-icon">
+            SR
         </div>
     </div>
 
     @if (_isLoading)
     {
-        <div class="card p-3">
-            <p class="mb-0">جاري تحميل بيانات اليوم...</p>
+        <div class="field-card">
+            <div class="field-loading-text">
+                جاري تحميل بيانات اليوم...
+            </div>
         </div>
     }
     else if (!string.IsNullOrWhiteSpace(_errorMessage))
@@ -40,224 +43,253 @@
     }
     else
     {
-        <div class="mobile-hero-card">
-            <div class="mobile-hero-title">
-                @GetTodayStateTitle()
+        <div class="field-status-card">
+            <div class="field-status-row">
+                <div>
+                    <div class="field-status-title">
+                        @GetTodayStateTitle()
+                    </div>
+
+                    <div class="field-status-text">
+                        @GetTodayStateText()
+                    </div>
+                </div>
+
+                <span class="field-status-pill @GetStatusCssClass()">
+                    @GetTodayBadgeText()
+                </span>
             </div>
 
-            <div class="mobile-hero-text">
-                @GetTodayStateText()
-            </div>
-
-            <div class="mobile-hero-pill">
-                @GetTodayBadgeText()
-            </div>
+            @if (CurrentSession is not null)
+            {
+                <div class="field-session-meta">
+                    <span>Session #@CurrentSession.Id</span>
+                    <span>@CurrentSession.WorkingDate.ToShortDateString()</span>
+                </div>
+            }
         </div>
 
         @if (HasNoTodaySession)
         {
-            <div class="mobile-action-grid">
+            <div class="field-card">
+                <div class="field-section-title mb-3">
+                    بداية اليوم
+                </div>
 
-                <MobileActionTile Icon="▶️"
-                                  Title="Start Day"
-                                  Subtitle="ابدأ يوم العمل وسجل زياراتك"
-                                  ColorClass="mobile-green"
-                                  Large="true"
-                                  Disabled="@_isProcessing"
-                                  OnClick="StartDayAsync" />
-
+                <button class="field-primary-button"
+                        disabled="@_isProcessing"
+                        @onclick="StartDayAsync">
+                    @(_isProcessing ? "جاري بدء اليوم..." : "Start Day")
+                </button>
             </div>
         }
         else if (CurrentSession is not null)
         {
-            <div class="mobile-kpi-section">
-
+            <div class="field-kpi-panel">
                 @if (HasOpenSession)
                 {
-                    <div class="mobile-kpi-tile">
-                        <div class="mobile-kpi-number">
-                            @_totalCustomers
-                        </div>
-
-                        <div class="mobile-kpi-name">
-                            العملاء
-                        </div>
+                    <div class="field-kpi-item">
+                        <div class="field-kpi-value">@_totalCustomers</div>
+                        <div class="field-kpi-label">العملاء</div>
                     </div>
 
-                    <div class="mobile-kpi-tile">
-                        <div class="mobile-kpi-number">
-                            @_visitedCustomers
-                        </div>
-
-                        <div class="mobile-kpi-name">
-                            تمت زيارتهم
-                        </div>
+                    <div class="field-kpi-item">
+                        <div class="field-kpi-value">@_visitedCustomers</div>
+                        <div class="field-kpi-label">تمت</div>
                     </div>
 
-                    <div class="mobile-kpi-tile">
-                        <div class="mobile-kpi-number">
-                            @_remainingCustomers
-                        </div>
-
-                        <div class="mobile-kpi-name">
-                            متبقي
-                        </div>
+                    <div class="field-kpi-item">
+                        <div class="field-kpi-value">@_remainingCustomers</div>
+                        <div class="field-kpi-label">متبقي</div>
                     </div>
                 }
 
-                <div class="mobile-kpi-tile">
-                    <div class="mobile-kpi-number">
-                        @CurrentSession.TotalVisits
-                    </div>
-
-                    <div class="mobile-kpi-name">
-                        الزيارات
-                    </div>
+                <div class="field-kpi-item">
+                    <div class="field-kpi-value">@CurrentSession.TotalVisits</div>
+                    <div class="field-kpi-label">الزيارات</div>
                 </div>
 
-                <div class="mobile-kpi-tile">
-                    <div class="mobile-kpi-number">
-                        @CurrentSession.TotalInvoices
-                    </div>
-
-                    <div class="mobile-kpi-name">
-                        الفواتير
-                    </div>
+                <div class="field-kpi-item">
+                    <div class="field-kpi-value">@CurrentSession.TotalInvoices</div>
+                    <div class="field-kpi-label">الفواتير</div>
                 </div>
 
-                <div class="mobile-kpi-tile">
-                    <div class="mobile-kpi-number">
-                        @FormatMoney(CurrentSession.TotalCollection)
-                    </div>
-
-                    <div class="mobile-kpi-name">
-                        التحصيل
-                    </div>
+                <div class="field-kpi-item">
+                    <div class="field-kpi-value">@FormatMoney(CurrentSession.TotalCollection)</div>
+                    <div class="field-kpi-label">التحصيل</div>
                 </div>
-
             </div>
 
             @if (HasOpenSession)
             {
-                <div class="mobile-section-title">
+                <div class="field-section-title">
                     العمليات اليومية
                 </div>
 
-                <div class="mobile-action-grid">
+                <div class="field-actions-grid">
 
-                    <MobileActionTile Icon="🧭"
-                                      Title="عملاء خط السير"
-                                      Subtitle="ابدأ الزيارات وسجل الطلبات"
-                                      ColorClass="mobile-blue"
-                                      Large="true"
-                                      OnClick="GoToRoutes" />
+                    <button class="field-action-card field-action-wide"
+                            @onclick="GoToRoutes">
+                        <span class="field-action-icon field-blue">RT</span>
 
-                    <MobileActionTile Icon="🧾"
-                                      Title="الفواتير"
-                                      Subtitle="فواتير اليوم"
-                                      ColorClass="mobile-green"
-                                      OnClick="GoToInvoices" />
+                        <span class="field-action-content">
+                            <strong>عملاء خط السير</strong>
+                            <small>ابدأ الزيارات وسجل الطلبات</small>
+                        </span>
+                    </button>
 
-                    <MobileActionTile Icon="💰"
-                                      Title="التحصيلات"
-                                      Subtitle="تحصيل من العملاء"
-                                      ColorClass="mobile-teal"
-                                      OnClick="GoToInvoices" />
+                    <button class="field-action-card"
+                            @onclick="GoToInvoices">
+                        <span class="field-action-icon field-green">INV</span>
 
-                    <MobileActionTile Icon="📦"
-                                      Title="المخزون"
-                                      Subtitle="رصيد العربية"
-                                      ColorClass="mobile-purple"
-                                      OnClick="GoToInventory" />
+                        <span class="field-action-content">
+                            <strong>الفواتير</strong>
+                            <small>فواتير اليوم</small>
+                        </span>
+                    </button>
 
-                    <MobileActionTile Icon="🚚"
-                                      Title="طلب تحميل"
-                                      Subtitle="طلب منتجات جديدة"
-                                      ColorClass="mobile-orange"
-                                      OnClick="GoToCreateLoadRequest" />
+                    <button class="field-action-card"
+                            @onclick="GoToInvoices">
+                        <span class="field-action-icon field-teal">PAY</span>
 
-                    <MobileActionTile Icon="📋"
-                                      Title="طلبات التحميل"
-                                      Subtitle="متابعة الموافقات"
-                                      ColorClass="mobile-dark"
-                                      OnClick="GoToLoadRequests" />
+                        <span class="field-action-content">
+                            <strong>التحصيلات</strong>
+                            <small>تحصيل العملاء</small>
+                        </span>
+                    </button>
 
-                    <MobileActionTile Icon="🔒"
-                                      Title="إغلاق اليوم"
-                                      Subtitle="إنهاء يوم العمل"
-                                      ColorClass="mobile-red"
-                                      Disabled="@_isProcessing"
-                                      OnClick="CloseDayAsync" />
+                    <button class="field-action-card"
+                            @onclick="GoToInventory">
+                        <span class="field-action-icon field-purple">STK</span>
+
+                        <span class="field-action-content">
+                            <strong>المخزون</strong>
+                            <small>رصيد العربية</small>
+                        </span>
+                    </button>
+
+                    <button class="field-action-card"
+                            @onclick="GoToCreateLoadRequest">
+                        <span class="field-action-icon field-orange">LR</span>
+
+                        <span class="field-action-content">
+                            <strong>طلب تحميل</strong>
+                            <small>طلب منتجات جديدة</small>
+                        </span>
+                    </button>
+
+                    <button class="field-action-card"
+                            @onclick="GoToLoadRequests">
+                        <span class="field-action-icon field-dark">REQ</span>
+
+                        <span class="field-action-content">
+                            <strong>طلبات التحميل</strong>
+                            <small>متابعة الموافقات</small>
+                        </span>
+                    </button>
+
+                    <button class="field-action-card"
+                            disabled="@_isProcessing"
+                            @onclick="CloseDayAsync">
+                        <span class="field-action-icon field-red">END</span>
+
+                        <span class="field-action-content">
+                            <strong>إغلاق اليوم</strong>
+                            <small>إنهاء يوم العمل</small>
+                        </span>
+                    </button>
 
                 </div>
             }
             else if (IsDayClosed)
             {
-                <div class="mobile-section-title">
+                <div class="field-section-title">
                     مراجعة بعد قفل اليوم
                 </div>
 
-                <div class="mobile-action-grid">
+                <div class="field-actions-grid">
 
-                    <MobileActionTile Icon="🧾"
-                                      Title="الفواتير"
-                                      Subtitle="مراجعة فواتير اليوم"
-                                      ColorClass="mobile-green"
-                                      OnClick="GoToInvoices" />
+                    <button class="field-action-card"
+                            @onclick="GoToInvoices">
+                        <span class="field-action-icon field-green">INV</span>
 
-                    <MobileActionTile Icon="📦"
-                                      Title="المخزون"
-                                      Subtitle="مراجعة رصيد العربية"
-                                      ColorClass="mobile-purple"
-                                      OnClick="GoToInventory" />
+                        <span class="field-action-content">
+                            <strong>الفواتير</strong>
+                            <small>مراجعة فواتير اليوم</small>
+                        </span>
+                    </button>
+
+                    <button class="field-action-card"
+                            @onclick="GoToInventory">
+                        <span class="field-action-icon field-purple">STK</span>
+
+                        <span class="field-action-content">
+                            <strong>المخزون</strong>
+                            <small>مراجعة رصيد العربية</small>
+                        </span>
+                    </button>
 
                 </div>
             }
 
-            <div class="mobile-section-title">
+            <div class="field-section-title">
                 الأرقام المالية
             </div>
 
-            <div class="card p-3 mb-3">
-                <div class="d-flex justify-content-between border-bottom py-2">
+            <div class="field-card">
+                <div class="field-summary-row">
                     <span>Gross Sales</span>
                     <strong>@FormatMoney(CurrentSession.GrossSales)</strong>
                 </div>
 
-                <div class="d-flex justify-content-between border-bottom py-2">
+                <div class="field-summary-row">
                     <span>Net Sales</span>
                     <strong>@FormatMoney(CurrentSession.NetSales)</strong>
                 </div>
 
-                <div class="d-flex justify-content-between border-bottom py-2">
+                <div class="field-summary-row">
                     <span>Total Collection</span>
                     <strong>@FormatMoney(CurrentSession.TotalCollection)</strong>
                 </div>
 
-                <div class="d-flex justify-content-between border-bottom py-2">
+                <div class="field-summary-row">
                     <span>Total Returns</span>
                     <strong>@FormatMoney(CurrentSession.TotalReturnAmount)</strong>
                 </div>
 
-                <div class="d-flex justify-content-between pt-2">
+                <div class="field-summary-row border-0">
                     <span>Total Invoices</span>
                     <strong>@CurrentSession.TotalInvoices</strong>
                 </div>
             </div>
 
-            <div class="card p-3 mb-3">
-                <h6 class="mb-2">بيانات اليوم</h6>
+            <div class="field-section-title">
+                بيانات اليوم
+            </div>
 
-                <div class="small">
-                    <div><strong>Session Id:</strong> @CurrentSession.Id</div>
-                    <div><strong>Working Date:</strong> @CurrentSession.WorkingDate.ToShortDateString()</div>
-                    <div><strong>Start Time:</strong> @CurrentSession.StartTime.ToLocalTime()</div>
-
-                    @if (CurrentSession.EndTime.HasValue)
-                    {
-                        <div><strong>End Time:</strong> @CurrentSession.EndTime.Value.ToLocalTime()</div>
-                    }
+            <div class="field-card">
+                <div class="field-info-row">
+                    <span>Session Id</span>
+                    <strong>@CurrentSession.Id</strong>
                 </div>
+
+                <div class="field-info-row">
+                    <span>Working Date</span>
+                    <strong>@CurrentSession.WorkingDate.ToShortDateString()</strong>
+                </div>
+
+                <div class="field-info-row">
+                    <span>Start Time</span>
+                    <strong>@CurrentSession.StartTime.ToLocalTime()</strong>
+                </div>
+
+                @if (CurrentSession.EndTime.HasValue)
+                {
+                    <div class="field-info-row">
+                        <span>End Time</span>
+                        <strong>@CurrentSession.EndTime.Value.ToLocalTime()</strong>
+                    </div>
+                }
             </div>
         }
 
@@ -452,7 +484,7 @@
             return "ابدأ يومك";
 
         if (HasOpenSession)
-            return "يومك مفتوح";
+            return "اليوم مفتوح";
 
         if (IsDayClosed)
             return "تم قفل اليوم";
@@ -483,6 +515,17 @@
             return "CLOSED";
 
         return "NOT STARTED";
+    }
+
+    private string GetStatusCssClass()
+    {
+        if (HasOpenSession)
+            return "field-status-open";
+
+        if (IsDayClosed)
+            return "field-status-closed";
+
+        return "field-status-not-started";
     }
 
     private static string FormatMoney(decimal value)

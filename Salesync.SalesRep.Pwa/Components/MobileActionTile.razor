@@ -1,20 +1,20 @@
 ﻿<button type="button"
-        class="mobile-action-tile @ColorClass @(Large ? "mobile-action-large" : "")"
+        class="enterprise-action-tile @ColorClass @(Large ? "enterprise-action-large" : "")"
         disabled="@Disabled"
         @onclick="OnClick">
 
-    <div class="mobile-action-icon">
+    <div class="enterprise-action-icon">
         @Icon
     </div>
 
-    <div class="mobile-action-content">
-        <div class="mobile-action-title">
+    <div class="enterprise-action-content">
+        <div class="enterprise-action-title">
             @Title
         </div>
 
         @if (!string.IsNullOrWhiteSpace(Subtitle))
         {
-            <div class="mobile-action-subtitle">
+            <div class="enterprise-action-subtitle">
                 @Subtitle
             </div>
         }
@@ -24,7 +24,7 @@
 
 @code {
     [Parameter]
-    public string Icon { get; set; } = "•";
+    public string Icon { get; set; } = "APP";
 
     [Parameter]
     public string Title { get; set; } = string.Empty;
@@ -33,7 +33,7 @@
     public string? Subtitle { get; set; }
 
     [Parameter]
-    public string ColorClass { get; set; } = "mobile-blue";
+    public string ColorClass { get; set; } = "enterprise-blue";
 
     [Parameter]
     public bool Large { get; set; }
