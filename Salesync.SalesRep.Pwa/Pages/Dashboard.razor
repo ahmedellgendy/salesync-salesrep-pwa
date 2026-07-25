@@ -1,311 +1,322 @@
 ﻿@page "/dashboard"
 @attribute [Authorize]
 
+@using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Salesync.SalesRep.Pwa.Models.Responses
 @using Salesync.SalesRep.Pwa.Services.Interfaces
 
 @inject ISalesRepSessionApiService SalesRepSessionApiService
 @inject ISalesRepCustomerApiService SalesRepCustomerApiService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 
-<div class="field-page">
-
-    <div class="field-header-card">
-        <div>
-            <div class="field-header-title">
-                Salesync Rep
-            </div>
-
-            <div class="field-header-subtitle">
-                لوحة المندوب اليومية
-            </div>
-        </div>
-
-        <div class="field-header-icon">
-            SR
-        </div>
-    </div>
+<div class="premium-dashboard" dir="rtl">
 
     @if (_isLoading)
     {
-        <div class="field-card">
-            <div class="field-loading-text">
-                جاري تحميل بيانات اليوم...
-            </div>
+        <div class="premium-loading">
+            <div class="premium-spinner"></div>
+            <strong>جاري تحميل يومك...</strong>
+            <span>نجهز لك بيانات خط السير</span>
         </div>
     }
     else if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
-        <div class="alert alert-danger">
+        <div class="premium-alert error">
             @_errorMessage
         </div>
     }
     else
     {
-        <div class="field-status-card">
-            <div class="field-status-row">
-                <div>
-                    <div class="field-status-title">
-                        @GetTodayStateTitle()
-                    </div>
+        <section class="premium-hero">
+            <div class="hero-content">
+                <span class="hero-eyebrow">@GetGreeting()</span>
+                <h1>أهلًا يا @_salesRepName</h1>
+                <p>@GetHeroSubtitle()</p>
+            </div>
 
-                    <div class="field-status-text">
-                        @GetTodayStateText()
-                    </div>
+            <div class="hero-avatar">
+                @GetAvatarText()
+            </div>
+        </section>
+
+        <section class="mission-card">
+            <div class="mission-top">
+                <div>
+                    <span class="mission-label">مهمة اليوم</span>
+                    <h2>@GetMissionTitle()</h2>
                 </div>
 
-                <span class="field-status-pill @GetStatusCssClass()">
+                <span class="mission-status @GetStatusCssClass()">
                     @GetTodayBadgeText()
                 </span>
             </div>
 
-            @if (CurrentSession is not null)
+            @if (HasNoTodaySession)
             {
-                <div class="field-session-meta">
-                    <span>Session #@CurrentSession.Id</span>
-                    <span>@CurrentSession.WorkingDate.ToShortDateString()</span>
+                <div class="empty-mission">
+                    <div class="empty-icon">🚀</div>
+                    <h3>ابدأ يوم العمل</h3>
+                    <p>افتح اليوم لتبدأ زيارات العملاء وتسجيل الفواتير والتحصيلات.</p>
                 </div>
             }
-        </div>
+            else if (CurrentSession is not null)
+            {
+                <div class="mission-progress-row">
+                    <div class="progress-ring"
+                         style="--progress:@GetVisitProgressPercent();">
+                        <div class="progress-ring-inner">
+                            <strong>@GetVisitProgressPercent()<span>%</span></strong>
+                            <small>إنجاز الخط</small>
+                        </div>
+                    </div>
 
-        @if (HasNoTodaySession)
+                    <div class="progress-summary">
+                        <div class="progress-main-number">
+                            @_visitedCustomers / @_totalCustomers
+                        </div>
+
+                        <div class="progress-main-label">
+                            عملاء تمت زيارتهم
+                        </div>
+
+                        <div class="progress-mini-row">
+                            <span>
+                                <b>@_remainingCustomers</b>
+                                متبقي
+                            </span>
+
+                            <span>
+                                <b>@CurrentSession.TotalVisits</b>
+                                زيارة
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <button class="smart-action-btn"
+                    disabled="@_isProcessing"
+                    @onclick="PrimaryActionAsync">
+                <span>@GetPrimaryActionIcon()</span>
+                <div>
+                    <strong>@GetPrimaryActionTitle()</strong>
+                    <small>@GetPrimaryActionSubtitle()</small>
+                </div>
+            </button>
+        </section>
+
+        @if (CurrentSession is not null)
         {
-            <div class="field-card">
-                <div class="field-section-title mb-3">
-                    بداية اليوم
-                </div>
-
-                <button class="field-primary-button"
-                        disabled="@_isProcessing"
-                        @onclick="StartDayAsync">
-                    @(_isProcessing ? "جاري بدء اليوم..." : "Start Day")
-                </button>
-            </div>
-        }
-        else if (CurrentSession is not null)
-        {
-            <div class="field-kpi-panel">
-                @if (HasOpenSession)
-                {
-                    <div class="field-kpi-item">
-                        <div class="field-kpi-value">@_totalCustomers</div>
-                        <div class="field-kpi-label">العملاء</div>
-                    </div>
-
-                    <div class="field-kpi-item">
-                        <div class="field-kpi-value">@_visitedCustomers</div>
-                        <div class="field-kpi-label">تمت</div>
-                    </div>
-
-                    <div class="field-kpi-item">
-                        <div class="field-kpi-value">@_remainingCustomers</div>
-                        <div class="field-kpi-label">متبقي</div>
-                    </div>
-                }
-
-                <div class="field-kpi-item">
-                    <div class="field-kpi-value">@CurrentSession.TotalVisits</div>
-                    <div class="field-kpi-label">الزيارات</div>
-                </div>
-
-                <div class="field-kpi-item">
-                    <div class="field-kpi-value">@CurrentSession.TotalInvoices</div>
-                    <div class="field-kpi-label">الفواتير</div>
-                </div>
-
-                <div class="field-kpi-item">
-                    <div class="field-kpi-value">@FormatMoney(CurrentSession.TotalCollection)</div>
-                    <div class="field-kpi-label">التحصيل</div>
-                </div>
-            </div>
-
-            @if (HasOpenSession)
-            {
-                <div class="field-section-title">
-                    العمليات اليومية
-                </div>
-
-                <div class="field-actions-grid">
-
-                    <button class="field-action-card field-action-wide"
-                            @onclick="GoToRoutes">
-                        <span class="field-action-icon field-blue">RT</span>
-
-                        <span class="field-action-content">
-                            <strong>عملاء خط السير</strong>
-                            <small>ابدأ الزيارات وسجل الطلبات</small>
-                        </span>
-                    </button>
-
-                    <button class="field-action-card"
-                            @onclick="GoToInvoices">
-                        <span class="field-action-icon field-green">INV</span>
-
-                        <span class="field-action-content">
-                            <strong>الفواتير</strong>
-                            <small>فواتير اليوم</small>
-                        </span>
-                    </button>
-
-                    <button class="field-action-card"
-                            @onclick="GoToInvoices">
-                        <span class="field-action-icon field-teal">PAY</span>
-
-                        <span class="field-action-content">
-                            <strong>التحصيلات</strong>
-                            <small>تحصيل العملاء</small>
-                        </span>
-                    </button>
-
-                    <button class="field-action-card"
-                            @onclick="GoToInventory">
-                        <span class="field-action-icon field-purple">STK</span>
-
-                        <span class="field-action-content">
-                            <strong>المخزون</strong>
-                            <small>رصيد العربية</small>
-                        </span>
-                    </button>
-
-                    <button class="field-action-card"
-                            @onclick="GoToCreateLoadRequest">
-                        <span class="field-action-icon field-orange">LR</span>
-
-                        <span class="field-action-content">
-                            <strong>طلب تحميل</strong>
-                            <small>طلب منتجات جديدة</small>
-                        </span>
-                    </button>
-
-                    <button class="field-action-card"
-                            @onclick="GoToLoadRequests">
-                        <span class="field-action-icon field-dark">REQ</span>
-
-                        <span class="field-action-content">
-                            <strong>طلبات التحميل</strong>
-                            <small>متابعة الموافقات</small>
-                        </span>
-                    </button>
-
-                    <button class="field-action-card"
-                            disabled="@_isProcessing"
-                            @onclick="CloseDayAsync">
-                        <span class="field-action-icon field-red">END</span>
-
-                        <span class="field-action-content">
-                            <strong>إغلاق اليوم</strong>
-                            <small>إنهاء يوم العمل</small>
-                        </span>
-                    </button>
-
-                </div>
-            }
-            else if (IsDayClosed)
-            {
-                <div class="field-section-title">
-                    مراجعة بعد قفل اليوم
-                </div>
-
-                <div class="field-actions-grid">
-
-                    <button class="field-action-card"
-                            @onclick="GoToInvoices">
-                        <span class="field-action-icon field-green">INV</span>
-
-                        <span class="field-action-content">
-                            <strong>الفواتير</strong>
-                            <small>مراجعة فواتير اليوم</small>
-                        </span>
-                    </button>
-
-                    <button class="field-action-card"
-                            @onclick="GoToInventory">
-                        <span class="field-action-icon field-purple">STK</span>
-
-                        <span class="field-action-content">
-                            <strong>المخزون</strong>
-                            <small>مراجعة رصيد العربية</small>
-                        </span>
-                    </button>
-
-                </div>
-            }
-
-            <div class="field-section-title">
-                الأرقام المالية
-            </div>
-
-            <div class="field-card">
-                <div class="field-summary-row">
-                    <span>Gross Sales</span>
-                    <strong>@FormatMoney(CurrentSession.GrossSales)</strong>
-                </div>
-
-                <div class="field-summary-row">
-                    <span>Net Sales</span>
-                    <strong>@FormatMoney(CurrentSession.NetSales)</strong>
-                </div>
-
-                <div class="field-summary-row">
-                    <span>Total Collection</span>
-                    <strong>@FormatMoney(CurrentSession.TotalCollection)</strong>
-                </div>
-
-                <div class="field-summary-row">
-                    <span>Total Returns</span>
-                    <strong>@FormatMoney(CurrentSession.TotalReturnAmount)</strong>
-                </div>
-
-                <div class="field-summary-row border-0">
-                    <span>Total Invoices</span>
+            <section class="snapshot-grid">
+                <button class="snapshot-card @(IsInsightSelected(DashboardInsight.Invoices) ? "active" : "")"
+                        @onclick="() => SelectInsight(DashboardInsight.Invoices)">
+                    <span class="snapshot-icon">🧾</span>
                     <strong>@CurrentSession.TotalInvoices</strong>
+                    <small>فواتير</small>
+                </button>
+
+                <button class="snapshot-card @(IsInsightSelected(DashboardInsight.Collection) ? "active" : "")"
+                        @onclick="() => SelectInsight(DashboardInsight.Collection)">
+                    <span class="snapshot-icon">💰</span>
+                    <strong>@FormatMoney(CurrentSession.TotalCollection)</strong>
+                    <small>تحصيل</small>
+                </button>
+
+                <button class="snapshot-card @(IsInsightSelected(DashboardInsight.Remaining) ? "active" : "")"
+                        @onclick="() => SelectInsight(DashboardInsight.Remaining)">
+                    <span class="snapshot-icon">👥</span>
+                    <strong>@_remainingCustomers</strong>
+                    <small>متبقي</small>
+                </button>
+            </section>
+
+            <section class="insight-panel">
+                <div>
+                    <span>@GetSelectedInsightTitle()</span>
+                    <strong>@GetSelectedInsightValue()</strong>
                 </div>
-            </div>
 
-            <div class="field-section-title">
-                بيانات اليوم
-            </div>
+                <p>@GetSelectedInsightText()</p>
+            </section>
 
-            <div class="field-card">
-                <div class="field-info-row">
-                    <span>Session Id</span>
-                    <strong>@CurrentSession.Id</strong>
+            <section class="money-panel">
+                <div class="money-title-row">
+                    <div>
+                        <span>ملخص مالي سريع</span>
+                        <strong>@FormatMoney(CurrentSession.NetSales)</strong>
+                    </div>
+
+                    <small>صافي المبيعات</small>
                 </div>
 
-                <div class="field-info-row">
-                    <span>Working Date</span>
-                    <strong>@CurrentSession.WorkingDate.ToShortDateString()</strong>
+                <div class="money-line">
+                    <div class="money-line-header">
+                        <span>المبيعات</span>
+                        <strong>@FormatMoney(CurrentSession.GrossSales)</strong>
+                    </div>
+                    <div class="money-track">
+                        <div class="money-fill sales" style="width:@GetSalesBarWidth()"></div>
+                    </div>
                 </div>
 
-                <div class="field-info-row">
-                    <span>Start Time</span>
-                    <strong>@CurrentSession.StartTime.ToLocalTime()</strong>
+                <div class="money-line">
+                    <div class="money-line-header">
+                        <span>التحصيل</span>
+                        <strong>@FormatMoney(CurrentSession.TotalCollection)</strong>
+                    </div>
+                    <div class="money-track">
+                        <div class="money-fill collection" style="width:@GetCollectionBarWidth()"></div>
+                    </div>
+                </div>
+            </section>
+        }
+
+        @if (HasOpenSession)
+        {
+            <section class="quick-zone">
+                <div class="section-heading">
+                    <h3>العمليات السريعة</h3>
+                    <span>اختار اللي محتاجه بسرعة</span>
                 </div>
 
-                @if (CurrentSession.EndTime.HasValue)
+                <button class="main-tile route" @onclick="GoToRoutes">
+                    <div class="tile-icon">🧭</div>
+                    <div>
+                        <strong>عملاء خط السير</strong>
+                        <small>ابدأ أو استكمل زيارات اليوم</small>
+                    </div>
+                </button>
+
+                <div class="tile-grid">
+                    <button class="mini-tile" @onclick="GoToInvoices">
+                        <span>🧾</span>
+                        <strong>الفواتير</strong>
+                    </button>
+
+                    <button class="mini-tile" @onclick="GoToInventory">
+                        <span>📦</span>
+                        <strong>المخزون</strong>
+                    </button>
+
+                    <button class="mini-tile" @onclick="GoToCreateLoadRequest">
+                        <span>➕</span>
+                        <strong>طلب تحميل</strong>
+                    </button>
+
+                    <button class="mini-tile" @onclick="GoToLoadRequests">
+                        <span>📋</span>
+                        <strong>طلبات التحميل</strong>
+                    </button>
+                </div>
+
+                <button class="danger-link" @onclick="AskCloseDayConfirmation">
+                    إغلاق يوم العمل
+                </button>
+
+                @if (_showCloseConfirm)
                 {
-                    <div class="field-info-row">
-                        <span>End Time</span>
-                        <strong>@CurrentSession.EndTime.Value.ToLocalTime()</strong>
+                    <div class="close-sheet">
+                        <h4>تأكيد إغلاق اليوم</h4>
+                        <p>بعد الإغلاق لن تتمكن من تسجيل زيارات أو فواتير جديدة على نفس السيشن.</p>
+
+                        <button class="confirm-close-btn"
+                                disabled="@_isProcessing"
+                                @onclick="CloseDayAsync">
+                            @(_isProcessing ? "جاري الإغلاق..." : "تأكيد الإغلاق")
+                        </button>
+
+                        <button class="cancel-close-btn"
+                                disabled="@_isProcessing"
+                                @onclick="CancelCloseConfirm">
+                            إلغاء
+                        </button>
                     </div>
                 }
-            </div>
+            </section>
+        }
+        else if (IsDayClosed && CurrentSession is not null)
+        {
+            <section class="closed-card">
+                <div class="closed-icon">✅</div>
+                <h3>تم قفل اليوم</h3>
+                <p>يمكنك مراجعة الفواتير والمخزون وملخص اليوم فقط.</p>
+
+                <div class="tile-grid">
+                    <button class="mini-tile" @onclick="GoToInvoices">
+                        <span>🧾</span>
+                        <strong>الفواتير</strong>
+                    </button>
+
+                    <button class="mini-tile" @onclick="GoToInventory">
+                        <span>📦</span>
+                        <strong>المخزون</strong>
+                    </button>
+                </div>
+            </section>
+        }
+
+        @if (CurrentSession is not null)
+        {
+            <section class="session-accordion">
+                <button class="accordion-trigger" @onclick="ToggleSessionDetails">
+                    <span>تفاصيل اليوم</span>
+                    <strong>@(_showSessionDetails ? "−" : "+")</strong>
+                </button>
+
+                @if (_showSessionDetails)
+                {
+                    <div class="session-details-list">
+                        <div>
+                            <span>رقم السيشن</span>
+                            <strong>@CurrentSession.Id</strong>
+                        </div>
+
+                        <div>
+                            <span>تاريخ اليوم</span>
+                            <strong>@FormatDate(CurrentSession.WorkingDate)</strong>
+                        </div>
+
+                        <div>
+                            <span>وقت البداية</span>
+                            <strong>@FormatDateTime(CurrentSession.StartTime)</strong>
+                        </div>
+
+                        @if (CurrentSession.EndTime.HasValue)
+                        {
+                            <div>
+                                <span>وقت النهاية</span>
+                                <strong>@FormatDateTime(CurrentSession.EndTime.Value)</strong>
+                            </div>
+                        }
+
+                        <div>
+                            <span>المرتجعات</span>
+                            <strong>@FormatMoney(CurrentSession.TotalReturnAmount)</strong>
+                        </div>
+                    </div>
+                }
+            </section>
         }
 
         @if (!string.IsNullOrWhiteSpace(_successMessage))
         {
-            <div class="alert alert-success mt-3">
+            <div class="premium-alert success">
                 @_successMessage
             </div>
         }
     }
-
 </div>
 
 @code {
     private bool _isLoading = true;
     private bool _isProcessing;
+    private bool _showCloseConfirm;
+    private bool _showSessionDetails;
+
+    private string _salesRepName = "مندوب Salesync";
 
     private string? _errorMessage;
     private string? _successMessage;
@@ -315,6 +326,8 @@
     private int _totalCustomers;
     private int _visitedCustomers;
     private int _remainingCustomers;
+
+    private DashboardInsight _selectedInsight = DashboardInsight.Invoices;
 
     private SalesRepSessionDto? CurrentSession => _today?.Session;
 
@@ -329,9 +342,27 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadCurrentUserNameAsync();
         await LoadDashboardAsync();
 
         _isLoading = false;
+    }
+
+    private async Task LoadCurrentUserNameAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+            return;
+
+        _salesRepName =
+            user.FindFirst("FullName")?.Value
+            ?? user.FindFirst("fullName")?.Value
+            ?? user.FindFirst(ClaimTypes.Name)?.Value
+            ?? user.FindFirst("name")?.Value
+            ?? user.FindFirst(ClaimTypes.Email)?.Value
+            ?? "مندوب Salesync";
     }
 
     private async Task LoadDashboardAsync()
@@ -381,11 +412,32 @@
         _remainingCustomers = customers.Count(x => !x.HasVisitToday);
     }
 
+    private async Task PrimaryActionAsync()
+    {
+        if (HasNoTodaySession)
+        {
+            await StartDayAsync();
+            return;
+        }
+
+        if (HasOpenSession)
+        {
+            GoToRoutes();
+            return;
+        }
+
+        if (IsDayClosed)
+        {
+            GoToInvoices();
+        }
+    }
+
     private async Task StartDayAsync()
     {
         _isProcessing = true;
         _errorMessage = null;
         _successMessage = null;
+        _showCloseConfirm = false;
 
         try
         {
@@ -469,6 +521,7 @@
             _totalCustomers = 0;
             _visitedCustomers = 0;
             _remainingCustomers = 0;
+            _showCloseConfirm = false;
 
             _successMessage = "تم قفل اليوم بنجاح.";
         }
@@ -478,59 +531,244 @@
         }
     }
 
-    private string GetTodayStateTitle()
+    private string GetGreeting()
     {
-        if (HasNoTodaySession)
-            return "ابدأ يومك";
+        var hour = DateTime.Now.Hour;
 
-        if (HasOpenSession)
-            return "اليوم مفتوح";
+        if (hour < 12)
+            return "صباح الخير";
 
-        if (IsDayClosed)
-            return "تم قفل اليوم";
+        if (hour < 18)
+            return "مساء الخير";
 
-        return "حالة اليوم";
+        return "أهلًا بك";
     }
 
-    private string GetTodayStateText()
+    private string GetAvatarText()
+    {
+        if (string.IsNullOrWhiteSpace(_salesRepName))
+            return "SR";
+
+        var parts = _salesRepName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length == 1)
+            return parts[0].Length >= 2
+                ? parts[0][..2].ToUpper()
+                : parts[0].ToUpper();
+
+        return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+    }
+
+    private string GetHeroSubtitle()
     {
         if (HasNoTodaySession)
-            return "ابدأ يومك لتسجيل الزيارات والفواتير والتحصيل.";
+            return "ابدأ يومك وانطلق في خط السير.";
 
         if (HasOpenSession)
-            return "يمكنك متابعة خط السير وتسجيل الفواتير والتحصيلات.";
+            return "تابع زياراتك وفواتيرك من شاشة واحدة.";
 
         if (IsDayClosed)
-            return "اليوم مقفول ويمكنك مراجعة النتائج فقط.";
+            return "اليوم انتهى، راجع نتائجك بسرعة.";
 
-        return "حالة اليوم غير معروفة.";
+        return "تابع يومك بسهولة.";
+    }
+
+    private string GetMissionTitle()
+    {
+        if (HasNoTodaySession)
+            return "اليوم لم يبدأ بعد";
+
+        if (HasOpenSession)
+            return "تابع خط السير";
+
+        if (IsDayClosed)
+            return "ملخص اليوم";
+
+        return "حالة اليوم";
     }
 
     private string GetTodayBadgeText()
     {
         if (HasOpenSession)
-            return "OPEN";
+            return "مفتوح";
 
         if (IsDayClosed)
-            return "CLOSED";
+            return "مقفول";
 
-        return "NOT STARTED";
+        return "لم يبدأ";
     }
 
     private string GetStatusCssClass()
     {
         if (HasOpenSession)
-            return "field-status-open";
+            return "open";
 
         if (IsDayClosed)
-            return "field-status-closed";
+            return "closed";
 
-        return "field-status-not-started";
+        return "not-started";
+    }
+
+    private int GetVisitProgressPercent()
+    {
+        if (_totalCustomers <= 0)
+            return 0;
+
+        var percent = (decimal)_visitedCustomers / _totalCustomers * 100;
+        return (int)Math.Round(percent, 0);
+    }
+
+    private string GetPrimaryActionIcon()
+    {
+        if (HasNoTodaySession)
+            return "🚀";
+
+        if (HasOpenSession)
+            return "🧭";
+
+        if (IsDayClosed)
+            return "📊";
+
+        return "➡️";
+    }
+
+    private string GetPrimaryActionTitle()
+    {
+        if (HasNoTodaySession)
+            return "بدء اليوم";
+
+        if (HasOpenSession)
+            return "متابعة خط السير";
+
+        if (IsDayClosed)
+            return "مراجعة الفواتير";
+
+        return "متابعة";
+    }
+
+    private string GetPrimaryActionSubtitle()
+    {
+        if (HasNoTodaySession)
+            return "افتح يوم العمل الآن";
+
+        if (HasOpenSession)
+            return "افتح عملاء الخط وابدأ الزيارة";
+
+        if (IsDayClosed)
+            return "راجع نتائج اليوم";
+
+        return "انتقل للخطوة التالية";
+    }
+
+    private void SelectInsight(DashboardInsight insight)
+    {
+        _selectedInsight = insight;
+    }
+
+    private bool IsInsightSelected(DashboardInsight insight)
+    {
+        return _selectedInsight == insight;
+    }
+
+    private string GetSelectedInsightTitle()
+    {
+        return _selectedInsight switch
+        {
+            DashboardInsight.Invoices => "فواتير اليوم",
+            DashboardInsight.Collection => "تحصيل اليوم",
+            DashboardInsight.Remaining => "عملاء متبقين",
+            _ => "ملخص"
+        };
+    }
+
+    private string GetSelectedInsightValue()
+    {
+        if (CurrentSession is null)
+            return "0";
+
+        return _selectedInsight switch
+        {
+            DashboardInsight.Invoices => CurrentSession.TotalInvoices.ToString(),
+            DashboardInsight.Collection => FormatMoney(CurrentSession.TotalCollection),
+            DashboardInsight.Remaining => _remainingCustomers.ToString(),
+            _ => "0"
+        };
+    }
+
+    private string GetSelectedInsightText()
+    {
+        return _selectedInsight switch
+        {
+            DashboardInsight.Invoices => "عدد الفواتير التي تم تسجيلها خلال يوم العمل.",
+            DashboardInsight.Collection => "إجمالي المبالغ المحصلة من العملاء حتى الآن.",
+            DashboardInsight.Remaining => "افتح خط السير واختر العميل التالي للزيارة.",
+            _ => string.Empty
+        };
+    }
+
+    private string GetSalesBarWidth()
+    {
+        if (CurrentSession is null || CurrentSession.GrossSales <= 0)
+            return "0%";
+
+        return "100%";
+    }
+
+    private string GetCollectionBarWidth()
+    {
+        if (CurrentSession is null || CurrentSession.GrossSales <= 0)
+            return "0%";
+
+        var percent = CurrentSession.TotalCollection / CurrentSession.GrossSales * 100;
+
+        if (percent > 100)
+            percent = 100;
+
+        if (percent < 0)
+            percent = 0;
+
+        return $"{percent:N0}%";
+    }
+
+    private void AskCloseDayConfirmation()
+    {
+        _showCloseConfirm = true;
+        _errorMessage = null;
+        _successMessage = null;
+    }
+
+    private void CancelCloseConfirm()
+    {
+        _showCloseConfirm = false;
+    }
+
+    private void ToggleSessionDetails()
+    {
+        _showSessionDetails = !_showSessionDetails;
     }
 
     private static string FormatMoney(decimal value)
     {
         return value.ToString("N2");
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToString("dd/MM/yyyy");
+    }
+
+    private static string FormatDateTime(DateTime value)
+    {
+        return value.ToLocalTime().ToString("dd/MM/yyyy hh:mm tt");
+    }
+
+    private void GoToRoutes()
+    {
+        if (CurrentSession is null)
+            return;
+
+        NavigationManager.NavigateTo($"/routes/{CurrentSession.Id}");
     }
 
     private void GoToInvoices()
@@ -539,6 +777,11 @@
             return;
 
         NavigationManager.NavigateTo($"/invoices/{CurrentSession.Id}");
+    }
+
+    private void GoToInventory()
+    {
+        NavigationManager.NavigateTo("/inventory");
     }
 
     private void GoToCreateLoadRequest()
@@ -551,16 +794,11 @@
         NavigationManager.NavigateTo("/load-requests");
     }
 
-    private void GoToInventory()
+    private enum DashboardInsight
     {
-        NavigationManager.NavigateTo("/inventory");
+        Invoices = 1,
+        Collection = 2,
+        Remaining = 3
     }
-
-    private void GoToRoutes()
-    {
-        if (CurrentSession is null)
-            return;
-
-        NavigationManager.NavigateTo($"/routes/{CurrentSession.Id}");
-    }
+    
 }

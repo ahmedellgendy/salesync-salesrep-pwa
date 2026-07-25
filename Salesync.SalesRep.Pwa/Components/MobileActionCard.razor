@@ -1,5 +1,6 @@
-﻿<div class="mobile-action-card @CssClass"
-     @onclick="OnClick">
+﻿<button type="button"
+        class="mobile-action-card @CssClass"
+        @onclick="OnClick">
 
     <div class="mobile-action-icon">
         @Icon
@@ -16,7 +17,7 @@
         </div>
     }
 
-</div>
+</button>
 
 @code {
     [Parameter]

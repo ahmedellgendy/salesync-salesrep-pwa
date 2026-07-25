@@ -1,0 +1,200 @@
+﻿@page "/reports"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepSessionApiService SalesRepSessionApiService
+@inject NavigationManager NavigationManager
+
+<div class="reports-page" dir="rtl">
+
+    <section class="reports-hero">
+        <div>
+            <span>مركز التقارير</span>
+            <h1>تقارير يومك</h1>
+            <p>راجع الفواتير، التحصيلات، الزيارات، وطلبات التحميل من مكان واحد.</p>
+        </div>
+
+        <div class="reports-hero-icon">
+            ▤
+        </div>
+    </section>
+
+    @if (_isLoading)
+    {
+        <div class="reports-card">
+            جاري تحميل بيانات اليوم...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="reports-alert error">
+            @_errorMessage
+        </div>
+    }
+    else
+    {
+        <section class="reports-today-card">
+            <div>
+                <span>حالة اليوم</span>
+                <strong>@GetTodayStatusText()</strong>
+            </div>
+
+            @if (CurrentSession is not null)
+            {
+                <small>Session #@CurrentSession.Id</small>
+            }
+        </section>
+
+        <section class="reports-grid">
+
+            <button class="report-tile primary"
+                    disabled="@(!CanOpenSessionReports)"
+                    @onclick="GoToInvoices">
+                <div class="report-icon">🧾</div>
+                <div>
+                    <strong>فواتير اليوم</strong>
+                    <small>عرض فواتير السيشن الحالية</small>
+                </div>
+            </button>
+
+            <button class="report-tile"
+                    disabled="@(!CanOpenSessionReports)"
+                    @onclick="GoToInvoices">
+                <div class="report-icon">💰</div>
+                <div>
+                    <strong>تحصيلات اليوم</strong>
+                    <small>التحصيل مرتبط بفواتير اليوم</small>
+                </div>
+            </button>
+
+            <button class="report-tile"
+                    disabled="@(!CanOpenSessionReports)"
+                    @onclick="GoToRoutes">
+                <div class="report-icon">👥</div>
+                <div>
+                    <strong>ملخص الزيارات</strong>
+                    <small>عملاء الخط وحالة الزيارات</small>
+                </div>
+            </button>
+
+            <button class="report-tile"
+                    @onclick="GoToInventory">
+                <div class="report-icon">📦</div>
+                <div>
+                    <strong>تقرير المخزون</strong>
+                    <small>رصيد العربية الحالي</small>
+                </div>
+            </button>
+
+            <button class="report-tile"
+                    @onclick="GoToLoadRequests">
+                <div class="report-icon">📋</div>
+                <div>
+                    <strong>طلبات التحميل</strong>
+                    <small>متابعة الطلبات والموافقات</small>
+                </div>
+            </button>
+
+            <button class="report-tile disabled"
+                    disabled>
+                <div class="report-icon">↩️</div>
+                <div>
+                    <strong>مرتجعات اليوم</strong>
+                    <small>سيتم إضافتها لاحقًا</small>
+                </div>
+            </button>
+
+        </section>
+
+        @if (!CanOpenSessionReports)
+        {
+            <div class="reports-alert warning">
+                ابدأ يومك أولًا من الرئيسية عشان تقدر تراجع فواتير وزيارات اليوم.
+            </div>
+        }
+    }
+
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private SalesRepMobileTodayDto? _today;
+
+    private SalesRepSessionDto? CurrentSession => _today?.Session;
+
+    private bool CanOpenSessionReports =>
+        CurrentSession is not null &&
+        (_today?.HasOpenSession == true || _today?.IsDayClosed == true);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTodayAsync();
+        _isLoading = false;
+    }
+
+    private async Task LoadTodayAsync()
+    {
+        _errorMessage = null;
+
+        var response = await SalesRepSessionApiService.GetTodayAsync();
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام بيانات اليوم من الخادم.";
+            return;
+        }
+
+        if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل تحميل بيانات اليوم.";
+            return;
+        }
+
+        _today = response.Data;
+    }
+
+    private string GetTodayStatusText()
+    {
+        if (_today is null || !_today.HasTodaySession)
+            return "لم يبدأ اليوم";
+
+        if (_today.HasOpenSession)
+            return "اليوم مفتوح";
+
+        if (_today.IsDayClosed)
+            return "اليوم مقفول";
+
+        return "غير معروف";
+    }
+
+    private void GoToInvoices()
+    {
+        if (CurrentSession is null)
+            return;
+
+        NavigationManager.NavigateTo($"/invoices/{CurrentSession.Id}");
+    }
+
+    private void GoToRoutes()
+    {
+        if (CurrentSession is null)
+            return;
+
+        NavigationManager.NavigateTo($"/routes/{CurrentSession.Id}");
+    }
+
+    private void GoToInventory()
+    {
+        NavigationManager.NavigateTo("/inventory");
+    }
+
+    private void GoToLoadRequests()
+    {
+        NavigationManager.NavigateTo("/load-requests");
+    }
+}

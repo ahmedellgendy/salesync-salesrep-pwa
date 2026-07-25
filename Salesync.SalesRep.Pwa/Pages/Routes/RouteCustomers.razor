@@ -8,85 +8,71 @@
 @inject ISalesRepRouteApiService SalesRepRouteApiService
 @inject NavigationManager NavigationManager
 
-<div class="mobile-app-page">
+<div class="route-customers-page" dir="rtl">
 
-    <div class="mobile-app-header">
+    <section class="route-hero">
         <div>
-            <h3 class="mobile-app-title">عملاء الخط</h3>
-
-            <div class="mobile-app-subtitle">
-                زيارات اليوم حسب خط السير
-            </div>
+            <span>خط السير</span>
+            <h1>عملاء اليوم</h1>
+            <p>ابدأ زياراتك حسب ترتيب العملاء على الخط.</p>
         </div>
 
-        <div class="mobile-avatar">
-            R
+        <div class="route-hero-icon">
+            🧭
         </div>
-    </div>
+    </section>
 
     @if (_isLoading)
     {
-        <div class="card p-3">
-            <p class="mb-0">جاري تحميل عملاء خط السير...</p>
+        <div class="route-loading-card">
+            جاري تحميل عملاء خط السير...
         </div>
     }
     else if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
-        <div class="alert alert-danger">
+        <div class="route-alert error">
             @_errorMessage
         </div>
     }
     else
     {
-        <div class="mobile-hero-card">
-            <div class="mobile-hero-title">
-                تقدم الزيارات
-            </div>
-
-            <div class="mobile-hero-text">
-                تمت زيارة @_visitedCustomers من @_totalCustomers عميل
-            </div>
-
-            <div class="mobile-hero-pill">
-                @_remainingCustomers متبقي
-            </div>
-        </div>
-
-        <div class="mobile-kpi-section">
-            <div class="mobile-kpi-tile">
-                <div class="mobile-kpi-number">
-                    @_totalCustomers
+        <section class="route-progress-card">
+            <div class="route-progress-top">
+                <div>
+                    <span>تقدم الزيارات</span>
+                    <strong>@_visitedCustomers من @_totalCustomers</strong>
                 </div>
 
-                <div class="mobile-kpi-name">
-                    العملاء
+                <div class="route-progress-pill">
+                    @_remainingCustomers متبقي
                 </div>
             </div>
 
-            <div class="mobile-kpi-tile">
-                <div class="mobile-kpi-number">
-                    @_visitedCustomers
-                </div>
-
-                <div class="mobile-kpi-name">
-                    تمت
-                </div>
+            <div class="route-progress-bar">
+                <div class="route-progress-fill" style="width:@GetProgressWidth()"></div>
             </div>
 
-            <div class="mobile-kpi-tile">
-                <div class="mobile-kpi-number">
-                    @_remainingCustomers
+            <div class="route-kpi-row">
+                <div>
+                    <strong>@_totalCustomers</strong>
+                    <span>العملاء</span>
                 </div>
 
-                <div class="mobile-kpi-name">
-                    متبقي
+                <div>
+                    <strong>@_visitedCustomers</strong>
+                    <span>تمت</span>
+                </div>
+
+                <div>
+                    <strong>@_remainingCustomers</strong>
+                    <span>متبقي</span>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="route-search-card">
-            <input class="form-control"
-                   placeholder="بحث باسم العميل أو رقم التليفون..."
+        <section class="route-search-card">
+            <input class="route-search-input"
+                   placeholder="ابحث باسم العميل أو رقم الهاتف..."
                    @bind="_searchText"
                    @bind:event="oninput" />
 
@@ -109,133 +95,117 @@
                     تمت
                 </button>
             </div>
-        </div>
-
-        <div class="d-grid mb-3">
-            <button class="btn btn-outline-secondary"
-                    @onclick="GoBackToRoutes">
-                رجوع
-            </button>
-        </div>
+        </section>
 
         @if (FilteredCustomers.Count == 0)
         {
-            <div class="alert alert-warning">
-                لا يوجد عملاء مطابقين للبحث أو الفلتر الحالي.
+            <div class="route-empty-card">
+                <div class="route-empty-icon">🔍</div>
+                <h3>لا يوجد عملاء</h3>
+                <p>لا يوجد عملاء مطابقين للبحث أو الفلتر الحالي.</p>
             </div>
         }
         else
         {
-            @foreach (var customer in FilteredCustomers)
-            {
-                <div class="customer-mobile-card @GetCustomerCardClass(customer)">
+            <section class="customers-list">
+                @foreach (var customer in FilteredCustomers)
+                {
+                    <article class="customer-card compact @GetCustomerCardClass(customer)">
 
-                    <div class="customer-card-header">
-                        <div>
-                            <div class="customer-name">
-                                @customer.CustomerName
+                        <div class="customer-card-main-header">
+
+                            <div class="customer-title-block">
+                                <div class="customer-name">
+                                    @customer.CustomerName
+                                </div>
+
+                                <div class="customer-status @GetCustomerStatusClass(customer)">
+                                    @GetCustomerStatusText(customer)
+                                </div>
                             </div>
 
-                            <div class="customer-route">
-                                @customer.RouteName
+                            <div class="customer-sequence">
+                                #@GetVisitSequence(customer)
+                            </div>
+
+                        </div>
+
+                        <div class="customer-location-line">
+                            <span>العنوان</span>
+                            <strong>@GetCustomerAddressText(customer)</strong>
+                        </div>
+
+                        <div class="customer-finance-list">
+                            <div>
+                                <span>الرصيد</span>
+                                <strong>@FormatMoney(customer.CurrentBalance)</strong>
+                            </div>
+
+                            <div>
+                                <span>حد الائتمان</span>
+                                <strong>@FormatMoney(customer.CreditLimit)</strong>
                             </div>
                         </div>
 
-                        <div class="customer-sequence">
-                            #@GetVisitSequence(customer)
-                        </div>
-                    </div>
+                        <div class="customer-quick-actions @(HasMapLocation(customer) && !string.IsNullOrWhiteSpace(customer.Phone) ? "" : "single")">
 
-                    <div class="customer-status-pill @GetCustomerStatusClass(customer)">
-                        @GetCustomerStatusText(customer)
-                    </div>
+                            @if (!string.IsNullOrWhiteSpace(customer.Phone))
+                            {
+                                <a class="customer-quick-btn call"
+                                   href="tel:@NormalizePhoneNumber(customer.Phone)"
+                                   @onclick:stopPropagation="true">
+                                    <span>☎</span>
+                                    اتصال بالعميل
+                                </a>
+                            }
 
-                    <div class="customer-info-grid">
-                        <div class="customer-info-box">
-                            <div class="customer-info-label">
-                                الرصيد
-                            </div>
+                            @if (HasMapLocation(customer))
+                            {
+                                <button type="button"
+                                        class="customer-quick-btn map"
+                                        @onclick="() => OpenCustomerLocation(customer)">
+                                    <span>📍</span>
+                                    فتح الموقع
+                                </button>
+                            }
 
-                            <div class="customer-info-value">
-                                @FormatMoney(customer.CurrentBalance)
-                            </div>
-                        </div>
-
-                        <div class="customer-info-box">
-                            <div class="customer-info-label">
-                                حد الائتمان
-                            </div>
-
-                            <div class="customer-info-value">
-                                @FormatMoney(customer.CreditLimit)
-                            </div>
                         </div>
 
-                        @if (!string.IsNullOrWhiteSpace(customer.Phone))
+                        @if (IsVisitInProgress(customer))
                         {
-                            <div class="customer-info-box">
-                                <div class="customer-info-label">
-                                    الهاتف
-                                </div>
-
-                                <div class="customer-info-value">
-                                    @customer.Phone
-                                </div>
-                            </div>
+                            <button class="customer-action-btn continue"
+                                    @onclick="() => ContinueVisit(customer)">
+                                استكمال الزيارة
+                            </button>
+                        }
+                        else if (IsVisitCompleted(customer))
+                        {
+                            <button class="customer-action-btn completed" disabled>
+                                تمت الزيارة
+                            </button>
+                        }
+                        else if (customer.CanStartVisit)
+                        {
+                            <button class="customer-action-btn"
+                                    @onclick="() => StartVisit(customer)">
+                                بدء الزيارة
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="customer-action-btn disabled" disabled>
+                                يوجد زيارة مفتوحة
+                            </button>
                         }
 
-                        @if (!string.IsNullOrWhiteSpace(customer.Area) || !string.IsNullOrWhiteSpace(customer.City))
-                        {
-                            <div class="customer-info-box">
-                                <div class="customer-info-label">
-                                    المنطقة
-                                </div>
-
-                                <div class="customer-info-value">
-                                    @customer.Area @customer.City
-                                </div>
-                            </div>
-                        }
-                    </div>
-
-                    @if (!string.IsNullOrWhiteSpace(customer.Address))
-                    {
-                        <div class="customer-address-box">
-                            <strong>العنوان:</strong>
-                            @customer.Address
-                        </div>
-                    }
-
-                    @if (IsVisitInProgress(customer))
-                    {
-                        <button class="customer-main-action continue"
-                                @onclick="() => ContinueVisit(customer)">
-                            Continue Visit
-                        </button>
-                    }
-                    else if (IsVisitCompleted(customer))
-                    {
-                        <button class="customer-main-action completed" disabled>
-                            Visit Completed
-                        </button>
-                    }
-                    else if (customer.CanStartVisit)
-                    {
-                        <button class="customer-main-action"
-                                @onclick="() => StartVisit(customer)">
-                            Start Visit
-                        </button>
-                    }
-                    else
-                    {
-                        <button class="customer-main-action completed" disabled>
-                            يوجد زيارة مفتوحة
-                        </button>
-                    }
-
-                </div>
-            }
+                    </article>
+                }
+            </section>
         }
+
+        <button class="route-back-btn" @onclick="GoBackToRoutes">
+            رجوع للخطوط
+        </button>
     }
 
 </div>
@@ -385,12 +355,12 @@
     private static string GetCustomerStatusClass(SalesRepMobileCustomerDto customer)
     {
         if (IsVisitInProgress(customer))
-            return "customer-status-progress";
+            return "progress";
 
         if (IsVisitCompleted(customer))
-            return "customer-status-completed";
+            return "completed";
 
-        return "customer-status-new";
+        return "new";
     }
 
     private static int GetVisitSequence(SalesRepMobileCustomerDto customer)
@@ -405,6 +375,69 @@
         return value.HasValue
             ? value.Value.ToString("N2")
             : "0.00";
+    }
+    private static string GetCustomerLocation(SalesRepMobileCustomerDto customer)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(customer.Area))
+            parts.Add(customer.Area);
+
+        if (!string.IsNullOrWhiteSpace(customer.City))
+            parts.Add(customer.City);
+
+        return parts.Count > 0
+            ? string.Join(" - ", parts)
+            : string.Empty;
+    }
+
+    
+
+    private static string GetCustomerAddressText(SalesRepMobileCustomerDto customer)
+    {
+        if (!string.IsNullOrWhiteSpace(customer.Address))
+            return customer.Address;
+
+        var location = GetCustomerLocation(customer);
+
+        return string.IsNullOrWhiteSpace(location)
+            ? "لا يوجد عنوان مسجل"
+            : location;
+    }
+
+    private static bool HasMapLocation(SalesRepMobileCustomerDto customer)
+    {
+        return customer.Latitude.HasValue && customer.Longitude.HasValue
+            || !string.IsNullOrWhiteSpace(customer.Address);
+    }
+
+    private void OpenCustomerLocation(SalesRepMobileCustomerDto customer)
+    {
+        string url;
+
+        if (customer.Latitude.HasValue && customer.Longitude.HasValue)
+        {
+            url = $"https://www.google.com/maps?q={customer.Latitude},{customer.Longitude}";
+        }
+        else if (!string.IsNullOrWhiteSpace(customer.Address))
+        {
+            url = $"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString(customer.Address)}";
+        }
+        else
+        {
+            return;
+        }
+
+        NavigationManager.NavigateTo(url, forceLoad: true);
+    }
+
+    private string GetProgressWidth()
+    {
+        if (_totalCustomers <= 0)
+            return "0%";
+
+        var percent = (decimal)_visitedCustomers / _totalCustomers * 100;
+        return $"{percent:N0}%";
     }
 
     private void StartVisit(SalesRepMobileCustomerDto customer)
@@ -425,6 +458,17 @@
     private void GoBackToRoutes()
     {
         NavigationManager.NavigateTo($"/routes/{SessionId}");
+    }
+    private static string NormalizePhoneNumber(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+            return string.Empty;
+
+        return phone
+            .Replace(" ", string.Empty)
+            .Replace("-", string.Empty)
+            .Replace("(", string.Empty)
+            .Replace(")", string.Empty);
     }
 
     private enum CustomerFilter
