@@ -2,11 +2,13 @@
 @attribute [Authorize]
 
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
 @using Salesync.SalesRep.Pwa.Models.Responses
 @using Salesync.SalesRep.Pwa.Services.Interfaces
 
 @inject ISalesRepInvoiceApiService SalesRepInvoiceApiService
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <div class="invoice-details-page" dir="rtl">
 
@@ -99,10 +101,10 @@
 
             <div class="invoice-items-title">
                 <span>بنود الفاتورة</span>
-                <strong>@_invoice.InvoiceItems.Count صنف</strong>
+                <strong>@GetInvoiceItems().Count صنف</strong>
             </div>
 
-            @if (_invoice.InvoiceItems.Count == 0)
+            @if (GetInvoiceItems().Count == 0)
             {
                 <div class="invoice-details-empty">
                     لا توجد أصناف في هذه الفاتورة.
@@ -110,7 +112,7 @@
             }
             else
             {
-                @foreach (var item in _invoice.InvoiceItems)
+                @foreach (var item in GetInvoiceItems())
                 {
                     <article class="invoice-item-card">
 
@@ -171,13 +173,13 @@
 
             <button type="button"
                     class="invoice-details-print-btn"
-                    disabled>
+                    @onclick="PrintInvoiceAsync">
                 طباعة الفاتورة
             </button>
 
             <button type="button"
                     class="invoice-details-share-btn"
-                    disabled>
+                    @onclick="ShareInvoiceOnWhatsAppAsync">
                 مشاركة واتساب
             </button>
 
@@ -186,6 +188,90 @@
                     @onclick="GoBack">
                 رجوع للفواتير
             </button>
+
+        </section>
+
+        <section class="invoice-print-receipt" dir="rtl">
+
+            <div class="receipt-header">
+                <h2>Salesync</h2>
+                <p>Friday Ice Cream</p>
+            </div>
+
+            <div class="receipt-line"></div>
+
+            <div class="receipt-info">
+                <div>
+                    <span>رقم الفاتورة</span>
+                    <strong>@_invoice.InvoiceNumber</strong>
+                </div>
+
+                <div>
+                    <span>التاريخ</span>
+                    <strong>@FormatDate(_invoice.CreatedAt)</strong>
+                </div>
+
+                <div>
+                    <span>العميل</span>
+                    <strong>@GetCustomerNameText(_invoice)</strong>
+                </div>
+
+                <div>
+                    <span>حالة السداد</span>
+                    <strong>@GetPaymentStatusText(_invoice)</strong>
+                </div>
+            </div>
+
+            <div class="receipt-line"></div>
+
+            <table class="receipt-items">
+                <thead>
+                    <tr>
+                        <th>الصنف</th>
+                        <th>كمية</th>
+                        <th>سعر</th>
+                        <th>إجمالي</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in GetInvoiceItems())
+                    {
+                        <tr>
+                            <td>
+                                @item.ProductName
+                                <small>@item.ItemCode</small>
+                            </td>
+                            <td>@item.Quantity</td>
+                            <td>@FormatMoney(item.UnitPrice)</td>
+                            <td>@FormatMoney(item.NetAmount)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="receipt-line"></div>
+
+            <div class="receipt-totals">
+                <div>
+                    <span>الإجمالي</span>
+                    <strong>@FormatMoney(_invoice.TotalAmount)</strong>
+                </div>
+
+                <div>
+                    <span>المدفوع</span>
+                    <strong>@FormatMoney(_invoice.PaidAmount)</strong>
+                </div>
+
+                <div>
+                    <span>المتبقي</span>
+                    <strong>@FormatMoney(_invoice.RemainingAmount)</strong>
+                </div>
+            </div>
+
+            <div class="receipt-footer">
+                <p>شكراً لتعاملكم معنا</p>
+            </div>
 
         </section>
     }
@@ -234,6 +320,15 @@
             }
 
             _invoice = response.Data;
+
+            if (_invoice.InvoiceItems is null)
+            {
+                _invoice.InvoiceItems = new List<InvoiceItemDto>();
+            }
+        }
+        catch
+        {
+            _errorMessage = "حدث خطأ غير متوقع أثناء تحميل تفاصيل الفاتورة.";
         }
         finally
         {
@@ -250,6 +345,83 @@
         }
 
         NavigationManager.NavigateTo("/invoices");
+    }
+
+    private async Task PrintInvoiceAsync()
+    {
+        if (_invoice is null)
+            return;
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("window.print");
+        }
+        catch
+        {
+            _errorMessage = "حدث خطأ أثناء طباعة الفاتورة.";
+        }
+    }
+
+    private async Task ShareInvoiceOnWhatsAppAsync()
+    {
+        if (_invoice is null)
+            return;
+
+        try
+        {
+            var message = BuildInvoiceWhatsAppMessage(_invoice);
+
+            var fileName = $"{_invoice.InvoiceNumber}.png"
+                .Replace("/", "-")
+                .Replace("\\", "-")
+                .Replace(":", "-");
+
+            await JSRuntime.InvokeVoidAsync(
+                "salesyncInvoiceShare.shareReceipt",
+                ".invoice-print-receipt",
+                fileName,
+                message);
+        }
+        catch
+        {
+            _errorMessage = "حدث خطأ أثناء مشاركة الفاتورة.";
+        }
+    }
+
+    private List<InvoiceItemDto> GetInvoiceItems()
+    {
+        return _invoice?.InvoiceItems ?? new List<InvoiceItemDto>();
+    }
+
+    private static string BuildInvoiceWhatsAppMessage(InvoiceDto invoice)
+    {
+        var invoiceItems = invoice.InvoiceItems ?? new List<InvoiceItemDto>();
+
+        var itemsText = invoiceItems.Count == 0
+            ? "لا توجد أصناف"
+            : string.Join(
+                Environment.NewLine,
+                invoiceItems.Select(item =>
+                    $"- {item.ProductName} | الكمية: {item.Quantity} | السعر: {item.UnitPrice:N2} | الإجمالي: {item.NetAmount:N2}"));
+
+        return
+$"""
+فاتورة Salesync
+
+رقم الفاتورة: {invoice.InvoiceNumber}
+التاريخ: {invoice.CreatedAt.ToLocalTime():dd/MM/yyyy - hh:mm tt}
+العميل: {GetCustomerNameText(invoice)}
+حالة السداد: {GetPaymentStatusText(invoice)}
+
+الأصناف:
+{itemsText}
+
+الإجمالي: {invoice.TotalAmount:N2}
+المدفوع: {invoice.PaidAmount:N2}
+المتبقي: {invoice.RemainingAmount:N2}
+
+شكراً لتعاملكم معنا
+""";
     }
 
     private static string GetCustomerNameText(InvoiceDto invoice)
