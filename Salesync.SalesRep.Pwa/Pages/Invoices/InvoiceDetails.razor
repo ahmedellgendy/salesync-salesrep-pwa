@@ -1,0 +1,305 @@
+﻿@page "/invoices/details/{InvoiceId:int}"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepInvoiceApiService SalesRepInvoiceApiService
+@inject NavigationManager NavigationManager
+
+<div class="invoice-details-page" dir="rtl">
+
+    @if (_isLoading)
+    {
+        <div class="invoice-details-loading">
+            جاري تحميل تفاصيل الفاتورة...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="invoice-details-alert error">
+            @_errorMessage
+        </div>
+
+        <button type="button"
+                class="invoice-details-back-btn"
+                @onclick="GoBack">
+            رجوع للفواتير
+        </button>
+    }
+    else if (_invoice is not null)
+    {
+        <section class="invoice-details-hero">
+
+            <div>
+                <span>تفاصيل الفاتورة</span>
+                <h1>@_invoice.InvoiceNumber</h1>
+                <p>@FormatDate(_invoice.CreatedAt)</p>
+            </div>
+
+            <div class="invoice-details-icon">
+                🧾
+            </div>
+
+        </section>
+
+        <section class="invoice-details-status-card @GetPaymentCardClass(_invoice)">
+
+            <div class="invoice-details-status-row">
+                <span>حالة السداد</span>
+
+                <strong class="@GetPaymentStatusClass(_invoice)">
+                    @GetPaymentStatusText(_invoice)
+                </strong>
+            </div>
+
+            <div class="invoice-details-customer">
+                <span>العميل</span>
+                <strong>@GetCustomerNameText(_invoice)</strong>
+            </div>
+
+        </section>
+
+        <section class="invoice-details-money-card">
+
+            <div>
+                <span>الإجمالي قبل الخصم</span>
+                <strong>@FormatMoney(_invoice.SubTotal)</strong>
+            </div>
+
+            <div>
+                <span>الخصم</span>
+                <strong>@FormatMoney(_invoice.DiscountAmount)</strong>
+            </div>
+
+            <div>
+                <span>الضريبة</span>
+                <strong>@FormatMoney(_invoice.TaxAmount)</strong>
+            </div>
+
+            <div class="total">
+                <span>إجمالي الفاتورة</span>
+                <strong>@FormatMoney(_invoice.TotalAmount)</strong>
+            </div>
+
+            <div>
+                <span>المدفوع</span>
+                <strong>@FormatMoney(_invoice.PaidAmount)</strong>
+            </div>
+
+            <div>
+                <span>المتبقي</span>
+                <strong>@FormatMoney(_invoice.RemainingAmount)</strong>
+            </div>
+
+        </section>
+
+        <section class="invoice-items-section">
+
+            <div class="invoice-items-title">
+                <span>بنود الفاتورة</span>
+                <strong>@_invoice.InvoiceItems.Count صنف</strong>
+            </div>
+
+            @if (_invoice.InvoiceItems.Count == 0)
+            {
+                <div class="invoice-details-empty">
+                    لا توجد أصناف في هذه الفاتورة.
+                </div>
+            }
+            else
+            {
+                @foreach (var item in _invoice.InvoiceItems)
+                {
+                    <article class="invoice-item-card">
+
+                        <div class="invoice-item-header">
+                            <div>
+                                <strong>@item.ProductName</strong>
+
+                                @if (!string.IsNullOrWhiteSpace(item.ItemCode))
+                                {
+                                    <span>كود: @item.ItemCode</span>
+                                }
+                            </div>
+
+                            <div class="invoice-item-total">
+                                @FormatMoney(item.NetAmount)
+                            </div>
+                        </div>
+
+                        <div class="invoice-item-values">
+
+                            <div>
+                                <span>الكمية</span>
+                                <strong>@item.Quantity</strong>
+                            </div>
+
+                            <div>
+                                <span>البونص</span>
+                                <strong>@item.BonusQuantity</strong>
+                            </div>
+
+                            <div>
+                                <span>سعر الوحدة</span>
+                                <strong>@FormatMoney(item.UnitPrice)</strong>
+                            </div>
+
+                            <div>
+                                <span>الخصم</span>
+                                <strong>@FormatMoney(item.DiscountAmount)</strong>
+                            </div>
+
+                        </div>
+
+                    </article>
+                }
+            }
+
+        </section>
+
+        @if (!string.IsNullOrWhiteSpace(_invoice.Notes))
+        {
+            <section class="invoice-details-notes">
+                <span>ملاحظات</span>
+                <p>@_invoice.Notes</p>
+            </section>
+        }
+
+        <section class="invoice-details-actions">
+
+            <button type="button"
+                    class="invoice-details-print-btn"
+                    disabled>
+                طباعة الفاتورة
+            </button>
+
+            <button type="button"
+                    class="invoice-details-share-btn"
+                    disabled>
+                مشاركة واتساب
+            </button>
+
+            <button type="button"
+                    class="invoice-details-back-btn"
+                    @onclick="GoBack">
+                رجوع للفواتير
+            </button>
+
+        </section>
+    }
+
+</div>
+
+@code {
+    [Parameter]
+    public int InvoiceId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "sessionId")]
+    public int SessionId { get; set; }
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private InvoiceDto? _invoice;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInvoiceDetailsAsync();
+    }
+
+    private async Task LoadInvoiceDetailsAsync()
+    {
+        if (InvoiceId <= 0)
+        {
+            _errorMessage = "رقم الفاتورة غير صحيح.";
+            _isLoading = false;
+            return;
+        }
+
+        try
+        {
+            var response = await SalesRepInvoiceApiService.GetInvoiceDetailsAsync(InvoiceId);
+
+            if (response is null)
+            {
+                _errorMessage = "لم يتم استلام استجابة من الخادم.";
+                return;
+            }
+
+            if (!response.Success || response.Data is null)
+            {
+                _errorMessage = response.Message ?? "فشل تحميل تفاصيل الفاتورة.";
+                return;
+            }
+
+            _invoice = response.Data;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        if (SessionId > 0)
+        {
+            NavigationManager.NavigateTo($"/invoices/{SessionId}");
+            return;
+        }
+
+        NavigationManager.NavigateTo("/invoices");
+    }
+
+    private static string GetCustomerNameText(InvoiceDto invoice)
+    {
+        if (!string.IsNullOrWhiteSpace(invoice.CustomerName))
+            return invoice.CustomerName;
+
+        return $"عميل رقم {invoice.CustomerId}";
+    }
+
+    private static string GetPaymentStatusText(InvoiceDto invoice)
+    {
+        if (invoice.RemainingAmount <= 0)
+            return "مدفوعة";
+
+        if (invoice.PaidAmount > 0)
+            return "مدفوعة جزئيًا";
+
+        return "غير مدفوعة";
+    }
+
+    private static string GetPaymentStatusClass(InvoiceDto invoice)
+    {
+        if (invoice.RemainingAmount <= 0)
+            return "paid";
+
+        if (invoice.PaidAmount > 0)
+            return "partial";
+
+        return "pending";
+    }
+
+    private static string GetPaymentCardClass(InvoiceDto invoice)
+    {
+        if (invoice.RemainingAmount <= 0)
+            return "paid";
+
+        if (invoice.PaidAmount > 0)
+            return "partial";
+
+        return "pending";
+    }
+
+    private static string FormatMoney(decimal value)
+    {
+        return value.ToString("N2");
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToLocalTime().ToString("dd/MM/yyyy - hh:mm tt");
+    }
+}

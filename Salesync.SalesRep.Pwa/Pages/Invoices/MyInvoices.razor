@@ -93,7 +93,8 @@
             <section class="my-invoices-list">
                 @foreach (var invoice in _invoices)
                 {
-                    <article class="my-invoice-card compact @GetPaymentCardClass(invoice)">
+                    <article class="my-invoice-card compact @GetPaymentCardClass(invoice)"
+                             @onclick="() => GoToInvoiceDetails(invoice.Id)">
 
                         <div class="invoice-card-header">
                             <div class="invoice-title-block">
@@ -127,6 +128,7 @@
                         {
                             <button type="button"
                                     class="invoice-collect-btn"
+                                    @onclick:stopPropagation="true"
                                     @onclick="() => GoToCollectPayment(invoice)">
                                 تسجيل تحصيل الآن
                             </button>
@@ -336,5 +338,17 @@
 
         NavigationManager.NavigateTo(
             $"/payments/create?invoiceId={invoice.Id}&sessionId={SessionId.Value}&remainingAmount={invoice.RemainingAmount}&invoiceNumber={invoiceNumber}");
+    }
+
+    private void GoToInvoiceDetails(int invoiceId)
+    {
+        if (!SessionId.HasValue || SessionId.Value <= 0)
+        {
+            _errorMessage = "بيانات السيشن غير صحيحة.";
+            return;
+        }
+
+        NavigationManager.NavigateTo(
+            $"/invoices/details/{invoiceId}?sessionId={SessionId.Value}");
     }
 }

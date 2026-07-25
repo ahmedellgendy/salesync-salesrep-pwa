@@ -107,6 +107,33 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             }
         }
 
+        public async Task<ApiResponse<InvoiceDto>?> GetInvoiceDetailsAsync(int invoiceId)
+        {
+            try
+            {
+                var response = await _httpClient
+                    .GetFromJsonAsync<ApiResponse<InvoiceDto>>(
+                        $"api/mobile/salesrep/invoices/{invoiceId}");
+
+                return response ?? CreateErrorResponse<InvoiceDto>(
+                    "لم يتم استلام استجابة صحيحة من الخادم.");
+            }
+            catch (HttpRequestException)
+            {
+                return CreateErrorResponse<InvoiceDto>(
+                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+            }
+            catch (JsonException)
+            {
+                return CreateErrorResponse<InvoiceDto>(
+                    "صيغة الاستجابة القادمة من الخادم غير صحيحة.");
+            }
+            catch
+            {
+                return CreateErrorResponse<InvoiceDto>(
+                    "حدث خطأ غير متوقع أثناء تحميل تفاصيل الفاتورة.");
+            }
+        }
 
         public async Task<ApiResponse<InvoiceDto>?> CreateMobileInvoiceAsync(CreateSalesRepMobileInvoiceRequest request)
         {

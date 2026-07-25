@@ -9,5 +9,7 @@ namespace Salesync.SalesRep.Pwa.Services.Interfaces
         Task<ApiResponse<InvoiceDto>?> ConfirmInvoiceAsync(int invoiceId);
         Task<ApiResponse<IEnumerable<SalesRepMobileInvoiceDto>>?> GetMyInvoicesAsync(int sessionId);
         Task<ApiResponse<InvoiceDto>?> CreateMobileInvoiceAsync(CreateSalesRepMobileInvoiceRequest request);
+        Task<ApiResponse<InvoiceDto>?> GetInvoiceDetailsAsync(int invoiceId);
+
     }
 }
