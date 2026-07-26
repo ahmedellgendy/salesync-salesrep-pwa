@@ -1,8 +1,3 @@
-/* =====================================================
-   Salesync SalesRep PWA - Premium Dashboard + Layout
-   Clean Production Version
-   ===================================================== */
-
 /* ---------- Global Layout ---------- */
 
 html,
@@ -6185,6 +6180,7 @@ body,
         grid-template-columns: 1fr !important;
     }
 }
+
 .create-load-summary.compact {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
@@ -6346,6 +6342,7 @@ body,
     font-weight: 950 !important;
     text-align: center !important;
 }
+
 .load-request-unit-display {
     background: #f8fcfd !important;
     border: 1px solid #d8e6ee !important;
@@ -6404,6 +6401,7 @@ body,
         font-size: 13px !important;
         font-weight: 950 !important;
     }
+
 .load-request-item-header small {
     display: block !important;
     margin-top: 4px !important;
@@ -6430,6 +6428,7 @@ body,
 .load-request-unit-values strong {
     line-height: 1.5 !important;
 }
+
 .inventory-product-header small {
     display: block !important;
     margin-top: 4px !important;
@@ -6706,3 +6705,113 @@ body,
 .inventory-product-info {
     display: none !important;
 }
+
+.create-load-qty-row {
+    display: grid !important;
+    grid-template-columns: 46px 1fr 46px !important;
+    gap: 8px !important;
+    align-items: center !important;
+    direction: ltr !important;
+}
+
+    .create-load-qty-row .qty-btn {
+        height: 46px !important;
+        border: none !important;
+        border-radius: 15px !important;
+        color: #ffffff !important;
+        font-size: 24px !important;
+        font-weight: 950 !important;
+        display: grid !important;
+        place-items: center !important;
+        cursor: pointer !important;
+        user-select: none !important;
+    }
+
+        .create-load-qty-row .qty-btn.minus {
+            background: #e06666 !important;
+        }
+
+        .create-load-qty-row .qty-btn.plus {
+            background: #087f9c !important;
+        }
+
+        .create-load-qty-row .qty-btn:disabled {
+            background: #cbd5df !important;
+            cursor: not-allowed !important;
+        }
+
+    .create-load-qty-row input {
+        height: 46px !important;
+        border: 1px solid #d8e6ee !important;
+        border-radius: 15px !important;
+        background: #ffffff !important;
+        color: #102a43 !important;
+        text-align: center !important;
+        font-size: 17px !important;
+        font-weight: 950 !important;
+        outline: none !important;
+        direction: ltr !important;
+    }
+
+/* =========================
+   Create Load Request Quantity Buttons 
+   ========================= */
+
+.create-load-qty-row {
+    display: grid !important;
+    grid-template-columns: 46px 1fr 46px !important;
+    gap: 8px !important;
+    align-items: center !important;
+    direction: ltr !important;
+}
+
+    .create-load-qty-row .qty-btn {
+        width: 46px !important;
+        height: 46px !important;
+        border: none !important;
+        border-radius: 15px !important;
+        color: #ffffff !important;
+        font-size: 24px !important;
+        font-weight: 950 !important;
+        line-height: 1 !important;
+        display: grid !important;
+        place-items: center !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        opacity: 1 !important;
+        box-shadow: none !important;
+    }
+
+        .create-load-qty-row .qty-btn.minus:not(.disabled):not(:disabled) {
+            background: #e06666 !important;
+        }
+
+        .create-load-qty-row .qty-btn.plus:not(:disabled) {
+            background: #087f9c !important;
+        }
+
+        .create-load-qty-row .qty-btn.disabled,
+        .create-load-qty-row .qty-btn:disabled {
+            background: #cbd5df !important;
+            color: #ffffff !important;
+            cursor: not-allowed !important;
+            opacity: 1 !important;
+        }
+
+    .create-load-qty-row input {
+        height: 46px !important;
+        border: 1px solid #d8e6ee !important;
+        border-radius: 15px !important;
+        background: #ffffff !important;
+        color: #102a43 !important;
+        text-align: center !important;
+        font-size: 17px !important;
+        font-weight: 950 !important;
+        outline: none !important;
+        direction: ltr !important;
+    }
+
+        .create-load-qty-row input:focus {
+            border-color: #087f9c !important;
+            box-shadow: 0 0 0 3px rgba(8, 127, 156, 0.12) !important;
+        }

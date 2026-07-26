@@ -151,21 +151,28 @@
                                 <strong>1 @line.LargeUnit = @line.UnitsPerLargeUnit @line.SmallUnit</strong>
                             </div>
 
-                            <div class="create-load-qty-row">
+                            <div class="create-load-qty-row" dir="ltr">
                                 <button type="button"
-                                        disabled="@_isProcessing || line.RequestedLargeQuantity <= 0"
+                                        class="qty-btn minus @(line.RequestedLargeQuantity <= 0 ? "disabled" : "")"
+                                        disabled="@_isProcessing"
+                                        @onclick:preventDefault="true"
+                                        @onclick:stopPropagation="true"
                                         @onclick="() => DecreaseQuantity(line)">
-                                    -
+                                    −
                                 </button>
 
                                 <input type="number"
                                        min="0"
                                        disabled="@_isProcessing"
                                        @bind="line.RequestedLargeQuantity"
+                                       @bind:event="oninput"
                                        @bind:after="() => OnLineQuantityChanged(line)" />
 
                                 <button type="button"
+                                        class="qty-btn plus"
                                         disabled="@_isProcessing"
+                                        @onclick:preventDefault="true"
+                                        @onclick:stopPropagation="true"
                                         @onclick="() => IncreaseQuantity(line)">
                                     +
                                 </button>
@@ -337,18 +344,14 @@
             _successMessage = null;
 
             var selectedItems = _productLines
-                 .Where(x => x.RequestedLargeQuantity > 0)
-                 .Select(x => new CreateLoadRequestItemRequest
-                 {
-                     ProductId = x.ProductId,
-
-                     // الباك يستقبل الكمية بالكرتونة / الوحدة الكبيرة
-                     // وهو اللي يحولها للقطعة
-                     RequestedLargeQuantity = x.RequestedLargeQuantity,
-
-                     Notes = _notes
-                 })
-                 .ToList();
+                .Where(x => x.RequestedLargeQuantity > 0)
+                .Select(x => new CreateLoadRequestItemRequest
+                {
+                    ProductId = x.ProductId,
+                    RequestedLargeQuantity = x.RequestedLargeQuantity,
+                    Notes = _notes
+                })
+                .ToList();
 
             var request = new CreateLoadRequestRequest
             {
@@ -497,10 +500,13 @@
     {
         _errorMessage = null;
 
-        if (line.RequestedLargeQuantity > 0)
+        if (line.RequestedLargeQuantity <= 0)
         {
-            line.RequestedLargeQuantity--;
+            line.RequestedLargeQuantity = 0;
+            return;
         }
+
+        line.RequestedLargeQuantity--;
     }
 
     private int GetSelectedItemsCount()
@@ -525,17 +531,6 @@
         return warehouse is null
             ? "-"
             : warehouse.Name;
-    }
-
-    private string? BuildItemNote(LoadRequestProductLineModel line)
-    {
-        var conversionNote =
-            $"{line.RequestedLargeQuantity} {line.LargeUnit} = {line.RequestedSmallQuantity} {line.SmallUnit}";
-
-        if (string.IsNullOrWhiteSpace(_notes))
-            return conversionNote;
-
-        return $"{_notes} | {conversionNote}";
     }
 
     private void GoBack()
