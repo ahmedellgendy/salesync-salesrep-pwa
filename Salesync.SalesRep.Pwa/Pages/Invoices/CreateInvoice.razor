@@ -25,7 +25,7 @@
                 <h1>إنشاء فاتورة</h1>
 
                 <p>
-                    اختر الكميات المطلوبة من منتجات مخزون المندوب.
+                    اختر الكميات المطلوبة بالكرتونة من مخزون المندوب.
                 </p>
             </div>
 
@@ -84,24 +84,24 @@
 
             </section>
 
-            <section class="invoice-summary-card compact-summary">
+            <section class="invoice-summary-compact">
                 <div>
-                    <span>الأصناف المختارة</span>
+                    <span>الأصناف</span>
                     <strong>@GetSelectedItemsCount()</strong>
                 </div>
 
                 <div>
-                    <span>إجمالي الكميات</span>
-                    <strong>@GetTotalQuantity()</strong>
+                    <span>الكرتون</span>
+                    <strong>@GetTotalSaleLargeQuantity()</strong>
                 </div>
 
                 <div>
-                    <span>إجمالي البونص</span>
-                    <strong>@GetTotalBonusQuantity()</strong>
+                    <span>البونص</span>
+                    <strong>@GetTotalBonusLargeQuantity()</strong>
                 </div>
 
                 <div>
-                    <span>إجمالي الخصومات</span>
+                    <span>الخصم</span>
                     <strong>@FormatMoney(GetTotalDiscount())</strong>
                 </div>
             </section>
@@ -120,7 +120,7 @@
 
                     @foreach (var line in FilteredProductLines)
                     {
-                        <article class="invoice-product-card @(line.Quantity > 0 ? "selected" : "")" @key="line.ProductId">
+                        <article class="invoice-product-card @(line.SaleLargeQuantity > 0 ? "selected" : "")" @key="line.ProductId">
 
                             <div class="invoice-product-main-row">
 
@@ -131,10 +131,14 @@
                                     {
                                         <span>كود: @line.ItemCode</span>
                                     }
+
+                                    <small>
+                                        1 @line.LargeUnit = @line.UnitsPerLargeUnit @line.SmallUnit
+                                    </small>
                                 </div>
 
                                 <div class="invoice-stock-pill">
-                                    المتاح @FormatQuantity(line.AvailableQuantity)
+                                    المتاح @FormatInventoryQuantity(line)
                                 </div>
 
                             </div>
@@ -142,24 +146,24 @@
                             <div class="invoice-product-inputs">
 
                                 <div class="invoice-mini-field">
-                                    <label>الكمية</label>
+                                    <label>البيع بـ @line.LargeUnit</label>
 
                                     <input type="number"
                                            min="0"
-                                           max="@line.AvailableQuantity"
                                            disabled="@_isProcessing"
-                                           @bind="line.Quantity"
+                                           @bind="line.SaleLargeQuantity"
+                                           @bind:event="oninput"
                                            @bind:after="() => OnLineQuantityChanged(line)" />
                                 </div>
 
                                 <div class="invoice-mini-field">
-                                    <label>البونص</label>
+                                    <label>البونص بـ @line.LargeUnit</label>
 
                                     <input type="number"
                                            min="0"
-                                           max="@line.AvailableQuantity"
                                            disabled="@_isProcessing"
-                                           @bind="line.BonusQuantity"
+                                           @bind="line.BonusLargeQuantity"
+                                           @bind:event="oninput"
                                            @bind:after="() => OnLineQuantityChanged(line)" />
                                 </div>
 
@@ -175,10 +179,10 @@
 
                             </div>
 
-                            @if (line.Quantity > 0 || line.BonusQuantity > 0)
+                            @if (line.SaleLargeQuantity > 0 || line.BonusLargeQuantity > 0)
                             {
                                 <div class="invoice-product-selected-note">
-                                    المطلوب: @GetLineRequestedQuantity(line) من أصل @FormatQuantity(line.AvailableQuantity)
+                                    @GetLineSelectedText(line)
                                 </div>
                             }
 
@@ -186,6 +190,7 @@
                             {
                                 <div class="invoice-alert error compact">
                                     الكمية المطلوبة أكبر من المتاح في المخزون.
+                                    المتاح: @FormatInventoryQuantity(line)
                                 </div>
                             }
 
@@ -262,7 +267,7 @@
     private List<InvoiceProductLineModel> FilteredProductLines =>
         _productLines
             .Where(MatchesSearchText)
-            .OrderByDescending(x => x.Quantity > 0)
+            .OrderByDescending(x => x.SaleLargeQuantity > 0)
             .ThenBy(x => x.ProductName)
             .ToList();
 
@@ -321,8 +326,21 @@
                     ProductName = x.ProductName,
                     ItemCode = x.ItemCode,
                     AvailableQuantity = x.Quantity,
-                    Quantity = 0,
-                    BonusQuantity = 0,
+
+                    SmallUnit = string.IsNullOrWhiteSpace(x.SmallUnit)
+                        ? "قطعة"
+                        : x.SmallUnit,
+
+                    LargeUnit = string.IsNullOrWhiteSpace(x.LargeUnit)
+                        ? "كرتونة"
+                        : x.LargeUnit,
+
+                    UnitsPerLargeUnit = x.UnitsPerLargeUnit <= 0
+                        ? 1
+                        : x.UnitsPerLargeUnit,
+
+                    SaleLargeQuantity = 0,
+                    BonusLargeQuantity = 0,
                     DiscountAmount = 0
                 })
                 .ToList();
@@ -365,12 +383,12 @@
         try
         {
             var selectedItems = _productLines
-                .Where(x => x.Quantity > 0)
+                .Where(x => x.SaleLargeQuantity > 0)
                 .Select(x => new CreateSalesRepMobileInvoiceItemRequest
                 {
                     ProductId = x.ProductId,
-                    Quantity = x.Quantity,
-                    BonusQuantity = x.BonusQuantity,
+                    SaleLargeQuantity = x.SaleLargeQuantity,
+                    BonusLargeQuantity = x.BonusLargeQuantity,
                     DiscountAmount = x.DiscountAmount,
                     DiscountPercentage = 0
                 })
@@ -401,11 +419,18 @@
                 return;
             }
 
-            _successMessage = "تم إنشاء الفاتورة وإغلاق الزيارة بنجاح.";
+            _successMessage = "تم إنشاء الفاتورة بنجاح. جاري فتح شاشة التحصيل...";
 
             await Task.Delay(700);
 
-            NavigationManager.NavigateTo($"/invoices/{SessionId}", replace: true);
+            var invoice = response.Data;
+
+            var invoiceNumber = Uri.EscapeDataString(invoice.InvoiceNumber);
+
+            NavigationManager.NavigateTo(
+                $"/payments/create?invoiceId={invoice.Id}&sessionId={SessionId}&remainingAmount={invoice.RemainingAmount}&invoiceNumber={invoiceNumber}",
+                replace: true);
+
         }
         catch
         {
@@ -436,7 +461,7 @@
         }
 
         var selectedLines = _productLines
-            .Where(x => x.Quantity > 0)
+            .Where(x => x.SaleLargeQuantity > 0)
             .ToList();
 
         if (selectedLines.Count == 0)
@@ -447,13 +472,13 @@
 
         foreach (var line in _productLines)
         {
-            if (line.Quantity < 0)
+            if (line.SaleLargeQuantity < 0)
             {
                 _errorMessage = $"كمية المنتج {line.ProductName} لا يمكن تكون أقل من صفر.";
                 return false;
             }
 
-            if (line.BonusQuantity < 0)
+            if (line.BonusLargeQuantity < 0)
             {
                 _errorMessage = $"بونص المنتج {line.ProductName} لا يمكن يكون أقل من صفر.";
                 return false;
@@ -465,7 +490,7 @@
                 return false;
             }
 
-            if (line.Quantity == 0 && line.BonusQuantity > 0)
+            if (line.SaleLargeQuantity == 0 && line.BonusLargeQuantity > 0)
             {
                 _errorMessage = $"لا يمكن إضافة بونص للمنتج {line.ProductName} بدون كمية مباعة.";
                 return false;
@@ -474,7 +499,7 @@
             if (IsRequestedQuantityGreaterThanAvailable(line))
             {
                 _errorMessage =
-                    $"الكمية المطلوبة من المنتج {line.ProductName} أكبر من المتاح. المتاح: {FormatQuantity(line.AvailableQuantity)}";
+                    $"الكمية المطلوبة من المنتج {line.ProductName} أكبر من المتاح. المتاح: {FormatInventoryQuantity(line)}";
 
                 return false;
             }
@@ -497,7 +522,9 @@
         var search = _searchText.Trim();
 
         return Contains(line.ProductName, search)
-            || Contains(line.ItemCode, search);
+            || Contains(line.ItemCode, search)
+            || Contains(line.SmallUnit, search)
+            || Contains(line.LargeUnit, search);
     }
 
     private static bool Contains(string? value, string search)
@@ -510,32 +537,32 @@
     {
         _errorMessage = null;
 
-        if (line.Quantity < 0)
-            line.Quantity = 0;
+        if (line.SaleLargeQuantity < 0)
+            line.SaleLargeQuantity = 0;
 
-        if (line.BonusQuantity < 0)
-            line.BonusQuantity = 0;
+        if (line.BonusLargeQuantity < 0)
+            line.BonusLargeQuantity = 0;
 
-        if (line.Quantity + line.BonusQuantity > line.AvailableQuantity)
+        if (IsRequestedQuantityGreaterThanAvailable(line))
         {
             _errorMessage =
-                $"الكمية المطلوبة من المنتج {line.ProductName} أكبر من المتاح. المتاح: {FormatQuantity(line.AvailableQuantity)}";
+                $"الكمية المطلوبة من المنتج {line.ProductName} أكبر من المتاح. المتاح: {FormatInventoryQuantity(line)}";
         }
     }
 
     private int GetSelectedItemsCount()
     {
-        return _productLines.Count(x => x.Quantity > 0);
+        return _productLines.Count(x => x.SaleLargeQuantity > 0);
     }
 
-    private int GetTotalQuantity()
+    private int GetTotalSaleLargeQuantity()
     {
-        return _productLines.Sum(x => x.Quantity);
+        return _productLines.Sum(x => x.SaleLargeQuantity);
     }
 
-    private int GetTotalBonusQuantity()
+    private int GetTotalBonusLargeQuantity()
     {
-        return _productLines.Sum(x => x.BonusQuantity);
+        return _productLines.Sum(x => x.BonusLargeQuantity);
     }
 
     private decimal GetTotalDiscount()
@@ -543,14 +570,28 @@
         return _productLines.Sum(x => x.DiscountAmount) + _invoiceDiscountAmount;
     }
 
-    private int GetLineRequestedQuantity(InvoiceProductLineModel line)
+    private int GetLineRequestedSmallQuantity(InvoiceProductLineModel line)
     {
-        return line.Quantity + line.BonusQuantity;
+        return (line.SaleLargeQuantity + line.BonusLargeQuantity) * line.UnitsPerLargeUnit;
     }
 
     private bool IsRequestedQuantityGreaterThanAvailable(InvoiceProductLineModel line)
     {
-        return GetLineRequestedQuantity(line) > line.AvailableQuantity;
+        return GetLineRequestedSmallQuantity(line) > line.AvailableQuantity;
+    }
+
+    private static string FormatInventoryQuantity(InvoiceProductLineModel line)
+    {
+        var largeQuantity = line.AvailableQuantity / line.UnitsPerLargeUnit;
+        var remainingSmallQuantity = line.AvailableQuantity % line.UnitsPerLargeUnit;
+
+        if (largeQuantity > 0 && remainingSmallQuantity > 0)
+            return $"{largeQuantity} {line.LargeUnit} + {remainingSmallQuantity} {line.SmallUnit}";
+
+        if (largeQuantity > 0)
+            return $"{largeQuantity} {line.LargeUnit}";
+
+        return $"{remainingSmallQuantity} {line.SmallUnit}";
     }
 
     private void GoBackToRouteCustomers()
@@ -567,14 +608,22 @@
         NavigationManager.NavigateTo("/routes", replace: true);
     }
 
-    private static string FormatQuantity(decimal value)
-    {
-        return value.ToString("N0");
-    }
-
     private static string FormatMoney(decimal value)
     {
         return value.ToString("N2");
+    }
+
+    private static string GetLineSelectedText(InvoiceProductLineModel line)
+    {
+        var totalSmallQuantity = (line.SaleLargeQuantity + line.BonusLargeQuantity)
+            * line.UnitsPerLargeUnit;
+
+        if (line.BonusLargeQuantity > 0)
+        {
+            return $"سيتم بيع {line.SaleLargeQuantity} {line.LargeUnit} + بونص {line.BonusLargeQuantity} {line.LargeUnit} = {totalSmallQuantity} {line.SmallUnit}";
+        }
+
+        return $"سيتم بيع {line.SaleLargeQuantity} {line.LargeUnit} = {totalSmallQuantity} {line.SmallUnit}";
     }
 
     private class InvoiceProductLineModel
@@ -587,9 +636,15 @@
 
         public int AvailableQuantity { get; set; }
 
-        public int Quantity { get; set; }
+        public string SmallUnit { get; set; } = "قطعة";
 
-        public int BonusQuantity { get; set; }
+        public string LargeUnit { get; set; } = "كرتونة";
+
+        public int UnitsPerLargeUnit { get; set; } = 1;
+
+        public int SaleLargeQuantity { get; set; }
+
+        public int BonusLargeQuantity { get; set; }
 
         public decimal DiscountAmount { get; set; }
     }

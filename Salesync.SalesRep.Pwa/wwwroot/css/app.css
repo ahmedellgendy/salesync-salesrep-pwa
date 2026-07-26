@@ -6815,3 +6815,137 @@ body,
             border-color: #087f9c !important;
             box-shadow: 0 0 0 3px rgba(8, 127, 156, 0.12) !important;
         }
+/* =========================
+   Create Invoice Compact Fix
+   ========================= */
+
+.invoice-summary-card.compact-summary {
+    display: none !important;
+}
+
+.invoice-summary-compact {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 7px !important;
+    background: #ffffff !important;
+    border: 1px solid #d8e6ee !important;
+    border-radius: 22px !important;
+    padding: 10px !important;
+    margin-bottom: 12px !important;
+}
+
+    .invoice-summary-compact div {
+        background: #f8fcfd !important;
+        border: 1px solid #e1edf3 !important;
+        border-radius: 16px !important;
+        min-height: 58px !important;
+        padding: 8px 5px !important;
+        text-align: center !important;
+    }
+
+    .invoice-summary-compact span {
+        display: block !important;
+        color: #627d98 !important;
+        font-size: 10px !important;
+        font-weight: 850 !important;
+        margin-bottom: 5px !important;
+        white-space: nowrap !important;
+    }
+
+    .invoice-summary-compact strong {
+        display: block !important;
+        color: #102a43 !important;
+        font-size: 15px !important;
+        font-weight: 950 !important;
+        line-height: 1.2 !important;
+    }
+
+.invoice-product-card {
+    padding: 14px !important;
+    border-radius: 24px !important;
+}
+
+.invoice-product-main-row {
+    align-items: flex-start !important;
+    margin-bottom: 10px !important;
+}
+
+.invoice-product-info-block strong {
+    font-size: 16px !important;
+    line-height: 1.4 !important;
+}
+
+.invoice-product-info-block small {
+    display: block !important;
+    margin-top: 4px !important;
+    color: #627d98 !important;
+    font-size: 11px !important;
+    font-weight: 850 !important;
+}
+
+.invoice-stock-pill {
+    min-width: 92px !important;
+    padding: 8px 10px !important;
+    border-radius: 999px !important;
+    background: #e1f2ff !important;
+    color: #075b73 !important;
+    font-size: 11px !important;
+    font-weight: 950 !important;
+    text-align: center !important;
+}
+
+.invoice-product-inputs {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+}
+
+.invoice-mini-field label {
+    font-size: 10px !important;
+    font-weight: 850 !important;
+    color: #627d98 !important;
+    margin-bottom: 5px !important;
+}
+
+.invoice-mini-field input {
+    height: 44px !important;
+    border-radius: 15px !important;
+    text-align: center !important;
+    font-size: 15px !important;
+    font-weight: 950 !important;
+}
+
+.invoice-product-selected-note {
+    margin-top: 10px !important;
+    padding: 9px 10px !important;
+    border-radius: 15px !important;
+    background: #d8f8e5 !important;
+    color: #047a3d !important;
+    font-size: 12px !important;
+    font-weight: 950 !important;
+    text-align: center !important;
+    line-height: 1.6 !important;
+}
+
+.invoice-form-group {
+    margin-top: 12px !important;
+}
+
+    .invoice-form-group label {
+        font-size: 12px !important;
+        font-weight: 950 !important;
+        color: #102a43 !important;
+        margin-bottom: 7px !important;
+    }
+
+    .invoice-form-group input,
+    .invoice-form-group textarea {
+        border-radius: 18px !important;
+    }
+
+.invoice-main-btn {
+    margin-top: 14px !important;
+    height: 54px !important;
+    border-radius: 20px !important;
+}
