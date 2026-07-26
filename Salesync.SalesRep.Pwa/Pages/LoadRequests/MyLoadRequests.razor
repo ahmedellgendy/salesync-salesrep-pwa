@@ -161,7 +161,7 @@
                             {
                                 @foreach (var item in GetItems(loadRequest))
                                 {
-                                    <div class="load-request-item-card">
+                                    <article class="load-request-item-card">
 
                                         <div class="load-request-item-header">
                                             <div>
@@ -171,28 +171,56 @@
                                                 {
                                                     <span>كود: @item.ItemCode</span>
                                                 }
+
+                                                <small>
+                                                    1 @GetLargeUnit(item) = @GetUnitsPerLargeUnit(item) @GetSmallUnit(item)
+                                                </small>
                                             </div>
 
                                             <div class="load-request-item-qty">
-                                                @item.RequestedQuantity
+                                                @FormatLargeQuantity(item.RequestedLargeQuantity, item.LargeUnit)
                                             </div>
                                         </div>
 
-                                        <div class="load-request-item-values">
-                                            <div>
+                                        <div class="load-request-unit-display">
+
+                                            <div class="load-request-unit-main">
                                                 <span>المطلوب</span>
-                                                <strong>@item.RequestedQuantity</strong>
+                                                <strong>
+                                                    @FormatLargeAndSmallQuantity(
+                                                        item.RequestedLargeQuantity,
+                                                        item.RequestedQuantity,
+                                                        item.LargeUnit,
+                                                        item.SmallUnit)
+                                                </strong>
                                             </div>
 
-                                            <div>
-                                                <span>الموافق عليه</span>
-                                                <strong>@item.ApprovedQuantity</strong>
+                                            <div class="load-request-unit-values">
+                                                <div>
+                                                    <span>الموافق عليه</span>
+                                                    <strong>
+                                                        @FormatLargeAndSmallQuantity(
+                                                         item.ApprovedLargeQuantity,
+                                                         item.ApprovedQuantity,
+                                                         item.LargeUnit,
+                                                         item.SmallUnit,
+                                                         "لم تتم الموافقة بعد")
+                                                    </strong>
+                                                </div>
+
+                                                <div>
+                                                    <span>المؤكد من المخزن</span>
+                                                    <strong>
+                                                        @FormatLargeAndSmallQuantity(
+                                                          item.ConfirmedLargeQuantity,
+                                                          item.ConfirmedQuantity,
+                                                          item.LargeUnit,
+                                                          item.SmallUnit,
+                                                          "لم يتم التأكيد بعد")
+                                                    </strong>
+                                                </div>
                                             </div>
 
-                                            <div>
-                                                <span>المؤكد من المخزن</span>
-                                                <strong>@item.ConfirmedQuantity</strong>
-                                            </div>
                                         </div>
 
                                         @if (!string.IsNullOrWhiteSpace(item.Notes))
@@ -202,7 +230,7 @@
                                             </div>
                                         }
 
-                                    </div>
+                                    </article>
                                 }
                             }
 
@@ -334,6 +362,55 @@
     private static string FormatDate(DateTime value)
     {
         return value.ToLocalTime().ToString("dd/MM/yyyy - hh:mm tt");
+    }
+
+    private static string FormatLargeAndSmallQuantity(int largeQuantity, int smallQuantity, string? largeUnit, string? smallUnit, string emptyText = "0 قطعة")
+    {
+        var largeUnitText = string.IsNullOrWhiteSpace(largeUnit)
+            ? "كرتونة"
+            : largeUnit;
+
+        var smallUnitText = string.IsNullOrWhiteSpace(smallUnit)
+            ? "قطعة"
+            : smallUnit;
+
+        if (largeQuantity > 0)
+            return $"{largeQuantity} {largeUnitText} = {smallQuantity} {smallUnitText}";
+
+        if (smallQuantity > 0)
+            return $"{smallQuantity} {smallUnitText}";
+
+        return emptyText;
+    }
+
+    private static string FormatLargeQuantity(int largeQuantity, string? largeUnit)
+    {
+        var largeUnitText = string.IsNullOrWhiteSpace(largeUnit)
+            ? "كرتونة"
+            : largeUnit;
+
+        return $"{largeQuantity} {largeUnitText}";
+    }
+
+    private static string GetSmallUnit(LoadRequestItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.SmallUnit)
+            ? "قطعة"
+            : item.SmallUnit;
+    }
+
+    private static string GetLargeUnit(LoadRequestItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.LargeUnit)
+            ? "كرتونة"
+            : item.LargeUnit;
+    }
+
+    private static int GetUnitsPerLargeUnit(LoadRequestItemDto item)
+    {
+        return item.UnitsPerLargeUnit <= 0
+            ? 1
+            : item.UnitsPerLargeUnit;
     }
 
     private void GoToCreate()

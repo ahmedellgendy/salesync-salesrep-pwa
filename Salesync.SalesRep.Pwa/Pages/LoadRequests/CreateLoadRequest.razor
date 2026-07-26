@@ -337,17 +337,18 @@
             _successMessage = null;
 
             var selectedItems = _productLines
-                .Where(x => x.RequestedLargeQuantity > 0)
-                .Select(x => new CreateLoadRequestItemRequest
-                {
-                    ProductId = x.ProductId,
+                 .Where(x => x.RequestedLargeQuantity > 0)
+                 .Select(x => new CreateLoadRequestItemRequest
+                 {
+                     ProductId = x.ProductId,
 
-                    // الباك يستقبل الكمية النهائية بالوحدة الصغرى
-                    RequestedQuantity = x.RequestedSmallQuantity,
+                     // الباك يستقبل الكمية بالكرتونة / الوحدة الكبيرة
+                     // وهو اللي يحولها للقطعة
+                     RequestedLargeQuantity = x.RequestedLargeQuantity,
 
-                    Notes = BuildItemNote(x)
-                })
-                .ToList();
+                     Notes = _notes
+                 })
+                 .ToList();
 
             var request = new CreateLoadRequestRequest
             {
