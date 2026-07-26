@@ -191,46 +191,75 @@
 
         </section>
 
-        <section class="invoice-print-receipt" dir="rtl">
+        <section class="invoice-print-receipt official clean-receipt" dir="rtl">
 
             <div class="receipt-header">
-                <h2>Salesync</h2>
-                <p>Friday Ice Cream</p>
+                <h2>Friday Ice Cream</h2>
+                <p>فاتورة بيع / تسليم</p>
             </div>
 
-            <div class="receipt-line"></div>
-
-            <div class="receipt-info">
+            <div class="receipt-flat-info">
                 <div>
-                    <span>رقم الفاتورة</span>
+                    <span>رقم تليفون الشركة:</span>
+                    <strong>@CompanyPhone</strong>
+                </div>
+
+                <div>
+                    <span>رقم الفاتورة:</span>
                     <strong>@_invoice.InvoiceNumber</strong>
                 </div>
 
                 <div>
-                    <span>التاريخ</span>
+                    <span>تاريخ الإصدار:</span>
                     <strong>@FormatDate(_invoice.CreatedAt)</strong>
                 </div>
 
                 <div>
-                    <span>العميل</span>
-                    <strong>@GetCustomerNameText(_invoice)</strong>
-                </div>
-
-                <div>
-                    <span>حالة السداد</span>
-                    <strong>@GetPaymentStatusText(_invoice)</strong>
+                    <span>تاريخ الاستحقاق:</span>
+                    <strong>@FormatDueDate(_invoice)</strong>
                 </div>
             </div>
 
             <div class="receipt-line"></div>
 
-            <table class="receipt-items">
+            <div class="receipt-flat-info">
+
+                <div>
+                    <span>اسم العميل:</span>
+                    <strong>@GetCustomerNameText(_invoice)</strong>
+                </div>
+
+
+                <div>
+                    <span>هاتف العميل:</span>
+                    <strong>@GetTextOrDash(_invoice.CustomerPhone)</strong>
+                </div>
+
+                <div>
+                    <span>كود المندوب:</span>
+                    <strong>@GetTextOrDash(_invoice.SalesRepCode)</strong>
+                </div>
+
+                <div>
+                    <span>اسم المندوب:</span>
+                    <strong>@GetTextOrDash(_invoice.SalesRepName)</strong>
+                </div>
+
+                <div>
+                    <span>هاتف المندوب:</span>
+                    <strong>@GetTextOrDash(_invoice.SalesRepPhone)</strong>
+                </div>
+            </div>
+
+            <div class="receipt-line"></div>
+
+            <table class="receipt-items compact-items">
                 <thead>
                     <tr>
                         <th>الصنف</th>
-                        <th>كمية</th>
-                        <th>سعر</th>
-                        <th>إجمالي</th>
+                        <th>الكمية</th>
+                        <th>السعر</th>
+                        <th>الإجمالي</th>
                     </tr>
                 </thead>
 
@@ -239,10 +268,24 @@
                     {
                         <tr>
                             <td>
-                                @item.ProductName
-                                <small>@item.ItemCode</small>
+                                <strong>@item.ProductName</strong>
+
+                                @if (!string.IsNullOrWhiteSpace(item.ItemCode))
+                                {
+                                    <small>@item.ItemCode</small>
+                                }
                             </td>
-                            <td>@item.Quantity</td>
+
+                            <td class="receipt-qty-cell">
+                                <strong>@GetInvoiceItemLargeQuantity(item)</strong>
+                                <small>@GetLargeUnit(item)</small>
+
+                                @if (item.BonusLargeQuantity > 0 || item.BonusQuantity > 0)
+                                {
+                                    <small>بونص @GetInvoiceItemBonusLargeQuantity(item) @GetLargeUnit(item)</small>
+                                }
+                            </td>
+
                             <td>@FormatMoney(item.UnitPrice)</td>
                             <td>@FormatMoney(item.NetAmount)</td>
                         </tr>
@@ -250,27 +293,238 @@
                 </tbody>
             </table>
 
+            <div class="receipt-items-count inline-count">
+                <span>عدد الأصناف:</span>
+                <strong>@GetInvoiceItems().Count</strong>
+            </div>
+
             <div class="receipt-line"></div>
 
-            <div class="receipt-totals">
+            <div class="receipt-flat-info totals">
                 <div>
-                    <span>الإجمالي</span>
-                    <strong>@FormatMoney(_invoice.TotalAmount)</strong>
+                    <span>الإجمالي قبل الخصم:</span>
+                    <strong>@FormatMoney(_invoice.SubTotal)</strong>
                 </div>
 
                 <div>
-                    <span>المدفوع</span>
+                    <span>الخصم:</span>
+                    <strong>@FormatMoney(_invoice.DiscountAmount)</strong>
+                </div>
+
+                <div>
+                    <span>الضريبة:</span>
+                    <strong>@FormatMoney(_invoice.TaxAmount)</strong>
+                </div>
+
+                <div>
+                    <span>إجمالي المرتجعات:</span>
+                    <strong>@FormatMoney(GetReturnsAmount(_invoice))</strong>
+                </div>
+
+                <div class="grand-total">
+                    <span>الإجمالي النهائي:</span>
+                    <strong>@FormatMoney(GetFinalAmountAfterReturns(_invoice))</strong>
+                </div>
+
+                <div>
+                    <span>المدفوع:</span>
                     <strong>@FormatMoney(_invoice.PaidAmount)</strong>
                 </div>
 
                 <div>
-                    <span>المتبقي</span>
+                    <span>المتبقي:</span>
                     <strong>@FormatMoney(_invoice.RemainingAmount)</strong>
                 </div>
             </div>
 
+            <div class="receipt-line"></div>
+
+            <div class="receipt-signature-only">
+
+                <p class="receipt-small-declaration">
+                    أقر أنا الموقع أدناه باستلام البضاعة المبينة أعلاه بحالة جيدة وبعد المعاينة.
+                </p>
+
+                <div class="receipt-sign-row">
+                    <span>توقيع المستلم:</span>
+                    <strong>...................</strong>
+                </div>
+
+            </div>
+
             <div class="receipt-footer">
                 <p>شكراً لتعاملكم معنا</p>
+            </div>
+
+        </section>
+
+        <section class="invoice-a4-share" dir="rtl">
+
+            <div class="a4-header">
+                <div>
+                    <h2>Friday Ice Cream</h2>
+                    <p>فاتورة بيع / تسليم</p>
+                </div>
+
+                <div class="a4-company-info">
+                    <span>هاتف الشركة</span>
+                    <strong>@CompanyPhone</strong>
+                </div>
+            </div>
+
+            <div class="a4-line"></div>
+
+            <div class="a4-info-grid">
+                <div>
+                    <span>رقم الفاتورة</span>
+                    <strong>@_invoice.InvoiceNumber</strong>
+                </div>
+
+                <div>
+                    <span>تاريخ الإصدار</span>
+                    <strong>@FormatDate(_invoice.CreatedAt)</strong>
+                </div>
+
+                <div>
+                    <span>تاريخ الاستحقاق</span>
+                    <strong>@FormatDueDate(_invoice)</strong>
+                </div>
+
+                <div>
+                    <span>حالة السداد</span>
+                    <strong>@GetPaymentStatusText(_invoice)</strong>
+                </div>
+            </div>
+
+            <div class="a4-section-title">بيانات العميل والمندوب</div>
+
+            <div class="a4-info-grid">
+                <div>
+                    <span>اسم العميل</span>
+                    <strong>@GetCustomerNameText(_invoice)</strong>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_invoice.CustomerPhone))
+                {
+                    <div>
+                        <span>هاتف العميل</span>
+                        <strong>@_invoice.CustomerPhone</strong>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(_invoice.CustomerPhone))
+                {
+                    <div>
+                        <span>كود المندوب</span>
+                        <strong>@GetTextOrDash(_invoice.SalesRepCode)</strong>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(_invoice.CustomerPhone))
+                {
+                    <div>
+                        <span>اسم المندوب</span>
+                        <strong>@GetTextOrDash(_invoice.SalesRepName)</strong>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(_invoice.CustomerPhone))
+                {
+                    <div>
+                        <span>هاتف المندوب</span>
+                        <strong>@GetTextOrDash(_invoice.SalesRepPhone)</strong>
+                    </div>
+                }
+                
+
+                
+            </div>
+
+            <div class="a4-section-title">الأصناف</div>
+
+            <table class="a4-items-table">
+                <thead>
+                    <tr>
+                        <th>الصنف</th>
+                        <th>كود الصنف</th>
+                        <th>الكمية</th>
+                        <th>الوحدة</th>
+                        <th>السعر</th>
+                        <th>الإجمالي</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in GetInvoiceItems())
+                    {
+                        <tr>
+                            <td>@item.ProductName</td>
+                            <td>@item.ItemCode</td>
+                            <td>@GetInvoiceItemLargeQuantity(item)</td>
+                            <td>@GetLargeUnit(item)</td>
+                            <td>@FormatMoney(item.UnitPrice)</td>
+                            <td>@FormatMoney(item.NetAmount)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="a4-items-count">
+                عدد الأصناف: <strong>@GetInvoiceItems().Count</strong>
+            </div>
+
+            <div class="a4-bottom-grid">
+
+                <div class="a4-declaration">
+                    <h3>إقرار استلام</h3>
+                    <p>
+                        أقر أنا الموقع أدناه باستلام البضاعة المبينة أعلاه بحالة جيدة وبعد المعاينة.
+                    </p>
+
+                    <div class="a4-signature">
+                        <span>توقيع المستلم</span>
+                        <strong>________________________</strong>
+                    </div>
+                </div>
+
+                <div class="a4-totals">
+                    <div>
+                        <span>الإجمالي قبل الخصم</span>
+                        <strong>@FormatMoney(_invoice.SubTotal)</strong>
+                    </div>
+
+                    <div>
+                        <span>الخصم</span>
+                        <strong>@FormatMoney(_invoice.DiscountAmount)</strong>
+                    </div>
+
+                    <div>
+                        <span>الضريبة</span>
+                        <strong>@FormatMoney(_invoice.TaxAmount)</strong>
+                    </div>
+
+                    <div>
+                        <span>إجمالي المرتجعات</span>
+                        <strong>@FormatMoney(GetReturnsAmount(_invoice))</strong>
+                    </div>
+
+                    <div class="a4-grand-total">
+                        <span>الإجمالي النهائي</span>
+                        <strong>@FormatMoney(GetFinalAmountAfterReturns(_invoice))</strong>
+                    </div>
+
+                    <div>
+                        <span>المدفوع</span>
+                        <strong>@FormatMoney(_invoice.PaidAmount)</strong>
+                    </div>
+
+                    <div>
+                        <span>المتبقي</span>
+                        <strong>@FormatMoney(_invoice.RemainingAmount)</strong>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="a4-footer">
+                شكراً لتعاملكم معنا
             </div>
 
         </section>
@@ -377,10 +631,10 @@
                 .Replace(":", "-");
 
             await JSRuntime.InvokeVoidAsync(
-                "salesyncInvoiceShare.shareReceipt",
-                ".invoice-print-receipt",
-                fileName,
-                message);
+    "salesyncInvoiceShare.shareReceipt",
+    ".invoice-a4-share",
+    fileName,
+    message);
         }
         catch
         {
@@ -398,30 +652,39 @@
         var invoiceItems = invoice.InvoiceItems ?? new List<InvoiceItemDto>();
 
         var itemsText = invoiceItems.Count == 0
-            ? "لا توجد أصناف"
-            : string.Join(
-                Environment.NewLine,
-                invoiceItems.Select(item =>
-                    $"- {item.ProductName} | الكمية: {item.Quantity} | السعر: {item.UnitPrice:N2} | الإجمالي: {item.NetAmount:N2}"));
+             ? "لا توجد أصناف"
+             : string.Join(
+                 Environment.NewLine,
+                 invoiceItems.Select(item =>
+                     $"- {item.ProductName} | الكمية: {FormatInvoiceItemQuantity(item)} | السعر: {item.UnitPrice:N2} | الإجمالي: {item.NetAmount:N2}"));
 
         return
-$"""
-فاتورة Salesync
+            $"""
+فاتورة Friday Ice Cream
 
 رقم الفاتورة: {invoice.InvoiceNumber}
-التاريخ: {invoice.CreatedAt.ToLocalTime():dd/MM/yyyy - hh:mm tt}
+تاريخ الإصدار: {invoice.CreatedAt.ToLocalTime():dd/MM/yyyy - hh:mm tt}
+تاريخ الاستحقاق: {FormatDueDate(invoice)}
 العميل: {GetCustomerNameText(invoice)}
 حالة السداد: {GetPaymentStatusText(invoice)}
 
 الأصناف:
 {itemsText}
 
-الإجمالي: {invoice.TotalAmount:N2}
+الإجمالي قبل الخصم: {invoice.SubTotal:N2}
+الخصم: {invoice.DiscountAmount:N2}
+الضريبة: {invoice.TaxAmount:N2}
+المرتجعات: {GetReturnsAmount(invoice):N2}
+الإجمالي النهائي: {GetFinalAmountAfterReturns(invoice):N2}
 المدفوع: {invoice.PaidAmount:N2}
 المتبقي: {invoice.RemainingAmount:N2}
 
+أقر أنا الموقع أدناه بأنني استلمت البضاعة المبينة أعلاه بعد المعاينة، وأن الكميات والحالة مطابقة لما ورد بالفاتورة.
+
 شكراً لتعاملكم معنا
 """;
+
+        
     }
 
     private static string GetCustomerNameText(InvoiceDto invoice)
@@ -474,4 +737,184 @@ $"""
     {
         return value.ToLocalTime().ToString("dd/MM/yyyy - hh:mm tt");
     }
+
+    private static string GetTextOrDash(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? "-"
+            : value;
+    }
+
+    private static string GetCustomerCodeText(InvoiceDto invoice)
+    {
+        if (!string.IsNullOrWhiteSpace(invoice.CustomerCode))
+            return invoice.CustomerCode;
+
+        return invoice.CustomerId > 0
+            ? invoice.CustomerId.ToString()
+            : "-";
+    }
+
+    private static string FormatDueDate(InvoiceDto invoice)
+    {
+        var dueDate = invoice.DueDate ?? invoice.CreatedAt;
+
+        return dueDate.ToLocalTime().ToString("dd/MM/yyyy");
+    }
+
+    private static decimal GetReturnsAmount(InvoiceDto invoice)
+    {
+        return invoice.ReturnsAmount < 0
+            ? 0
+            : invoice.ReturnsAmount;
+    }
+
+    private static decimal GetFinalAmountAfterReturns(InvoiceDto invoice)
+    {
+        var finalAmount = invoice.TotalAmount - GetReturnsAmount(invoice);
+
+        return finalAmount < 0
+            ? 0
+            : finalAmount;
+    }
+
+    private static string FormatInvoiceItemQuantity(InvoiceItemDto item)
+    {
+        var largeUnit = GetLargeUnit(item);
+        var smallUnit = GetSmallUnit(item);
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(item);
+
+        if (item.SaleLargeQuantity > 0)
+            return $"{item.SaleLargeQuantity} {largeUnit} = {item.Quantity} {smallUnit}";
+
+        var calculatedLargeQuantity = item.Quantity / unitsPerLargeUnit;
+        var remainingSmallQuantity = item.Quantity % unitsPerLargeUnit;
+
+        if (calculatedLargeQuantity > 0 && remainingSmallQuantity > 0)
+            return $"{calculatedLargeQuantity} {largeUnit} + {remainingSmallQuantity} {smallUnit}";
+
+        if (calculatedLargeQuantity > 0)
+            return $"{calculatedLargeQuantity} {largeUnit} = {item.Quantity} {smallUnit}";
+
+        return $"{item.Quantity} {smallUnit}";
+    }
+
+    private static string FormatInvoiceItemBonus(InvoiceItemDto item)
+    {
+        var largeUnit = GetLargeUnit(item);
+        var smallUnit = GetSmallUnit(item);
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(item);
+
+        if (item.BonusLargeQuantity > 0)
+            return $"{item.BonusLargeQuantity} {largeUnit} = {item.BonusQuantity} {smallUnit}";
+
+        if (item.BonusQuantity <= 0)
+            return $"0 {smallUnit}";
+
+        var calculatedLargeQuantity = item.BonusQuantity / unitsPerLargeUnit;
+        var remainingSmallQuantity = item.BonusQuantity % unitsPerLargeUnit;
+
+        if (calculatedLargeQuantity > 0 && remainingSmallQuantity > 0)
+            return $"{calculatedLargeQuantity} {largeUnit} + {remainingSmallQuantity} {smallUnit}";
+
+        if (calculatedLargeQuantity > 0)
+            return $"{calculatedLargeQuantity} {largeUnit} = {item.BonusQuantity} {smallUnit}";
+
+        return $"{item.BonusQuantity} {smallUnit}";
+    }
+
+    private static string GetSmallUnit(InvoiceItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.SmallUnit)
+            ? "قطعة"
+            : item.SmallUnit;
+    }
+
+    private static string GetLargeUnit(InvoiceItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.LargeUnit)
+            ? "كرتونة"
+            : item.LargeUnit;
+    }
+
+    private static int GetUnitsPerLargeUnit(InvoiceItemDto item)
+    {
+        return item.UnitsPerLargeUnit <= 0
+            ? 1
+            : item.UnitsPerLargeUnit;
+    }
+
+    private static string FormatInvoiceItemQuantityForTable(InvoiceItemDto item)
+    {
+        var largeUnit = GetLargeUnit(item);
+        var smallUnit = GetSmallUnit(item);
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(item);
+
+        if (item.SaleLargeQuantity > 0)
+            return $"{item.SaleLargeQuantity} {largeUnit} = {item.Quantity} {smallUnit}";
+
+        var largeQty = item.Quantity / unitsPerLargeUnit;
+        var smallQty = item.Quantity % unitsPerLargeUnit;
+
+        if (largeQty > 0 && smallQty > 0)
+            return $"{largeQty} {largeUnit}+{smallQty} {smallUnit}";
+
+        if (largeQty > 0)
+            return $"{largeQty} {largeUnit}";
+
+        return $"{item.Quantity} {smallUnit}";
+    }
+
+    private static string FormatInvoiceItemBonusForTable(InvoiceItemDto item)
+    {
+        var largeUnit = GetLargeUnit(item);
+        var smallUnit = GetSmallUnit(item);
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(item);
+
+        if (item.BonusLargeQuantity > 0)
+            return $"{item.BonusLargeQuantity} {largeUnit} = {item.BonusQuantity} {smallUnit}";
+
+        if (item.BonusQuantity <= 0)
+            return $"0 {smallUnit}";
+
+        var largeQty = item.BonusQuantity / unitsPerLargeUnit;
+        var smallQty = item.BonusQuantity % unitsPerLargeUnit;
+
+        if (largeQty > 0 && smallQty > 0)
+            return $"{largeQty} {largeUnit}+{smallQty} {smallUnit}";
+
+        if (largeQty > 0)
+            return $"{largeQty} {largeUnit}";
+
+        return $"{item.BonusQuantity} {smallUnit}";
+    }
+
+    private static int GetInvoiceItemLargeQuantity(InvoiceItemDto item)
+    {
+        if (item.SaleLargeQuantity > 0)
+            return item.SaleLargeQuantity;
+
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(item);
+
+        return item.Quantity / unitsPerLargeUnit;
+    }
+
+    private static string GetInvoiceItemLargeUnitText(InvoiceItemDto item)
+    {
+        var largeUnit = GetLargeUnit(item);
+        var smallUnit = GetSmallUnit(item);
+
+        return $"{largeUnit} = {item.Quantity} {smallUnit}";
+    }
+
+    private static int GetInvoiceItemBonusLargeQuantity(InvoiceItemDto item)
+    {
+        if (item.BonusLargeQuantity > 0)
+            return item.BonusLargeQuantity;
+
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(item);
+
+        return item.BonusQuantity / unitsPerLargeUnit;
+    }
+    private const string CompanyPhone = "01062972156";
 }

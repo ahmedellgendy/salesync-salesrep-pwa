@@ -6949,3 +6949,681 @@ body,
     height: 54px !important;
     border-radius: 20px !important;
 }
+
+.receipt-section-title {
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    color: #000000 !important;
+    margin: 6px 0 5px !important;
+    padding: 3px 0 !important;
+    border-bottom: 1px solid #000000 !important;
+}
+
+.receipt-info .full {
+    display: block !important;
+}
+
+.receipt-returns-box {
+    font-size: 10px !important;
+    color: #000000 !important;
+}
+
+    .receipt-returns-box p {
+        margin: 0 !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        color: #000000 !important;
+    }
+
+    .receipt-returns-box div {
+        display: flex !important;
+        justify-content: space-between !important;
+        gap: 6px !important;
+        font-weight: 900 !important;
+    }
+
+.receipt-totals .total {
+    border-top: 1px solid #000000 !important;
+    padding-top: 5px !important;
+    margin-top: 5px !important;
+}
+
+.receipt-declaration {
+    color: #000000 !important;
+    font-size: 10px !important;
+    line-height: 1.6 !important;
+}
+
+    .receipt-declaration h3 {
+        margin: 0 0 5px !important;
+        font-size: 12px !important;
+        font-weight: 900 !important;
+        color: #000000 !important;
+        text-align: center !important;
+    }
+
+    .receipt-declaration p {
+        margin: 0 0 8px !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        color: #000000 !important;
+    }
+
+.receipt-sign-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    margin-top: 6px !important;
+    color: #000000 !important;
+}
+
+    .receipt-sign-row span,
+    .receipt-sign-row strong {
+        font-size: 10px !important;
+        font-weight: 800 !important;
+        color: #000000 !important;
+    }
+
+
+/* =========================
+   Clean Thermal Receipt
+   ========================= */
+
+.invoice-print-receipt.clean-receipt {
+    width: 280px !important;
+    max-width: 280px !important;
+    padding: 8px 7px !important;
+    font-family: Arial, Tahoma, sans-serif !important;
+    font-size: 9px !important;
+    line-height: 1.35 !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+}
+
+.clean-receipt .receipt-header {
+    text-align: center !important;
+    margin-bottom: 6px !important;
+}
+
+    .clean-receipt .receipt-header h2 {
+        font-size: 15px !important;
+        font-weight: 900 !important;
+        margin: 0 !important;
+    }
+
+    .clean-receipt .receipt-header p {
+        font-size: 10px !important;
+        font-weight: 800 !important;
+        margin: 2px 0 0 !important;
+    }
+
+.clean-receipt .receipt-flat-info div {
+    display: grid !important;
+    grid-template-columns: 90px 1fr !important;
+    gap: 5px !important;
+    align-items: start !important;
+    margin-bottom: 2px !important;
+}
+
+.clean-receipt .receipt-flat-info span {
+    font-size: 8.5px !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+}
+
+.clean-receipt .receipt-flat-info strong {
+    font-size: 8.5px !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+    text-align: right !important;
+    word-break: break-word !important;
+}
+
+.clean-receipt .receipt-line {
+    border-top: 1px dashed #000000 !important;
+    margin: 6px 0 !important;
+}
+
+/* =========================
+   Receipt Items Better Layout
+   ========================= */
+
+.clean-receipt .receipt-items.compact-items {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    margin-top: 4px !important;
+    direction: rtl !important;
+}
+
+    .clean-receipt .receipt-items.compact-items th {
+        font-size: 8.5px !important;
+        font-weight: 900 !important;
+        color: #000000 !important;
+        padding: 4px 2px !important;
+        border-top: 1px solid #000000 !important;
+        border-bottom: 1px solid #000000 !important;
+        text-align: center !important;
+    }
+
+    .clean-receipt .receipt-items.compact-items td {
+        font-size: 8.5px !important;
+        font-weight: 850 !important;
+        color: #000000 !important;
+        padding: 5px 2px !important;
+        border-bottom: 1px dotted #000000 !important;
+        vertical-align: middle !important;
+        text-align: center !important;
+        line-height: 1.35 !important;
+    }
+
+        .clean-receipt .receipt-items.compact-items th:nth-child(1),
+        .clean-receipt .receipt-items.compact-items td:nth-child(1) {
+            width: 36% !important;
+            text-align: right !important;
+        }
+
+        .clean-receipt .receipt-items.compact-items th:nth-child(2),
+        .clean-receipt .receipt-items.compact-items td:nth-child(2) {
+            width: 18% !important;
+        }
+
+        .clean-receipt .receipt-items.compact-items th:nth-child(3),
+        .clean-receipt .receipt-items.compact-items td:nth-child(3) {
+            width: 20% !important;
+        }
+
+        .clean-receipt .receipt-items.compact-items th:nth-child(4),
+        .clean-receipt .receipt-items.compact-items td:nth-child(4) {
+            width: 26% !important;
+        }
+
+        .clean-receipt .receipt-items.compact-items td strong {
+            display: block !important;
+            font-size: 8.5px !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+        }
+
+        .clean-receipt .receipt-items.compact-items td small {
+            display: block !important;
+            font-size: 7px !important;
+            font-weight: 750 !important;
+            margin-top: 2px !important;
+            color: #000000 !important;
+            word-break: break-word !important;
+        }
+
+.clean-receipt .receipt-qty-cell strong {
+    font-size: 11px !important;
+    font-weight: 950 !important;
+    line-height: 1 !important;
+}
+
+.clean-receipt .receipt-qty-cell small {
+    font-size: 7px !important;
+    font-weight: 800 !important;
+    margin-top: 2px !important;
+}
+
+.clean-receipt .receipt-items-count.inline-count {
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    margin-top: 5px !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+}
+
+    .clean-receipt .receipt-items-count.inline-count span,
+    .clean-receipt .receipt-items-count.inline-count strong {
+        font-size: 9px !important;
+        font-weight: 900 !important;
+        color: #000000 !important;
+    }
+
+/* الإجماليات */
+.clean-receipt .receipt-flat-info.totals div {
+    grid-template-columns: 120px 1fr !important;
+}
+
+.clean-receipt .receipt-flat-info.totals span,
+.clean-receipt .receipt-flat-info.totals strong {
+    font-size: 9px !important;
+    font-weight: 850 !important;
+}
+
+.clean-receipt .receipt-flat-info.totals .grand-total {
+    border-top: 1px solid #000000 !important;
+    border-bottom: 1px solid #000000 !important;
+    padding: 4px 0 !important;
+    margin: 4px 0 !important;
+}
+
+    .clean-receipt .receipt-flat-info.totals .grand-total span,
+    .clean-receipt .receipt-flat-info.totals .grand-total strong {
+        font-size: 10px !important;
+        font-weight: 950 !important;
+    }
+
+/* الإقرار */
+.clean-receipt .receipt-declaration.simple .receipt-title {
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+    margin: 4px 0 5px !important;
+}
+
+.clean-receipt .receipt-declaration.simple p {
+    font-size: 8.5px !important;
+    font-weight: 750 !important;
+    line-height: 1.55 !important;
+    text-align: center !important;
+    margin: 0 0 7px !important;
+}
+
+.clean-receipt .receipt-sign-row {
+    display: grid !important;
+    grid-template-columns: 75px 1fr !important;
+    gap: 6px !important;
+    margin-top: 5px !important;
+}
+
+    .clean-receipt .receipt-sign-row span,
+    .clean-receipt .receipt-sign-row strong {
+        font-size: 8.5px !important;
+        font-weight: 800 !important;
+        color: #000000 !important;
+    }
+
+.clean-receipt .receipt-footer p {
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+    margin-top: 8px !important;
+}
+
+/* Print only receipt */
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+
+    .invoice-print-receipt,
+    .invoice-print-receipt * {
+        visibility: visible !important;
+    }
+
+    .invoice-print-receipt {
+        position: absolute !important;
+        right: 0 !important;
+        top: 0 !important;
+        width: 280px !important;
+        max-width: 280px !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+}
+
+.clean-receipt .receipt-qty-cell {
+    text-align: center !important;
+}
+
+    .clean-receipt .receipt-qty-cell strong {
+        display: block !important;
+        font-size: 9px !important;
+        font-weight: 950 !important;
+        text-align: center !important;
+    }
+
+    .clean-receipt .receipt-qty-cell small {
+        display: block !important;
+        font-size: 7px !important;
+        font-weight: 700 !important;
+        line-height: 1.35 !important;
+        text-align: center !important;
+        margin-top: 2px !important;
+    }
+
+.clean-receipt .receipt-signature-only {
+    margin-top: 12px !important;
+    padding-top: 8px !important;
+}
+
+    .clean-receipt .receipt-signature-only .receipt-sign-row {
+        display: grid !important;
+        grid-template-columns: 85px 1fr !important;
+        gap: 8px !important;
+        align-items: center !important;
+    }
+
+    .clean-receipt .receipt-signature-only span,
+    .clean-receipt .receipt-signature-only strong {
+        font-size: 9px !important;
+        font-weight: 900 !important;
+        color: #000000 !important;
+    }
+
+/* =========================
+   Receipt Header Info Softer
+   ========================= */
+
+.clean-receipt .receipt-header h2 {
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    margin: 0 !important;
+}
+
+.clean-receipt .receipt-header p {
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    margin: 2px 0 0 !important;
+}
+
+.clean-receipt .receipt-flat-info div {
+    display: grid !important;
+    grid-template-columns: 92px 1fr !important;
+    gap: 5px !important;
+    align-items: start !important;
+    margin-bottom: 2px !important;
+}
+
+.clean-receipt .receipt-flat-info span {
+    font-size: 8px !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+    text-align: right !important;
+}
+
+.clean-receipt .receipt-flat-info strong {
+    font-size: 8px !important;
+    font-weight: 850 !important;
+    color: #000000 !important;
+    text-align: right !important;
+}
+
+.clean-receipt .receipt-line {
+    border-top: 1px dashed #000000 !important;
+    margin: 5px 0 !important;
+}
+/* =========================
+   Receipt Final Small Tweaks
+   ========================= */
+
+
+
+.clean-receipt .receipt-small-declaration {
+    margin: 0 0 8px !important;
+    padding: 0 8px !important;
+    text-align: center !important;
+    font-size: 7.5px !important;
+    font-weight: 700 !important;
+    line-height: 1.55 !important;
+    color: #000000 !important;
+}
+
+.clean-receipt .receipt-signature-only {
+    margin-top: 8px !important;
+    padding-top: 4px !important;
+}
+
+    .clean-receipt .receipt-signature-only .receipt-sign-row {
+        display: grid !important;
+        grid-template-columns: 80px 1fr !important;
+        gap: 8px !important;
+        align-items: center !important;
+        margin-top: 5px !important;
+    }
+
+    .clean-receipt .receipt-signature-only span,
+    .clean-receipt .receipt-signature-only strong {
+        font-size: 8.5px !important;
+        font-weight: 900 !important;
+        color: #000000 !important;
+    }
+
+/* =========================
+   A4 Invoice Share Layout
+   ========================= */
+
+.invoice-a4-share {
+    width: 794px !important;
+    min-height: 1123px !important;
+    padding: 32px 38px !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+    font-family: Arial, Tahoma, sans-serif !important;
+    direction: rtl !important;
+    box-sizing: border-box !important;
+    position: fixed !important;
+    left: -10000px !important;
+    top: 0 !important;
+    z-index: -1 !important;
+}
+
+    .invoice-a4-share * {
+        box-sizing: border-box !important;
+    }
+
+.a4-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 24px !important;
+    margin-bottom: 18px !important;
+}
+
+    .a4-header h2 {
+        margin: 0 !important;
+        font-size: 30px !important;
+        font-weight: 900 !important;
+        color: #111111 !important;
+    }
+
+    .a4-header p {
+        margin: 6px 0 0 !important;
+        font-size: 18px !important;
+        font-weight: 800 !important;
+        color: #333333 !important;
+    }
+
+.a4-company-info {
+    min-width: 180px !important;
+    text-align: left !important;
+}
+
+    .a4-company-info span {
+        display: block !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #666666 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .a4-company-info strong {
+        font-size: 18px !important;
+        font-weight: 900 !important;
+        color: #111111 !important;
+    }
+
+.a4-line {
+    height: 2px !important;
+    background: #111111 !important;
+    margin: 16px 0 22px !important;
+}
+
+.a4-section-title {
+    margin: 16px 0 8px !important;
+    padding: 7px 10px !important;
+    background: #f4f6f8 !important;
+    border: 1px solid #d8dde6 !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    color: #111111 !important;
+}
+
+.a4-info-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px 18px !important;
+}
+
+    .a4-info-grid div {
+        border: 1px solid #d8dde6 !important;
+        border-radius: 6px !important;
+        padding: 8px 10px !important;
+        background: #ffffff !important;
+        min-height: 48px !important;
+    }
+
+    .a4-info-grid span {
+        display: block !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        color: #667085 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .a4-info-grid strong {
+        display: block !important;
+        font-size: 13px !important;
+        font-weight: 900 !important;
+        color: #111111 !important;
+    }
+
+.a4-items-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 8px !important;
+    direction: rtl !important;
+}
+
+    .a4-items-table th {
+        background: #111111 !important;
+        color: #ffffff !important;
+        font-size: 12px !important;
+        font-weight: 900 !important;
+        padding: 8px 6px !important;
+        border: 1px solid #111111 !important;
+        text-align: center !important;
+    }
+
+    .a4-items-table td {
+        font-size: 12px !important;
+        font-weight: 800 !important;
+        color: #111111 !important;
+        padding: 8px 6px !important;
+        border: 1px solid #d8dde6 !important;
+        text-align: center !important;
+    }
+
+        .a4-items-table td:first-child {
+            text-align: right !important;
+            font-weight: 900 !important;
+        }
+
+.a4-items-count {
+    margin: 10px 0 0 !important;
+    text-align: center !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    color: #111111 !important;
+}
+
+.a4-bottom-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 260px !important;
+    gap: 22px !important;
+    align-items: start !important;
+    margin-top: 24px !important;
+}
+
+.a4-totals {
+    border: 1px solid #d8dde6 !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+
+    .a4-totals div {
+        display: flex !important;
+        justify-content: space-between !important;
+        gap: 12px !important;
+        padding: 10px 12px !important;
+        border-bottom: 1px solid #e6e9ef !important;
+        font-size: 13px !important;
+        font-weight: 800 !important;
+    }
+
+        .a4-totals div:last-child {
+            border-bottom: none !important;
+        }
+
+    .a4-totals span {
+        color: #333333 !important;
+    }
+
+    .a4-totals strong {
+        color: #111111 !important;
+        font-weight: 900 !important;
+    }
+
+.a4-grand-total {
+    background: #111111 !important;
+    color: #ffffff !important;
+}
+
+    .a4-grand-total span,
+    .a4-grand-total strong {
+        color: #ffffff !important;
+        font-size: 15px !important;
+    }
+
+.a4-declaration {
+    border: 1px solid #d8dde6 !important;
+    border-radius: 8px !important;
+    padding: 14px !important;
+    min-height: 150px !important;
+}
+
+    .a4-declaration h3 {
+        margin: 0 0 10px !important;
+        font-size: 16px !important;
+        font-weight: 900 !important;
+        color: #111111 !important;
+    }
+
+    .a4-declaration p {
+        margin: 0 0 20px !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        line-height: 1.8 !important;
+        color: #333333 !important;
+    }
+
+.a4-signature {
+    margin-top: 16px !important;
+}
+
+    .a4-signature span {
+        display: block !important;
+        font-size: 13px !important;
+        font-weight: 900 !important;
+        margin-bottom: 10px !important;
+    }
+
+    .a4-signature strong {
+        display: block !important;
+        font-size: 15px !important;
+        font-weight: 900 !important;
+    }
+
+.a4-footer {
+    margin-top: 38px !important;
+    text-align: center !important;
+    font-size: 15px !important;
+    font-weight: 900 !important;
+    color: #111111 !important;
+}
