@@ -11,68 +11,123 @@
 @inject NavigationManager NavigationManager
 @inject IHttpClientFactory HttpClientFactory
 
-<h3>Create Load Request</h3>
+<div class="create-load-page" dir="rtl">
 
-@if (!string.IsNullOrWhiteSpace(_errorMessage))
-{
-    <div class="alert alert-danger">@_errorMessage</div>
-}
-
-@if (!string.IsNullOrWhiteSpace(_successMessage))
-{
-    <div class="alert alert-success">@_successMessage</div>
-}
-
-@if (_isLoading)
-{
-    <p>جاري تحميل بيانات المندوب...</p>
-}
-else
-{
-    <div class="card p-3">
-        <p class="mb-2">
-            <strong>SalesRep Id:</strong> @_salesRepId
-        </p>
-
-        <div class="mb-3">
-            <label class="form-label">Warehouse Id</label>
-            <input type="number"
-                   class="form-control"
-                   @bind="_warehouseId" />
+    <section class="create-load-hero">
+        <div>
+            <span>طلبات التحميل</span>
+            <h1>طلب تحميل جديد</h1>
+            <p>اطلب المنتجات المطلوبة من المخزن لتحديث مخزونك.</p>
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">Product Id</label>
-            <input type="number"
-                   class="form-control"
-                   @bind="_productId" />
+        <div class="create-load-hero-icon">
+            📦
         </div>
+    </section>
 
-        <div class="mb-3">
-            <label class="form-label">Requested Quantity</label>
-            <input type="number"
-                   class="form-control"
-                   @bind="_requestedQuantity" />
+    @if (_isLoading)
+    {
+        <div class="create-load-loading-card">
+            جاري تحميل بيانات المندوب...
         </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="create-load-alert error">
+                @_errorMessage
+            </div>
+        }
 
-        <div class="mb-3">
-            <label class="form-label">Notes</label>
-            <textarea class="form-control" @bind="_notes"></textarea>
-        </div>
+        @if (!string.IsNullOrWhiteSpace(_successMessage))
+        {
+            <div class="create-load-alert success">
+                @_successMessage
+            </div>
+        }
 
-        <button class="btn btn-primary w-100"
-                disabled="@_isProcessing"
-                @onclick="CreateLoadRequestAsync">
-            @(_isProcessing ? "جاري إرسال الطلب..." : "Submit Load Request")
-        </button>
+        <section class="create-load-card">
 
-        <button class="btn btn-secondary w-100 mt-2"
-                disabled="@_isProcessing"
-                @onclick="GoBack">
-            Back
-        </button>
-    </div>
-}
+            <div class="create-load-section-title">
+                <span>بيانات الطلب</span>
+                <strong>طلب تحميل من المخزن</strong>
+            </div>
+
+            <div class="create-load-form-group">
+                <label>رقم المخزن</label>
+
+                <input type="number"
+                       min="1"
+                       disabled="@_isProcessing"
+                       @bind="_warehouseId" />
+
+                <small>مؤقتًا يتم إدخال رقم المخزن، وبعدها سيتم تحويلها لاختيار من قائمة.</small>
+            </div>
+
+            <div class="create-load-form-group">
+                <label>رقم المنتج</label>
+
+                <input type="number"
+                       min="1"
+                       disabled="@_isProcessing"
+                       @bind="_productId" />
+
+                <small>مؤقتًا يتم إدخال رقم المنتج، وبعدها سيتم تحويلها لاختيار المنتج بالاسم.</small>
+            </div>
+
+            <div class="create-load-form-group">
+                <label>الكمية المطلوبة</label>
+
+                <input type="number"
+                       min="1"
+                       disabled="@_isProcessing"
+                       @bind="_requestedQuantity" />
+            </div>
+
+            <div class="create-load-form-group">
+                <label>ملاحظات اختيارية</label>
+
+                <textarea placeholder="اكتب ملاحظات طلب التحميل..."
+                          disabled="@_isProcessing"
+                          @bind="_notes"></textarea>
+            </div>
+
+            <section class="create-load-summary">
+                <div>
+                    <span>المخزن</span>
+                    <strong>@_warehouseId</strong>
+                </div>
+
+                <div>
+                    <span>المنتج</span>
+                    <strong>@_productId</strong>
+                </div>
+
+                <div>
+                    <span>الكمية</span>
+                    <strong>@_requestedQuantity</strong>
+                </div>
+            </section>
+
+            <button type="button"
+                    class="create-load-main-btn"
+                    disabled="@_isProcessing"
+                    @onclick="CreateLoadRequestAsync">
+                @(_isProcessing ? "جاري إرسال الطلب..." : "إرسال طلب التحميل")
+            </button>
+
+            <button type="button"
+                    class="create-load-back-btn"
+                    disabled="@_isProcessing"
+                    @onclick="GoBack">
+                رجوع للطلبات
+            </button>
+
+        </section>
+    }
+
+</div>
 
 @code {
     private bool _isLoading = true;
@@ -93,7 +148,7 @@ else
 
         if (_salesRepId <= 0)
         {
-            _errorMessage = "لم يتم العثور على SalesRepId للمندوب الحالي.";
+            _errorMessage = "لم يتم تحديد المندوب الحالي.";
         }
 
         _isLoading = false;
@@ -146,11 +201,15 @@ else
                 return;
             }
 
-            _successMessage = "تم إنشاء طلب التحميل بنجاح.";
+            _successMessage = "تم إرسال طلب التحميل بنجاح.";
 
             await Task.Delay(700);
 
             NavigationManager.NavigateTo("/load-requests", replace: true);
+        }
+        catch
+        {
+            _errorMessage = "حدث خطأ غير متوقع أثناء إرسال طلب التحميل.";
         }
         finally
         {
@@ -160,27 +219,29 @@ else
 
     private bool Validate()
     {
+        _errorMessage = null;
+
         if (_salesRepId <= 0)
         {
-            _errorMessage = "SalesRepId غير صحيح.";
+            _errorMessage = "بيانات المندوب غير صحيحة.";
             return false;
         }
 
         if (_warehouseId <= 0)
         {
-            _errorMessage = "WarehouseId مطلوب.";
+            _errorMessage = "رقم المخزن مطلوب.";
             return false;
         }
 
         if (_productId <= 0)
         {
-            _errorMessage = "ProductId مطلوب.";
+            _errorMessage = "رقم المنتج مطلوب.";
             return false;
         }
 
         if (_requestedQuantity <= 0)
         {
-            _errorMessage = "Requested Quantity لازم تكون أكبر من صفر.";
+            _errorMessage = "الكمية المطلوبة لازم تكون أكبر من صفر.";
             return false;
         }
 
