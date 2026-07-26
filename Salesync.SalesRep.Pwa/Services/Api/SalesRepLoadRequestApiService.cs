@@ -103,6 +103,62 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             }
         }
 
+        public async Task<ApiResponse<IEnumerable<MobileProductOptionDto>>?> GetProductsAsync()
+        {
+            try
+            {
+                var response = await _httpClient
+                    .GetFromJsonAsync<ApiResponse<IEnumerable<MobileProductOptionDto>>>(
+                        "api/mobile/salesrep/products");
+
+                return response ?? CreateErrorResponse<IEnumerable<MobileProductOptionDto>>(
+                    "لم يتم استلام استجابة صحيحة من الخادم.");
+            }
+            catch (HttpRequestException)
+            {
+                return CreateErrorResponse<IEnumerable<MobileProductOptionDto>>(
+                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+            }
+            catch (JsonException)
+            {
+                return CreateErrorResponse<IEnumerable<MobileProductOptionDto>>(
+                    "صيغة الاستجابة القادمة من الخادم غير صحيحة.");
+            }
+            catch
+            {
+                return CreateErrorResponse<IEnumerable<MobileProductOptionDto>>(
+                    "حدث خطأ غير متوقع أثناء تحميل المنتجات.");
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<MobileWarehouseOptionDto>>?> GetWarehousesAsync()
+        {
+            try
+            {
+                var response = await _httpClient
+                    .GetFromJsonAsync<ApiResponse<IEnumerable<MobileWarehouseOptionDto>>>(
+                        "api/mobile/salesrep/warehouses");
+
+                return response ?? CreateErrorResponse<IEnumerable<MobileWarehouseOptionDto>>(
+                    "لم يتم استلام استجابة صحيحة من الخادم.");
+            }
+            catch (HttpRequestException)
+            {
+                return CreateErrorResponse<IEnumerable<MobileWarehouseOptionDto>>(
+                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+            }
+            catch (JsonException)
+            {
+                return CreateErrorResponse<IEnumerable<MobileWarehouseOptionDto>>(
+                    "صيغة الاستجابة القادمة من الخادم غير صحيحة.");
+            }
+            catch
+            {
+                return CreateErrorResponse<IEnumerable<MobileWarehouseOptionDto>>(
+                    "حدث خطأ غير متوقع أثناء تحميل المخازن.");
+            }
+        }
+
         private static ApiResponse<T> CreateErrorResponse<T>(
             string message,
             int statusCode = 500)

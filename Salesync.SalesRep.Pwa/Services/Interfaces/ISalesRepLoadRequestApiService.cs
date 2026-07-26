@@ -10,5 +10,9 @@ namespace Salesync.SalesRep.Pwa.Services.Interfaces
         Task<ApiResponse<IEnumerable<LoadRequestDto>>?> GetBySalesRepAsync(int salesRepId);
 
         Task<ApiResponse<IEnumerable<SalesRepInventoryDto>>?> GetInventoryAsync(int salesRepId);
+
+        Task<ApiResponse<IEnumerable<MobileProductOptionDto>>?> GetProductsAsync();
+
+        Task<ApiResponse<IEnumerable<MobileWarehouseOptionDto>>?> GetWarehousesAsync();
     }
 }
