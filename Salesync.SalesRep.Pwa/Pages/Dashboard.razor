@@ -8,7 +8,6 @@
 @using Salesync.SalesRep.Pwa.Services.Interfaces
 
 @inject ISalesRepSessionApiService SalesRepSessionApiService
-@inject ISalesRepCustomerApiService SalesRepCustomerApiService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 
@@ -75,7 +74,7 @@
 
                     <div class="progress-summary">
                         <div class="progress-main-number">
-                            @_visitedCustomers / @_totalCustomers
+                            @VisitedCustomers / @TotalCustomers
                         </div>
 
                         <div class="progress-main-label">
@@ -84,12 +83,12 @@
 
                         <div class="progress-mini-row">
                             <span>
-                                <b>@_remainingCustomers</b>
+                                <b>@RemainingCustomers</b>
                                 متبقي
                             </span>
 
                             <span>
-                                <b>@CurrentSession.TotalVisits</b>
+                                <b>@VisitedCustomers</b>
                                 زيارة
                             </span>
                         </div>
@@ -114,22 +113,22 @@
                 <button class="snapshot-card @(IsInsightSelected(DashboardInsight.Invoices) ? "active" : "")"
                         @onclick="() => SelectInsight(DashboardInsight.Invoices)">
                     <span class="snapshot-icon">🧾</span>
-                    <strong>@CurrentSession.TotalInvoices</strong>
+                    <strong>@InvoicesCount</strong>
                     <small>فواتير</small>
                 </button>
 
                 <button class="snapshot-card @(IsInsightSelected(DashboardInsight.Collection) ? "active" : "")"
                         @onclick="() => SelectInsight(DashboardInsight.Collection)">
                     <span class="snapshot-icon">💰</span>
-                    <strong>@FormatMoney(CurrentSession.TotalCollection)</strong>
+                    <strong>@FormatMoney(PaidTotal)</strong>
                     <small>تحصيل</small>
                 </button>
 
-                <button class="snapshot-card @(IsInsightSelected(DashboardInsight.Remaining) ? "active" : "")"
-                        @onclick="() => SelectInsight(DashboardInsight.Remaining)">
-                    <span class="snapshot-icon">👥</span>
-                    <strong>@_remainingCustomers</strong>
-                    <small>متبقي</small>
+                <button class="snapshot-card @(IsInsightSelected(DashboardInsight.RemainingMoney) ? "active" : "")"
+                        @onclick="() => SelectInsight(DashboardInsight.RemainingMoney)">
+                    <span class="snapshot-icon">⏳</span>
+                    <strong>@FormatMoney(RemainingTotal)</strong>
+                    <small>متبقي فلوس</small>
                 </button>
             </section>
 
@@ -145,17 +144,17 @@
             <section class="money-panel">
                 <div class="money-title-row">
                     <div>
-                        <span>ملخص مالي سريع</span>
-                        <strong>@FormatMoney(CurrentSession.NetSales)</strong>
+                        <span>مبيعات اليوم</span>
+                        <strong>@FormatMoney(SalesTotal)</strong>
                     </div>
 
-                    <small>صافي المبيعات</small>
+                    <small>@InvoicesCount فاتورة</small>
                 </div>
 
                 <div class="money-line">
                     <div class="money-line-header">
-                        <span>المبيعات</span>
-                        <strong>@FormatMoney(CurrentSession.GrossSales)</strong>
+                        <span>إجمالي المبيعات</span>
+                        <strong>@FormatMoney(SalesTotal)</strong>
                     </div>
                     <div class="money-track">
                         <div class="money-fill sales" style="width:@GetSalesBarWidth()"></div>
@@ -164,13 +163,46 @@
 
                 <div class="money-line">
                     <div class="money-line-header">
-                        <span>التحصيل</span>
-                        <strong>@FormatMoney(CurrentSession.TotalCollection)</strong>
+                        <span>إجمالي التحصيل</span>
+                        <strong>@FormatMoney(PaidTotal)</strong>
                     </div>
                     <div class="money-track">
                         <div class="money-fill collection" style="width:@GetCollectionBarWidth()"></div>
                     </div>
                 </div>
+
+                <div class="money-line">
+                    <div class="money-line-header">
+                        <span>المتبقي على العملاء</span>
+                        <strong>@FormatMoney(RemainingTotal)</strong>
+                    </div>
+                    <div class="money-track">
+                        <div class="money-fill remaining" style="width:@GetRemainingBarWidth()"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="snapshot-grid secondary">
+                <button class="snapshot-card @(IsInsightSelected(DashboardInsight.Customers) ? "active" : "")"
+                        @onclick="() => SelectInsight(DashboardInsight.Customers)">
+                    <span class="snapshot-icon">👥</span>
+                    <strong>@TotalCustomers</strong>
+                    <small>عملاء الخط</small>
+                </button>
+
+                <button class="snapshot-card @(IsInsightSelected(DashboardInsight.Visited) ? "active" : "")"
+                        @onclick="() => SelectInsight(DashboardInsight.Visited)">
+                    <span class="snapshot-icon">✅</span>
+                    <strong>@VisitedCustomers</strong>
+                    <small>تمت زيارتهم</small>
+                </button>
+
+                <button class="snapshot-card @(IsInsightSelected(DashboardInsight.RemainingCustomers) ? "active" : "")"
+                        @onclick="() => SelectInsight(DashboardInsight.RemainingCustomers)">
+                    <span class="snapshot-icon">📍</span>
+                    <strong>@RemainingCustomers</strong>
+                    <small>متبقي عملاء</small>
+                </button>
             </section>
         }
 
@@ -293,6 +325,31 @@
                         }
 
                         <div>
+                            <span>عدد الفواتير</span>
+                            <strong>@InvoicesCount</strong>
+                        </div>
+
+                        <div>
+                            <span>عدد المدفوعات</span>
+                            <strong>@PaymentsCount</strong>
+                        </div>
+
+                        <div>
+                            <span>المبيعات</span>
+                            <strong>@FormatMoney(SalesTotal)</strong>
+                        </div>
+
+                        <div>
+                            <span>التحصيل</span>
+                            <strong>@FormatMoney(PaidTotal)</strong>
+                        </div>
+
+                        <div>
+                            <span>المتبقي</span>
+                            <strong>@FormatMoney(RemainingTotal)</strong>
+                        </div>
+
+                        <div>
                             <span>المرتجعات</span>
                             <strong>@FormatMoney(CurrentSession.TotalReturnAmount)</strong>
                         </div>
@@ -323,10 +380,6 @@
 
     private SalesRepMobileTodayDto? _today;
 
-    private int _totalCustomers;
-    private int _visitedCustomers;
-    private int _remainingCustomers;
-
     private DashboardInsight _selectedInsight = DashboardInsight.Invoices;
 
     private SalesRepSessionDto? CurrentSession => _today?.Session;
@@ -339,6 +392,17 @@
 
     private bool IsDayClosed =>
         _today?.IsDayClosed == true && CurrentSession is not null;
+
+    private int TotalCustomers => _today?.TotalCustomers ?? 0;
+    private int VisitedCustomers => _today?.VisitedCustomers ?? 0;
+    private int RemainingCustomers => _today?.RemainingCustomers ?? 0;
+
+    private int InvoicesCount => _today?.InvoicesCount ?? 0;
+    private int PaymentsCount => _today?.PaymentsCount ?? 0;
+
+    private decimal SalesTotal => _today?.SalesTotal ?? 0m;
+    private decimal PaidTotal => _today?.PaidTotal ?? 0m;
+    private decimal RemainingTotal => _today?.RemainingTotal ?? 0m;
 
     protected override async Task OnInitializedAsync()
     {
@@ -385,31 +449,6 @@
         }
 
         _today = todayResponse.Data;
-
-        if (HasOpenSession && CurrentSession is not null)
-        {
-            await LoadCustomersSummaryAsync(CurrentSession.Id);
-        }
-    }
-
-    private async Task LoadCustomersSummaryAsync(int sessionId)
-    {
-        var customersResponse = await SalesRepCustomerApiService.GetCustomersAsync(sessionId);
-
-        if (customersResponse is null || !customersResponse.Success)
-        {
-            _totalCustomers = 0;
-            _visitedCustomers = 0;
-            _remainingCustomers = 0;
-            return;
-        }
-
-        var customers = customersResponse.Data?.ToList()
-            ?? new List<SalesRepMobileCustomerDto>();
-
-        _totalCustomers = customers.Count;
-        _visitedCustomers = customers.Count(x => x.HasVisitToday);
-        _remainingCustomers = customers.Count(x => !x.HasVisitToday);
     }
 
     private async Task PrimaryActionAsync()
@@ -455,23 +494,9 @@
                 return;
             }
 
-            if (response.Data is null)
-            {
-                _errorMessage = "تم بدء اليوم لكن لم يتم استلام بيانات السيشن.";
-                return;
-            }
-
-            _today = new SalesRepMobileTodayDto
-            {
-                HasTodaySession = true,
-                HasOpenSession = true,
-                IsDayClosed = false,
-                Session = response.Data
-            };
+            await LoadDashboardAsync();
 
             _successMessage = "تم بدء اليوم بنجاح.";
-
-            await LoadCustomersSummaryAsync(response.Data.Id);
         }
         finally
         {
@@ -504,25 +529,9 @@
                 return;
             }
 
-            if (response.Data is null)
-            {
-                _errorMessage = "تم قفل اليوم لكن لم يتم استلام بيانات السيشن.";
-                return;
-            }
+            await LoadDashboardAsync();
 
-            _today = new SalesRepMobileTodayDto
-            {
-                HasTodaySession = true,
-                HasOpenSession = false,
-                IsDayClosed = true,
-                Session = response.Data
-            };
-
-            _totalCustomers = 0;
-            _visitedCustomers = 0;
-            _remainingCustomers = 0;
             _showCloseConfirm = false;
-
             _successMessage = "تم قفل اليوم بنجاح.";
         }
         finally
@@ -566,7 +575,7 @@
             return "ابدأ يومك وانطلق في خط السير.";
 
         if (HasOpenSession)
-            return "تابع زياراتك وفواتيرك من شاشة واحدة.";
+            return "تابع زياراتك وفواتيرك وتحصيلاتك من شاشة واحدة.";
 
         if (IsDayClosed)
             return "اليوم انتهى، راجع نتائجك بسرعة.";
@@ -612,10 +621,10 @@
 
     private int GetVisitProgressPercent()
     {
-        if (_totalCustomers <= 0)
+        if (TotalCustomers <= 0)
             return 0;
 
-        var percent = (decimal)_visitedCustomers / _totalCustomers * 100;
+        var percent = (decimal)VisitedCustomers / TotalCustomers * 100;
         return (int)Math.Round(percent, 0);
     }
 
@@ -677,21 +686,24 @@
         {
             DashboardInsight.Invoices => "فواتير اليوم",
             DashboardInsight.Collection => "تحصيل اليوم",
-            DashboardInsight.Remaining => "عملاء متبقين",
+            DashboardInsight.RemainingMoney => "المبلغ المتبقي",
+            DashboardInsight.Customers => "عملاء خط السير",
+            DashboardInsight.Visited => "العملاء الذين تمت زيارتهم",
+            DashboardInsight.RemainingCustomers => "العملاء المتبقين",
             _ => "ملخص"
         };
     }
 
     private string GetSelectedInsightValue()
     {
-        if (CurrentSession is null)
-            return "0";
-
         return _selectedInsight switch
         {
-            DashboardInsight.Invoices => CurrentSession.TotalInvoices.ToString(),
-            DashboardInsight.Collection => FormatMoney(CurrentSession.TotalCollection),
-            DashboardInsight.Remaining => _remainingCustomers.ToString(),
+            DashboardInsight.Invoices => InvoicesCount.ToString(),
+            DashboardInsight.Collection => FormatMoney(PaidTotal),
+            DashboardInsight.RemainingMoney => FormatMoney(RemainingTotal),
+            DashboardInsight.Customers => TotalCustomers.ToString(),
+            DashboardInsight.Visited => VisitedCustomers.ToString(),
+            DashboardInsight.RemainingCustomers => RemainingCustomers.ToString(),
             _ => "0"
         };
     }
@@ -702,14 +714,17 @@
         {
             DashboardInsight.Invoices => "عدد الفواتير التي تم تسجيلها خلال يوم العمل.",
             DashboardInsight.Collection => "إجمالي المبالغ المحصلة من العملاء حتى الآن.",
-            DashboardInsight.Remaining => "افتح خط السير واختر العميل التالي للزيارة.",
+            DashboardInsight.RemainingMoney => "إجمالي المبالغ المتبقية على العملاء بعد التحصيل.",
+            DashboardInsight.Customers => "إجمالي العملاء الموجودين على خط السير اليوم.",
+            DashboardInsight.Visited => "عدد العملاء الذين تمت زيارتهم خلال اليوم.",
+            DashboardInsight.RemainingCustomers => "افتح خط السير واختر العميل التالي للزيارة.",
             _ => string.Empty
         };
     }
 
     private string GetSalesBarWidth()
     {
-        if (CurrentSession is null || CurrentSession.GrossSales <= 0)
+        if (SalesTotal <= 0)
             return "0%";
 
         return "100%";
@@ -717,10 +732,26 @@
 
     private string GetCollectionBarWidth()
     {
-        if (CurrentSession is null || CurrentSession.GrossSales <= 0)
+        if (SalesTotal <= 0)
             return "0%";
 
-        var percent = CurrentSession.TotalCollection / CurrentSession.GrossSales * 100;
+        var percent = PaidTotal / SalesTotal * 100;
+
+        if (percent > 100)
+            percent = 100;
+
+        if (percent < 0)
+            percent = 0;
+
+        return $"{percent:N0}%";
+    }
+
+    private string GetRemainingBarWidth()
+    {
+        if (SalesTotal <= 0)
+            return "0%";
+
+        var percent = RemainingTotal / SalesTotal * 100;
 
         if (percent > 100)
             percent = 100;
@@ -750,7 +781,7 @@
 
     private static string FormatMoney(decimal value)
     {
-        return value.ToString("N2");
+        return $"{value:N2} EGP";
     }
 
     private static string FormatDate(DateTime value)
@@ -798,7 +829,9 @@
     {
         Invoices = 1,
         Collection = 2,
-        Remaining = 3
+        RemainingMoney = 3,
+        Customers = 4,
+        Visited = 5,
+        RemainingCustomers = 6
     }
-    
 }
