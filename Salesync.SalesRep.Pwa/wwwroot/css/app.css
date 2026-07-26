@@ -7678,7 +7678,21 @@ body,
     font-size: 24px !important;
     font-weight: 950 !important;
     flex-shrink: 0 !important;
+    overflow: hidden !important;
 }
+
+    .rep-profile-avatar img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        display: block !important;
+    }
+
+    .rep-profile-avatar span {
+        color: #ffffff !important;
+        font-size: 24px !important;
+        font-weight: 950 !important;
+    }
 
 .rep-profile-main {
     min-width: 0 !important;
@@ -7838,3 +7852,5 @@ body,
     background: #f8fcfd !important;
     color: #102a43 !important;
 }
+
+

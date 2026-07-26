@@ -39,7 +39,16 @@
         <section class="rep-profile-header">
 
             <div class="rep-profile-avatar">
-                @GetInitials(GetDisplayName())
+                @if (HasProfileImage())
+                {
+                    <img src="@GetProfileImageUrl()"
+                         alt="صورة المندوب"
+                         onerror="this.style.display='none';" />
+                }
+                else
+                {
+                    <span>@GetInitials(GetDisplayName())</span>
+                }
             </div>
 
             <div class="rep-profile-main">
@@ -313,5 +322,30 @@
         }
 
         return $"{parts[0][0]}{parts[1][0]}".ToUpperInvariant();
+    }
+    private bool HasProfileImage()
+    {
+        return !string.IsNullOrWhiteSpace(_profile?.ProfileImageUrl);
+    }
+
+    private string GetProfileImageUrl()
+    {
+        var imageUrl = _profile?.ProfileImageUrl;
+
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            return string.Empty;
+
+        if (imageUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            imageUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return imageUrl;
+        }
+
+        var baseUrl = HttpClient.BaseAddress?.ToString();
+
+        if (string.IsNullOrWhiteSpace(baseUrl))
+            return imageUrl;
+
+        return new Uri(new Uri(baseUrl), imageUrl).ToString();
     }
 }
