@@ -60,15 +60,20 @@
             </button>
         </section>
 
-        <section class="inventory-summary-card">
+        <section class="inventory-summary-compact">
             <div>
-                <span>عدد الأصناف</span>
+                <span>الأصناف</span>
                 <strong>@GetProductsCount()</strong>
             </div>
 
             <div>
-                <span>إجمالي الكمية</span>
+                <span>إجمالي القطع</span>
                 <strong>@GetTotalQuantity()</strong>
+            </div>
+
+            <div>
+                <span>آخر تحديث</span>
+                <strong>@GetLastInventoryUpdateText()</strong>
             </div>
         </section>
 
@@ -120,33 +125,33 @@
                 <section class="inventory-list">
                     @foreach (var item in FilteredInventory)
                     {
-                        <article class="inventory-product-card" @key="item.ProductId">
+                        <article class="inventory-product-card compact" @key="item.ProductId">
 
-                            <div class="inventory-product-header">
-                                <div>
+                            <div class="inventory-product-row">
+
+                                <div class="inventory-product-data">
                                     <strong>@item.ProductName</strong>
 
                                     @if (!string.IsNullOrWhiteSpace(item.ItemCode))
                                     {
                                         <span>كود: @item.ItemCode</span>
                                     }
+
+                                    <small>
+                                        1 @GetLargeUnit(item) = @GetUnitsPerLargeUnit(item) @GetSmallUnit(item)
+                                    </small>
                                 </div>
 
-                                <div class="inventory-quantity-pill">
-                                    @FormatQuantity(item.Quantity)
+                                <div class="inventory-product-stock">
+                                    <strong>@FormatMainInventoryQuantity(item)</strong>
+                                    <span>@item.Quantity @GetSmallUnit(item)</span>
                                 </div>
+
                             </div>
 
-                            <div class="inventory-product-info">
-                                <div>
-                                    <span>الكمية المتاحة</span>
-                                    <strong>@FormatQuantity(item.Quantity)</strong>
-                                </div>
-
-                                <div>
-                                    <span>آخر تحديث</span>
-                                    <strong>@FormatDate(item.LastUpdatedAt)</strong>
-                                </div>
+                            <div class="inventory-product-bottom">
+                                <span>@FormatInventoryQuantity(item)</span>
+                                <small>تحديث: @FormatDateShort(item.LastUpdatedAt)</small>
                             </div>
 
                         </article>
@@ -238,7 +243,9 @@
         var search = _searchText.Trim();
 
         return Contains(item.ProductName, search)
-            || Contains(item.ItemCode, search);
+            || Contains(item.ItemCode, search)
+            || Contains(item.SmallUnit, search)
+            || Contains(item.LargeUnit, search);
     }
 
     private static bool Contains(string? value, string search)
@@ -257,9 +264,53 @@
         return _inventory.Sum(x => x.Quantity);
     }
 
-    private static string FormatQuantity(decimal value)
+    private static string FormatMainInventoryQuantity(SalesRepInventoryDto item)
     {
-        return value.ToString("N0");
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(item);
+
+        var largeQuantity = item.Quantity / unitsPerLargeUnit;
+
+        if (largeQuantity > 0)
+            return $"{largeQuantity} {GetLargeUnit(item)}";
+
+        return $"{item.Quantity} {GetSmallUnit(item)}";
+    }
+
+    private static string FormatInventoryQuantity(SalesRepInventoryDto item)
+    {
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(item);
+
+        var largeQuantity = item.Quantity / unitsPerLargeUnit;
+        var remainingSmallQuantity = item.Quantity % unitsPerLargeUnit;
+
+        if (largeQuantity > 0 && remainingSmallQuantity > 0)
+            return $"{largeQuantity} {GetLargeUnit(item)} + {remainingSmallQuantity} {GetSmallUnit(item)} = {item.Quantity} {GetSmallUnit(item)}";
+
+        if (largeQuantity > 0)
+            return $"{largeQuantity} {GetLargeUnit(item)} = {item.Quantity} {GetSmallUnit(item)}";
+
+        return $"{remainingSmallQuantity} {GetSmallUnit(item)}";
+    }
+
+    private static string GetSmallUnit(SalesRepInventoryDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.SmallUnit)
+            ? "قطعة"
+            : item.SmallUnit;
+    }
+
+    private static string GetLargeUnit(SalesRepInventoryDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.LargeUnit)
+            ? "كرتونة"
+            : item.LargeUnit;
+    }
+
+    private static int GetUnitsPerLargeUnit(SalesRepInventoryDto item)
+    {
+        return item.UnitsPerLargeUnit <= 0
+            ? 1
+            : item.UnitsPerLargeUnit;
     }
 
     private static string FormatDate(DateTime value)
@@ -276,4 +327,21 @@
     {
         NavigationManager.NavigateTo("/load-requests");
     }
+
+    private string GetLastInventoryUpdateText()
+    {
+        if (_inventory.Count == 0)
+            return "-";
+
+        var lastUpdate = _inventory.Max(x => x.LastUpdatedAt);
+
+        return lastUpdate.ToLocalTime().ToString("dd/MM");
+    }
+
+    private static string FormatDateShort(DateTime value)
+    {
+        return value.ToLocalTime().ToString("dd/MM - h:mm tt");
+    }
+
+
 }
