@@ -1,0 +1,686 @@
+﻿@page "/unload-requests/{Id:int}"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Requests
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepUnloadRequestApiService UnloadRequestApiService
+@inject NavigationManager NavigationManager
+
+<div class="unload-details-page" dir="rtl">
+
+    @if (_isLoading)
+    {
+        <div class="unload-details-loading">
+            جاري تحميل تفاصيل طلب التفريغ...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="unload-details-alert error">
+            @_errorMessage
+        </div>
+
+        <button type="button"
+                class="unload-details-back-btn"
+                @onclick="GoBack">
+            رجوع للطلبات
+        </button>
+    }
+    else if (_request is not null)
+    {
+        <section class="unload-details-hero">
+
+            <div>
+                <span>تفاصيل طلب التفريغ</span>
+
+                <h1>@_request.RequestNumber</h1>
+
+                <p>
+                    راجع الكميات وحالة استلام المخزن للطلب.
+                </p>
+            </div>
+
+            <div class="unload-details-hero-icon">
+                📤
+            </div>
+
+        </section>
+
+        <section class="unload-details-status-card">
+
+            <div class="unload-details-status @GetStatusClass(_request.Status)">
+                @GetStatusText(_request.Status)
+            </div>
+
+            <div class="unload-details-status-info">
+                <span>حالة الطلب</span>
+                <strong>@GetStatusDescription(_request.Status)</strong>
+            </div>
+
+        </section>
+
+        <section class="unload-details-summary">
+
+            <div>
+                <span>الأصناف</span>
+                <strong>@_request.TotalItems</strong>
+            </div>
+
+            <div>
+                <span>المطلوب</span>
+                <strong>@_request.TotalRequestedQuantity</strong>
+                <small>قطعة</small>
+            </div>
+
+            <div>
+                <span>المؤكد</span>
+                <strong>@_request.TotalConfirmedQuantity</strong>
+                <small>قطعة</small>
+            </div>
+
+        </section>
+
+        <section class="unload-details-card">
+
+            <div class="unload-details-section-title">
+                بيانات الطلب
+            </div>
+
+            <div class="unload-details-info-row">
+                <span>المخزن</span>
+                <strong>@GetWarehouseText()</strong>
+            </div>
+
+            <div class="unload-details-info-row">
+                <span>تاريخ الطلب</span>
+                <strong>@FormatDate(_request.RequestedAt)</strong>
+            </div>
+
+            @if (_request.SubmittedAt.HasValue)
+            {
+                <div class="unload-details-info-row">
+                    <span>تاريخ الإرسال</span>
+                    <strong>@FormatDate(_request.SubmittedAt.Value)</strong>
+                </div>
+            }
+
+            @if (_request.ConfirmedAt.HasValue)
+            {
+                <div class="unload-details-info-row">
+                    <span>تاريخ التأكيد</span>
+                    <strong>@FormatDate(_request.ConfirmedAt.Value)</strong>
+                </div>
+            }
+
+            @if (_request.CancelledAt.HasValue)
+            {
+                <div class="unload-details-info-row">
+                    <span>تاريخ الإلغاء</span>
+                    <strong>@FormatDate(_request.CancelledAt.Value)</strong>
+                </div>
+            }
+
+        </section>
+
+        @if (_request.TotalVarianceQuantity > 0)
+        {
+            <section class="unload-details-variance-card">
+
+                <span>فرق الكمية</span>
+
+                <strong>
+                    @_request.TotalVarianceQuantity قطعة
+                </strong>
+
+                <small>
+                    يوجد فرق بين الكمية المطلوبة والكمية التي أكدها المخزن.
+                </small>
+
+            </section>
+        }
+
+        <section class="unload-details-card">
+
+            <div class="unload-details-section-title">
+                الأصناف
+            </div>
+
+            @if (_request.Items.Count == 0)
+            {
+                <div class="unload-details-empty">
+                    لا توجد أصناف داخل هذا الطلب.
+                </div>
+            }
+            else
+            {
+                <div class="unload-details-items">
+
+                    @foreach (var item in _request.Items)
+                    {
+                        <article class="unload-details-item">
+
+                            <div class="unload-details-item-header">
+
+                                <div>
+                                    <strong>@item.ProductName</strong>
+
+                                    @if (!string.IsNullOrWhiteSpace(item.ItemCode))
+                                    {
+                                        <span>
+                                            كود: @item.ItemCode
+                                        </span>
+                                    }
+
+                                    <small>
+                                        1 @GetLargeUnit(item)
+                                        =
+                                        @GetUnitsPerLargeUnit(item)
+                                        @GetSmallUnit(item)
+                                    </small>
+                                </div>
+
+                                <div class="unload-details-item-main-qty">
+                                    @FormatRequestedQuantity(item)
+                                </div>
+
+                            </div>
+
+                            <div class="unload-details-item-values">
+
+                                <div>
+                                    <span>المطلوب</span>
+
+                                    <strong>
+                                        @FormatQuantity(
+                                            item.RequestedLargeQuantity,
+                                            item.RequestedSmallQuantity,
+                                            item.RequestedQuantity,
+                                            item)
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>المؤكد</span>
+
+                                    <strong>
+                                        @FormatQuantity(
+                                            item.ConfirmedLargeQuantity,
+                                            item.ConfirmedSmallQuantity,
+                                            item.ConfirmedQuantity,
+                                            item,
+                                            "لم يتم التأكيد")
+                                    </strong>
+                                </div>
+
+                            </div>
+
+                            @if (item.VarianceQuantity > 0)
+                            {
+                                <div class="unload-details-item-variance">
+                                    فرق الكمية:
+                                    <strong>@item.VarianceQuantity @GetSmallUnit(item)</strong>
+                                </div>
+                            }
+
+                            @if (_request.Status == 4 || _request.Status == 3)
+                            {
+                                <div class="unload-details-inventory-row">
+
+                                    <div>
+                                        <span>المخزون قبل التفريغ</span>
+                                        <strong>
+                                            @item.SalesRepInventoryBeforeUnload
+                                            @GetSmallUnit(item)
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>المخزون بعد التفريغ</span>
+                                        <strong>
+                                            @item.SalesRepInventoryAfterUnload
+                                            @GetSmallUnit(item)
+                                        </strong>
+                                    </div>
+
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="unload-details-inventory-row">
+
+                                    <div>
+                                        <span>المخزون الحالي</span>
+                                        <strong>
+                                            @item.SalesRepInventoryBeforeUnload
+                                            @GetSmallUnit(item)
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>بعد تأكيد المخزن</span>
+                                        <strong>
+                                            سيتم التحديث
+                                        </strong>
+                                    </div>
+
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(item.SalesRepNotes))
+                            {
+                                <div class="unload-details-item-note">
+                                    <span>ملاحظة المندوب</span>
+                                    <p>@item.SalesRepNotes</p>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(item.WarehouseNotes))
+                            {
+                                <div class="unload-details-item-note warehouse">
+                                    <span>ملاحظة المخزن</span>
+                                    <p>@item.WarehouseNotes</p>
+                                </div>
+                            }
+
+                        </article>
+                    }
+
+                </div>
+            }
+
+        </section>
+
+        @if (!string.IsNullOrWhiteSpace(_request.SalesRepNotes) ||
+             !string.IsNullOrWhiteSpace(_request.WarehouseNotes) ||
+             !string.IsNullOrWhiteSpace(_request.CancellationReason))
+        {
+            <section class="unload-details-card">
+
+                <div class="unload-details-section-title">
+                    الملاحظات
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_request.SalesRepNotes))
+                {
+                    <div class="unload-details-note">
+                        <span>ملاحظات المندوب</span>
+                        <p>@_request.SalesRepNotes</p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_request.WarehouseNotes))
+                {
+                    <div class="unload-details-note">
+                        <span>ملاحظات المخزن</span>
+                        <p>@_request.WarehouseNotes</p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_request.CancellationReason))
+                {
+                    <div class="unload-details-note cancellation">
+                        <span>سبب الإلغاء</span>
+
+                        <p>
+                            @_request.CancellationReason
+                        </p>
+                    </div>
+                }
+
+            </section>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_actionError))
+        {
+            <div class="unload-details-alert error">
+                @_actionError
+            </div>
+        }
+
+        @if (CanCancel())
+        {
+            @if (!_showCancelForm)
+            {
+                <button type="button"
+                        class="unload-details-cancel-btn"
+                        disabled="@_isProcessing"
+                        @onclick="ShowCancelForm">
+                    إلغاء طلب التفريغ
+                </button>
+            }
+            else
+            {
+                <section class="unload-details-cancel-card">
+
+                    <strong>إلغاء الطلب</strong>
+
+                    <p>
+                        هل تريد إلغاء طلب التفريغ؟
+                    </p>
+
+                    <textarea placeholder="سبب الإلغاء - اختياري"
+                              disabled="@_isProcessing"
+                              @bind="_cancelReason">
+                    </textarea>
+
+                    <div class="unload-details-cancel-actions">
+
+                        <button type="button"
+                                class="confirm"
+                                disabled="@_isProcessing"
+                                @onclick="CancelRequestAsync">
+                            @(_isProcessing
+                                ? "جاري الإلغاء..."
+                                : "تأكيد الإلغاء")
+                        </button>
+
+                        <button type="button"
+                                class="back"
+                                disabled="@_isProcessing"
+                                @onclick="HideCancelForm">
+                            تراجع
+                        </button>
+
+                    </div>
+
+                </section>
+            }
+        }
+
+        <button type="button"
+                class="unload-details-back-btn"
+                disabled="@_isProcessing"
+                @onclick="GoBack">
+            رجوع لطلبات التفريغ
+        </button>
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public int Id { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isProcessing;
+    private bool _showCancelForm;
+
+    private string? _errorMessage;
+    private string? _actionError;
+    private string? _cancelReason;
+
+    private SalesRepUnloadRequestDto? _request;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadRequestAsync();
+    }
+
+    private async Task LoadRequestAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            if (Id <= 0)
+            {
+                _errorMessage = "رقم طلب التفريغ غير صحيح.";
+                return;
+            }
+
+            var response =
+                await UnloadRequestApiService.GetByIdAsync(Id);
+
+            if (response is null)
+            {
+                _errorMessage =
+                    "لم يتم استلام استجابة من الخادم.";
+
+                return;
+            }
+
+            if (!response.Success)
+            {
+                _errorMessage =
+                    response.Message
+                    ?? "فشل تحميل تفاصيل طلب التفريغ.";
+
+                return;
+            }
+
+            if (response.Data is null)
+            {
+                _errorMessage =
+                    "طلب التفريغ غير موجود.";
+
+                return;
+            }
+
+            _request = response.Data;
+        }
+        catch
+        {
+            _errorMessage =
+                "حدث خطأ أثناء تحميل تفاصيل طلب التفريغ.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private bool CanCancel()
+    {
+        if (_request is null)
+            return false;
+
+        return _request.Status == 1 ||
+               _request.Status == 2;
+    }
+
+    private void ShowCancelForm()
+    {
+        _actionError = null;
+        _showCancelForm = true;
+    }
+
+    private void HideCancelForm()
+    {
+        _actionError = null;
+        _cancelReason = null;
+        _showCancelForm = false;
+    }
+
+    private async Task CancelRequestAsync()
+    {
+        if (_request is null)
+            return;
+
+        try
+        {
+            _isProcessing = true;
+            _actionError = null;
+
+            var request =
+                new CancelUnloadRequestRequest
+                {
+                    Reason =
+                        string.IsNullOrWhiteSpace(_cancelReason)
+                            ? null
+                            : _cancelReason.Trim()
+                };
+
+            var response =
+                await UnloadRequestApiService.CancelAsync(
+                    _request.Id,
+                    request);
+
+            if (response is null)
+            {
+                _actionError =
+                    "لم يتم استلام استجابة من الخادم.";
+
+                return;
+            }
+
+            if (!response.Success)
+            {
+                _actionError =
+                    response.Message
+                    ?? "فشل إلغاء طلب التفريغ.";
+
+                return;
+            }
+
+            _showCancelForm = false;
+            _cancelReason = null;
+
+            await LoadRequestAsync();
+        }
+        catch
+        {
+            _actionError =
+                "حدث خطأ أثناء إلغاء طلب التفريغ.";
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private string GetWarehouseText()
+    {
+        if (_request is null)
+            return "-";
+
+        return !string.IsNullOrWhiteSpace(
+            _request.WarehouseName)
+                ? _request.WarehouseName
+                : $"مخزن رقم {_request.WarehouseId}";
+    }
+
+    private static string GetStatusText(int status)
+    {
+        return status switch
+        {
+            1 => "مسودة",
+            2 => "بانتظار المخزن",
+            3 => "تأكيد جزئي",
+            4 => "تم التأكيد",
+            5 => "ملغي",
+            _ => "غير معروف"
+        };
+    }
+
+    private static string GetStatusDescription(int status)
+    {
+        return status switch
+        {
+            1 => "الطلب لم يتم إرساله للمخزن بعد.",
+            2 => "الطلب في انتظار مراجعة واستلام المخزن.",
+            3 => "المخزن أكد جزءًا من الحمولة.",
+            4 => "تم استلام الحمولة وتأكيد الطلب.",
+            5 => "تم إلغاء طلب التفريغ.",
+            _ => "حالة الطلب غير معروفة."
+        };
+    }
+
+    private static string GetStatusClass(int status)
+    {
+        return status switch
+        {
+            1 => "draft",
+            2 => "pending",
+            3 => "partial",
+            4 => "confirmed",
+            5 => "cancelled",
+            _ => "unknown"
+        };
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value
+            .ToLocalTime()
+            .ToString("dd/MM/yyyy - hh:mm tt");
+    }
+
+    private static string FormatRequestedQuantity(
+        SalesRepUnloadRequestItemDto item)
+    {
+        if (item.RequestedLargeQuantity > 0)
+        {
+            return
+                $"{item.RequestedLargeQuantity} {GetLargeUnit(item)}";
+        }
+
+        return
+            $"{item.RequestedQuantity} {GetSmallUnit(item)}";
+    }
+
+    private static string FormatQuantity(
+        int largeQuantity,
+        int smallQuantity,
+        int totalQuantity,
+        SalesRepUnloadRequestItemDto item,
+        string emptyText = "0 قطعة")
+    {
+        if (largeQuantity > 0 && smallQuantity > 0)
+        {
+            return
+                $"{largeQuantity} {GetLargeUnit(item)} + " +
+                $"{smallQuantity} {GetSmallUnit(item)} " +
+                $"= {totalQuantity} {GetSmallUnit(item)}";
+        }
+
+        if (largeQuantity > 0)
+        {
+            return
+                $"{largeQuantity} {GetLargeUnit(item)} " +
+                $"= {totalQuantity} {GetSmallUnit(item)}";
+        }
+
+        if (smallQuantity > 0)
+        {
+            return
+                $"{smallQuantity} {GetSmallUnit(item)}";
+        }
+
+        return emptyText;
+    }
+
+    private static string GetSmallUnit(
+        SalesRepUnloadRequestItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.SmallUnit)
+            ? "قطعة"
+            : item.SmallUnit;
+    }
+
+    private static string GetLargeUnit(
+        SalesRepUnloadRequestItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.LargeUnit)
+            ? "كرتونة"
+            : item.LargeUnit;
+    }
+
+    private static int GetUnitsPerLargeUnit(
+        SalesRepUnloadRequestItemDto item)
+    {
+        return item.UnitsPerLargeUnit <= 0
+            ? 1
+            : item.UnitsPerLargeUnit;
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo(
+            "/unload-requests");
+    }
+}

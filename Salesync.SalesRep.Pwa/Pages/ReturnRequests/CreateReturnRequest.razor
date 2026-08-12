@@ -1,0 +1,1187 @@
+﻿@page "/return-requests/create"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Requests
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepSessionApiService SessionApiService
+@inject ISalesRepCustomerApiService CustomerApiService
+@inject ISalesRepInvoiceReturnApiService ReturnApiService
+@inject NavigationManager NavigationManager
+
+<div class="create-return-page" dir="rtl">
+
+    <section class="create-return-hero">
+        <div>
+            <span>المرتجعات</span>
+            <h1>طلب مرتجع جديد</h1>
+            <p>اختر العميل والفاتورة ثم حدد الأصناف والكميات المرتجعة.</p>
+        </div>
+
+        <div class="create-return-hero-icon">
+            ↩️
+        </div>
+    </section>
+
+    @if (_isLoading)
+    {
+        <div class="create-return-state-card">
+            جاري تجهيز بيانات المرتجع...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_pageError))
+    {
+        <div class="create-return-alert error">
+            @_pageError
+        </div>
+
+        <button type="button"
+                class="create-return-secondary-btn"
+                @onclick="GoBack">
+            رجوع
+        </button>
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <div class="create-return-alert @(_messageIsError ? "error" : "success")">
+                @_message
+            </div>
+        }
+
+        <!-- STEP 1: CUSTOMER -->
+
+        <section class="create-return-card">
+
+            <div class="create-return-section-header">
+                <div class="step-number">1</div>
+
+                <div>
+                    <h2>اختيار العميل</h2>
+                    <p>اختر العميل الذي سيتم تسجيل المرتجع له.</p>
+                </div>
+            </div>
+
+            <div class="create-return-field">
+                <label>العميل</label>
+
+                <select value="@_selectedCustomerId"
+                        @onchange="OnCustomerChangedAsync"
+                        disabled="@_isSubmitting">
+
+                    <option value="0">
+                        اختر العميل
+                    </option>
+
+                    @foreach (var customer in _customers)
+                    {
+                        <option value="@customer.CustomerId">
+                            @customer.CustomerName @GetCustomerLocation(customer)
+                        </option>
+                    }
+
+                </select>
+            </div>
+
+            @if (_selectedCustomer != null)
+            {
+                <div class="selected-customer-card">
+
+                    <div>
+                        <span>العميل</span>
+                        <strong>@_selectedCustomer.CustomerName</strong>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_selectedCustomer.RouteName))
+                    {
+                        <div>
+                            <span>الخط</span>
+                            <strong>@_selectedCustomer.RouteName</strong>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(_selectedCustomer.Address))
+                    {
+                        <div>
+                            <span>العنوان</span>
+                            <strong>@_selectedCustomer.Address</strong>
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </section>
+
+        <!-- STEP 2: INVOICE -->
+        @if (_selectedCustomerId > 0)
+        {
+            <section class="create-return-card">
+
+                <div class="create-return-section-header">
+                    <div class="step-number">2</div>
+
+                    <div>
+                        <h2>اختيار الفاتورة</h2>
+                        <p>تظهر فقط الفواتير المؤكدة التي تحتوي كميات قابلة للمرتجع.</p>
+                    </div>
+                </div>
+
+                @if (_isLoadingInvoices)
+                {
+                    <div class="create-return-inline-loading">
+                        جاري تحميل الفواتير...
+                    </div>
+                }
+                else if (_returnableInvoices.Count == 0)
+                {
+                    <div class="create-return-empty">
+                        لا توجد فواتير بها كميات متاحة للمرتجع لهذا العميل.
+                    </div>
+                }
+                else
+                {
+                    <div class="create-return-field">
+                        <label>الفاتورة</label>
+
+                        <select value="@_selectedInvoiceId"
+                                @onchange="OnInvoiceChangedAsync"
+                                disabled="@_isSubmitting">
+
+                            <option value="0">
+                                اختر الفاتورة
+                            </option>
+
+                            @foreach (var invoice in _returnableInvoices)
+                            {
+                                <option value="@invoice.Id">
+                                    @invoice.InvoiceNumber
+                                    - @invoice.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")
+                                </option>
+                            }
+
+                        </select>
+                    </div>
+                }
+
+            </section>
+        }
+
+        <!-- STEP 3: ITEMS -->
+        @if (_invoiceDetails != null)
+        {
+            <section class="create-return-card">
+
+                <div class="create-return-section-header">
+                    <div class="step-number">3</div>
+
+                    <div>
+                        <h2>أصناف المرتجع</h2>
+                        <p>حدد الكميات المدفوعة والبونص والحالة لكل صنف.</p>
+                    </div>
+                </div>
+
+                <div class="return-invoice-summary">
+
+                    <div>
+                        <span>الفاتورة</span>
+                        <strong>@_invoiceDetails.InvoiceNumber</strong>
+                    </div>
+
+                    <div>
+                        <span>العميل</span>
+                        <strong>@_invoiceDetails.CustomerName</strong>
+                    </div>
+
+                    <div>
+                        <span>تاريخ الفاتورة</span>
+                        <strong>
+                            @(_invoiceDetails.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy"))
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>قيمة الفاتورة</span>
+                        <strong>
+                            @_invoiceDetails.TotalAmount.ToString("N2") ج.م
+                        </strong>
+                    </div>
+
+                </div>
+
+                <div class="return-items-list">
+
+                    @foreach (var entry in _itemEntries)
+                    {
+                        <article class="return-item-card">
+
+                            <div class="return-item-header">
+
+                                <div>
+                                    <span>@entry.Item.ItemCode</span>
+                                    <strong>@entry.Item.ProductName</strong>
+                                </div>
+
+                                @if (HasSelectedQuantity(entry))
+                                {
+                                    <div class="selected-badge">
+                                        تم الاختيار
+                                    </div>
+                                }
+
+                            </div>
+                            
+
+                            <div class="return-item-availability">
+
+                                <div>
+                                    <span>المباع</span>
+                                    <strong>
+                                        @FormatQuantity(
+                                            entry.Item.SoldQuantity,
+                                            entry.Item)
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>مرتجع سابق</span>
+                                    <strong>
+                                        @FormatQuantity(
+                                            entry.Item.PreviouslyReturnedQuantity,
+                                            entry.Item)
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>متاح</span>
+                                    <strong>
+                                        @FormatQuantity(
+                                            entry.Item.RemainingReturnableQuantity,
+                                            entry.Item)
+                                    </strong>
+                                </div>
+
+                            </div>
+
+                            @if (entry.Item.BonusQuantity > 0 ||
+                                 entry.Item.PreviouslyReturnedBonusQuantity > 0)
+                            {
+                                <div class="return-item-bonus-summary">
+
+                                    <span>
+                                        البونص:
+                                        @FormatQuantity(
+                                            entry.Item.BonusQuantity,
+                                            entry.Item)
+                                    </span>
+
+                                    <span>
+                                        مرتجع:
+                                        @FormatQuantity(
+                                            entry.Item.PreviouslyReturnedBonusQuantity,
+                                            entry.Item)
+                                    </span>
+
+                                    <strong>
+                                        متاح:
+                                        @FormatQuantity(
+                                            entry.Item.RemainingReturnableBonusQuantity,
+                                            entry.Item)
+                                    </strong>
+
+                                </div>
+                            }
+
+                            <!-- SALE QUANTITY -->
+                            @if (entry.Item.RemainingReturnableQuantity > 0)
+                            {
+                                <div class="quantity-section">
+
+                                    <div class="quantity-section-title">
+                                        الكمية المدفوعة المرتجعة
+                                    </div>
+
+                                    <div class="quantity-input-grid">
+
+                                        <div class="create-return-field">
+                                            <label>@GetLargeUnit(entry.Item)</label>
+
+                                            <input type="number"
+                                                   min="0"
+                                                   value="@entry.SaleLargeQuantity"
+                                                   @onchange="e => OnSaleLargeQuantityChanged(entry, e)"
+                                                   disabled="@_isSubmitting" />
+                                        </div>
+
+                                        <div class="create-return-field">
+                                            <label>@GetSmallUnit(entry.Item)</label>
+
+                                            <input type="number"
+                                                   min="0"
+                                                   value="@entry.SaleSmallQuantity"
+                                                   @onchange="e => OnSaleSmallQuantityChanged(entry, e)"
+                                                   disabled="@_isSubmitting" />
+                                        </div>
+
+                                    </div>
+
+                                    <div class="quantity-result">
+                                        المحدد:
+                                        <strong>
+                                            @FormatQuantity(
+                                                GetSaleReturnQuantity(entry),
+                                                entry.Item)
+                                        </strong>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(entry.ValidationError))
+                                    {
+                                        <div class="return-item-validation-error">
+                                            @entry.ValidationError
+                                        </div>
+                                    }
+
+                                </div>
+                            }
+
+                            <!-- BONUS QUANTITY -->
+                            @if (entry.Item.RemainingReturnableBonusQuantity > 0)
+                            {
+                                <div class="quantity-section bonus">
+
+                                    <div class="quantity-section-title">
+                                        كمية البونص المرتجعة
+                                    </div>
+
+                                    <div class="quantity-input-grid">
+
+                                        <div class="create-return-field">
+                                            <label>@GetLargeUnit(entry.Item)</label>
+
+                                            <input type="number"
+                                                   min="0"
+                                                   value="@entry.BonusLargeQuantity"
+                                                   @onchange="e => OnBonusLargeQuantityChanged(entry, e)"
+                                                   disabled="@_isSubmitting" />
+                                        </div>
+
+                                        <div class="create-return-field">
+                                            <label>@GetSmallUnit(entry.Item)</label>
+
+                                            <input type="number"
+                                                   min="0"
+                                                   value="@entry.BonusSmallQuantity"
+                                                   @onchange="e => OnBonusSmallQuantityChanged(entry, e)"
+                                                   disabled="@_isSubmitting" />
+                                        </div>
+
+                                    </div>
+
+                                    <div class="quantity-result">
+                                        المحدد:
+                                        <strong>
+                                            @FormatQuantity(
+                                                GetBonusReturnQuantity(entry),
+                                                entry.Item)
+                                        </strong>
+                                    </div>
+
+                                </div>
+                            }
+
+                            @if (HasSelectedQuantity(entry))
+                            {
+                                <div class="return-item-extra">
+
+                                    <div class="create-return-field">
+                                        <label>حالة المنتج</label>
+
+                                        <select @bind="entry.Condition"
+                                                disabled="@_isSubmitting">
+
+                                            <option value="0">
+                                                اختر حالة المنتج
+                                            </option>
+
+                                            <option value="1">
+                                                سليم
+                                            </option>
+
+                                            <option value="2">
+                                                تالف
+                                            </option>
+
+                                            <option value="3">
+                                                منتهي الصلاحية
+                                            </option>
+
+                                        </select>
+                                    </div>
+
+                                    <div class="create-return-field">
+                                        <label>ملاحظات الصنف</label>
+
+                                        <textarea @bind="entry.Notes"
+                                                  rows="2"
+                                                  placeholder="ملاحظات اختيارية..."
+                                                  disabled="@_isSubmitting">
+                                        </textarea>
+                                    </div>
+
+                                </div>
+                            }
+
+                        </article>
+                    }
+
+                </div>
+
+            </section>
+
+            <!-- STEP 4: RETURN INFO -->
+
+            <section class="create-return-card">
+
+                <div class="create-return-section-header">
+                    <div class="step-number">4</div>
+
+                    <div>
+                        <h2>بيانات الطلب</h2>
+                        <p>حدد سبب المرتجع وأضف أي ملاحظات عامة.</p>
+                    </div>
+                </div>
+
+                <div class="create-return-field">
+                    <label>سبب المرتجع</label>
+
+                    <select @bind="_returnReason"
+                            disabled="@_isSubmitting">
+
+                        <option value="0">
+                            اختر سبب المرتجع
+                        </option>
+
+                        <option value="1">
+                            تالف
+                        </option>
+
+                        <option value="2">
+                            منتهي الصلاحية
+                        </option>
+
+                        <option value="3">
+                            منتج خاطئ
+                        </option>
+
+                        <option value="4">
+                            طلب العميل
+                        </option>
+
+                        <option value="5">
+                            أخرى
+                        </option>
+
+                    </select>
+                </div>
+
+                <div class="create-return-field">
+                    <label>ملاحظات الطلب</label>
+
+                    <textarea @bind="_reasonNotes"
+                              rows="3"
+                              placeholder="أضف أي تفاصيل مهمة عن المرتجع..."
+                              disabled="@_isSubmitting">
+                    </textarea>
+                </div>
+
+            </section>
+
+            <!-- SUBMIT -->
+
+            <section class="create-return-submit-card">
+
+                <div class="submit-summary">
+
+                    <div>
+                        <span>الأصناف المحددة</span>
+                        <strong>@GetSelectedItemsCount()</strong>
+                    </div>
+
+                    <div>
+                        <span>الكمية المدفوعة</span>
+                        <strong>@GetSelectedSaleQuantity()</strong>
+                    </div>
+
+                    <div>
+                        <span>البونص</span>
+                        <strong>@GetSelectedBonusQuantity()</strong>
+                    </div>
+
+                </div>
+
+                <button type="button"
+                        class="create-return-submit-btn"
+                        @onclick="SubmitAsync"
+                        disabled="@_isSubmitting">
+
+                    @if (_isSubmitting)
+                    {
+                        <span>جاري إنشاء الطلب...</span>
+                    }
+                    else
+                    {
+                        <span>إنشاء طلب المرتجع</span>
+                    }
+
+                </button>
+
+                <button type="button"
+                        class="create-return-cancel-btn"
+                        @onclick="GoBack"
+                        disabled="@_isSubmitting">
+                    إلغاء
+                </button>
+
+            </section>
+        }
+    }
+
+</div>
+
+@code
+{
+    private bool _isLoading = true;
+    private bool _isLoadingInvoices;
+    private bool _isSubmitting;
+
+    private string? _pageError;
+    private string? _message;
+    private bool _messageIsError;
+
+    private int _sessionId;
+
+    private int _selectedCustomerId;
+    private int _selectedInvoiceId;
+
+    private int _returnReason;
+    private string? _reasonNotes;
+
+    private List<SalesRepMobileCustomerDto> _customers = new();
+
+    private List<MobileReturnableInvoiceDto> _returnableInvoices = new();
+
+    private MobileReturnableInvoiceDetailsDto? _invoiceDetails;
+
+    private List<ReturnItemEntry> _itemEntries = new();
+
+    private SalesRepMobileCustomerDto? _selectedCustomer =>
+        _customers.FirstOrDefault(x =>
+            x.CustomerId == _selectedCustomerId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeAsync();
+
+        _isLoading = false;
+    }
+
+    private async Task InitializeAsync()
+    {
+        try
+        {
+            var todayResponse =
+                await SessionApiService.GetTodayAsync();
+
+            if (todayResponse is null)
+            {
+                _pageError =
+                    "لم يتم استلام بيانات اليوم من الخادم.";
+
+                return;
+            }
+
+            if (!todayResponse.Success ||
+                todayResponse.Data is null)
+            {
+                _pageError =
+                    todayResponse.Message
+                    ?? "تعذر تحميل بيانات اليوم.";
+
+                return;
+            }
+
+            var today = todayResponse.Data;
+
+            if (!today.HasTodaySession ||
+                today.Session is null)
+            {
+                _pageError =
+                    "يجب بدء اليوم قبل إنشاء طلب مرتجع.";
+
+                return;
+            }
+
+            if (!today.HasOpenSession ||
+                today.IsDayClosed)
+            {
+                _pageError =
+                    "لا يمكن إنشاء طلب مرتجع بعد إغلاق اليوم.";
+
+                return;
+            }
+
+            _sessionId = today.Session.Id;
+
+            var customersResponse =
+                await CustomerApiService
+                    .GetCustomersAsync(_sessionId);
+
+            if (customersResponse is null)
+            {
+                _pageError =
+                    "لم يتم استلام بيانات العملاء.";
+
+                return;
+            }
+
+            if (!customersResponse.Success)
+            {
+                _pageError =
+                    customersResponse.Message
+                    ?? "تعذر تحميل العملاء.";
+
+                return;
+            }
+
+            _customers =
+                customersResponse.Data?
+                    .OrderBy(x => x.VisitSequence)
+                    .ThenBy(x => x.CustomerName)
+                    .ToList()
+                ?? new List<SalesRepMobileCustomerDto>();
+        }
+        catch
+        {
+            _pageError =
+                "حدث خطأ أثناء تجهيز شاشة المرتجع.";
+        }
+    }
+
+    private async Task OnCustomerChangedAsync(
+        ChangeEventArgs e)
+    {
+        ClearMessage();
+
+        _selectedCustomerId =
+            ParseInt(e.Value);
+
+        _selectedInvoiceId = 0;
+        _invoiceDetails = null;
+        _itemEntries.Clear();
+        _returnableInvoices.Clear();
+
+        if (_selectedCustomerId <= 0)
+            return;
+
+        await LoadReturnableInvoicesAsync();
+    }
+
+    private async Task LoadReturnableInvoicesAsync()
+    {
+        _isLoadingInvoices = true;
+
+        try
+        {
+            var response =
+                await ReturnApiService
+                    .GetReturnableInvoicesAsync(
+                        _selectedCustomerId);
+
+            if (response is null)
+            {
+                ShowError(
+                    "لم يتم استلام بيانات الفواتير.");
+
+                return;
+            }
+
+            if (!response.Success)
+            {
+                ShowError(
+                    response.Message
+                    ?? "تعذر تحميل الفواتير القابلة للمرتجع.");
+
+                return;
+            }
+
+            _returnableInvoices =
+                response.Data?
+                    .OrderByDescending(x => x.CreatedAt)
+                    .ToList()
+                ?? new List<MobileReturnableInvoiceDto>();
+        }
+        catch
+        {
+            ShowError(
+                "حدث خطأ أثناء تحميل فواتير العميل.");
+        }
+        finally
+        {
+            _isLoadingInvoices = false;
+        }
+    }
+
+    private async Task OnInvoiceChangedAsync(
+        ChangeEventArgs e)
+    {
+        ClearMessage();
+
+        _selectedInvoiceId =
+            ParseInt(e.Value);
+
+        _invoiceDetails = null;
+        _itemEntries.Clear();
+
+        if (_selectedInvoiceId <= 0)
+            return;
+
+        await LoadInvoiceDetailsAsync();
+    }
+
+    private async Task LoadInvoiceDetailsAsync()
+    {
+        try
+        {
+            var response =
+                await ReturnApiService
+                    .GetReturnableInvoiceDetailsAsync(
+                        _selectedInvoiceId);
+
+            if (response is null)
+            {
+                ShowError(
+                    "لم يتم استلام تفاصيل الفاتورة.");
+
+                return;
+            }
+
+            if (!response.Success ||
+                response.Data is null)
+            {
+                ShowError(
+                    response.Message
+                    ?? "تعذر تحميل تفاصيل الفاتورة.");
+
+                return;
+            }
+
+            _invoiceDetails =
+                response.Data;
+
+            _itemEntries =
+                _invoiceDetails.Items
+                    .Select(x =>
+                        new ReturnItemEntry
+                        {
+                            Item = x
+                        })
+                    .ToList();
+        }
+        catch
+        {
+            ShowError(
+                "حدث خطأ أثناء تحميل تفاصيل الفاتورة.");
+        }
+    }
+
+    private void OnSaleLargeQuantityChanged(
+        ReturnItemEntry entry,
+        ChangeEventArgs e)
+    {
+        entry.SaleLargeQuantity =
+            Math.Max(0, ParseInt(e.Value));
+
+        ValidateEntryQuantities(entry);
+    }
+
+    private void OnSaleSmallQuantityChanged(
+        ReturnItemEntry entry,
+        ChangeEventArgs e)
+    {
+        entry.SaleSmallQuantity =
+            Math.Max(0, ParseInt(e.Value));
+
+        ValidateEntryQuantities(entry);
+    }
+
+    private void OnBonusLargeQuantityChanged(
+        ReturnItemEntry entry,
+        ChangeEventArgs e)
+    {
+        entry.BonusLargeQuantity =
+            Math.Max(0, ParseInt(e.Value));
+
+        ValidateEntryQuantities(entry);
+    }
+
+    private void OnBonusSmallQuantityChanged(
+        ReturnItemEntry entry,
+        ChangeEventArgs e)
+    {
+        entry.BonusSmallQuantity =
+            Math.Max(0, ParseInt(e.Value));
+
+        ValidateEntryQuantities(entry);
+    }
+
+    private void ValidateEntryQuantities(
+    ReturnItemEntry entry)
+    {
+        ClearMessage();
+
+        entry.ValidationError = null;
+
+        var saleQuantity =
+            GetSaleReturnQuantity(entry);
+
+        var bonusQuantity =
+            GetBonusReturnQuantity(entry);
+
+        if (saleQuantity >
+            entry.Item.RemainingReturnableQuantity)
+        {
+            entry.ValidationError =
+                $"الكمية المدفوعة أكبر من المتاح للمرتجع. المتاح: {FormatQuantity(entry.Item.RemainingReturnableQuantity, entry.Item)}";
+
+            return;
+        }
+
+        if (bonusQuantity >
+            entry.Item.RemainingReturnableBonusQuantity)
+        {
+            entry.ValidationError =
+                $"كمية البونص أكبر من المتاح للمرتجع. المتاح: {FormatQuantity(entry.Item.RemainingReturnableBonusQuantity, entry.Item)}";
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        ClearMessage();
+
+
+        if (_invoiceDetails is null ||
+            _selectedInvoiceId <= 0)
+        {
+            ShowError(
+                "يجب اختيار فاتورة أولاً.");
+
+            return;
+        }
+
+        if (_returnReason <= 0)
+        {
+            ShowError(
+                "يجب اختيار سبب المرتجع.");
+
+            return;
+        }
+
+        var selectedEntries =
+            _itemEntries
+                .Where(HasSelectedQuantity)
+                .ToList();
+
+        if (selectedEntries.Count == 0)
+        {
+            ShowError(
+                "يجب تحديد كمية مرتجعة لصنف واحد على الأقل.");
+
+            return;
+        }
+
+        foreach (var entry in selectedEntries)
+        {
+            var saleQuantity =
+                GetSaleReturnQuantity(entry);
+
+            var bonusQuantity =
+                GetBonusReturnQuantity(entry);
+
+            if (saleQuantity >
+                entry.Item.RemainingReturnableQuantity)
+            {
+                ShowError(
+                    $"الكمية المدفوعة للصنف {entry.Item.ProductName} تتجاوز المتاح للمرتجع.");
+
+                return;
+            }
+
+            if (bonusQuantity >
+                entry.Item.RemainingReturnableBonusQuantity)
+            {
+                ShowError(
+                    $"كمية البونص للصنف {entry.Item.ProductName} تتجاوز المتاح للمرتجع.");
+
+                return;
+            }
+
+            if (entry.Condition <= 0)
+            {
+                ShowError(
+                    $"يجب تحديد حالة الصنف {entry.Item.ProductName}.");
+
+                return;
+            }
+        }
+
+        var request =
+            new CreateInvoiceReturnRequest
+            {
+                InvoiceId =
+                    _selectedInvoiceId,
+
+                ReturnReason =
+                    _returnReason,
+
+                ReasonNotes =
+                    string.IsNullOrWhiteSpace(_reasonNotes)
+                        ? null
+                        : _reasonNotes.Trim(),
+
+                Items =
+                    selectedEntries
+                        .Select(entry =>
+                            new CreateInvoiceReturnItemRequest
+                            {
+                                InvoiceItemId = entry.Item.InvoiceItemId,
+
+                                Quantity = GetSaleReturnQuantity(entry),
+
+                                BonusQuantity = GetBonusReturnQuantity(entry),
+
+                                Condition = entry.Condition,
+
+                                Notes = string.IsNullOrWhiteSpace(entry.Notes)
+                                        ? null
+                                        : entry.Notes.Trim()
+                            })
+                        .ToList()
+            };
+
+        _isSubmitting = true;
+
+        try
+        {
+            var response =
+                await ReturnApiService
+                    .CreateAsync(request);
+
+            if (response is null)
+            {
+                ShowError(
+                    "لم يتم استلام استجابة من الخادم.");
+
+                return;
+            }
+
+            if (!response.Success ||
+                response.Data is null)
+            {
+                ShowError(
+                    response.Message
+                    ?? response.Errors?.FirstOrDefault()
+                    ?? "تعذر إنشاء طلب المرتجع.");
+
+                return;
+            }
+
+            NavigationManager.NavigateTo(
+                $"/return-requests/{response.Data.Id}");
+        }
+        catch
+        {
+            ShowError(
+                "حدث خطأ أثناء إنشاء طلب المرتجع.");
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private static int GetSaleReturnQuantity(
+        ReturnItemEntry entry)
+    {
+        var unitsPerLargeUnit =
+            GetUnitsPerLargeUnit(entry.Item);
+
+        return
+            (entry.SaleLargeQuantity *
+             unitsPerLargeUnit)
+            +
+            entry.SaleSmallQuantity;
+    }
+
+    private static int GetBonusReturnQuantity(
+        ReturnItemEntry entry)
+    {
+        var unitsPerLargeUnit =
+            GetUnitsPerLargeUnit(entry.Item);
+
+        return
+            (entry.BonusLargeQuantity *
+             unitsPerLargeUnit)
+            +
+            entry.BonusSmallQuantity;
+    }
+
+    private static bool HasSelectedQuantity(
+        ReturnItemEntry entry)
+    {
+        return
+            GetSaleReturnQuantity(entry) > 0 ||
+            GetBonusReturnQuantity(entry) > 0;
+    }
+
+    private int GetSelectedItemsCount()
+    {
+        return _itemEntries.Count(
+            HasSelectedQuantity);
+    }
+
+    private int GetSelectedSaleQuantity()
+    {
+        return _itemEntries.Sum(
+            GetSaleReturnQuantity);
+    }
+
+    private int GetSelectedBonusQuantity()
+    {
+        return _itemEntries.Sum(
+            GetBonusReturnQuantity);
+    }
+
+    private static string FormatQuantity(
+        int quantity,
+        MobileReturnableInvoiceItemDto item)
+    {
+        var unitsPerLargeUnit =
+            GetUnitsPerLargeUnit(item);
+
+        var largeQuantity =
+            quantity / unitsPerLargeUnit;
+
+        var smallQuantity =
+            quantity % unitsPerLargeUnit;
+
+        if (largeQuantity > 0 &&
+            smallQuantity > 0)
+        {
+            return
+                $"{largeQuantity} {GetLargeUnit(item)} + " +
+                $"{smallQuantity} {GetSmallUnit(item)}";
+        }
+
+        if (largeQuantity > 0)
+        {
+            return
+                $"{largeQuantity} {GetLargeUnit(item)}";
+        }
+
+        return
+            $"{smallQuantity} {GetSmallUnit(item)}";
+    }
+
+    private static int GetUnitsPerLargeUnit(
+        MobileReturnableInvoiceItemDto item)
+    {
+        return item.UnitsPerLargeUnit <= 0
+            ? 1
+            : item.UnitsPerLargeUnit;
+    }
+
+    private static string GetLargeUnit(
+        MobileReturnableInvoiceItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(
+            item.LargeUnit)
+            ? "كرتونة"
+            : item.LargeUnit;
+    }
+
+    private static string GetSmallUnit(
+        MobileReturnableInvoiceItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(
+            item.SmallUnit)
+            ? "قطعة"
+            : item.SmallUnit;
+    }
+
+    private static string GetCustomerLocation(
+        SalesRepMobileCustomerDto customer)
+    {
+        if (!string.IsNullOrWhiteSpace(customer.Area))
+            return $" - {customer.Area}";
+
+        if (!string.IsNullOrWhiteSpace(customer.City))
+            return $" - {customer.City}";
+
+        return string.Empty;
+    }
+
+    private static int ParseInt(object? value)
+    {
+        return int.TryParse(
+            value?.ToString(),
+            out var result)
+            ? result
+            : 0;
+    }
+    private bool HasInvalidEntries()
+    {
+        return _itemEntries.Any(entry =>
+            GetSaleReturnQuantity(entry) >
+                entry.Item.RemainingReturnableQuantity
+            ||
+            GetBonusReturnQuantity(entry) >
+                entry.Item.RemainingReturnableBonusQuantity);
+    }
+    private void ShowError(string message)
+    {
+        _message = message;
+        _messageIsError = true;
+    }
+
+    private void ClearMessage()
+    {
+        _message = null;
+        _messageIsError = false;
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo(
+            "/return-requests");
+    }
+
+    private sealed class ReturnItemEntry
+    {
+        public MobileReturnableInvoiceItemDto Item { get; set; }= new();
+
+        public int SaleLargeQuantity { get; set; }
+
+        public int SaleSmallQuantity { get; set; }
+
+        public int BonusLargeQuantity { get; set; }
+
+        public int BonusSmallQuantity { get; set; }
+
+        public int Condition { get; set; }
+        public string? ValidationError { get; set; }
+
+        public string? Notes { get; set; }
+    }
+}

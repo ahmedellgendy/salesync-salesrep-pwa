@@ -1,0 +1,106 @@
+﻿@page "/inventory"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@inject NavigationManager NavigationManager
+
+<div class="inventory-hub-page" dir="rtl">
+
+    <section class="inventory-hub-hero">
+        <div>
+            <span>إدارة المخزون</span>
+            <h1>المخزون والحمولات</h1>
+            <p>
+                راجع مخزونك وتابع عمليات التحميل والتفريغ والمرتجعات.
+            </p>
+        </div>
+
+        <div class="inventory-hub-hero-icon">
+            📦
+        </div>
+    </section>
+
+    <section class="inventory-hub-list">
+
+        <button type="button"
+                class="inventory-hub-card"
+                @onclick='() => NavigateTo("/inventory/my")'>
+
+            <span class="inventory-hub-icon">
+                📦
+            </span>
+
+            <div class="inventory-hub-content">
+                <strong>مخزوني الحالي</strong>
+                <small>راجع المنتجات والكميات المتاحة معك</small>
+            </div>
+
+            <span class="inventory-hub-arrow">
+                ‹
+            </span>
+        </button>
+
+        <button type="button"
+                class="inventory-hub-card"
+                @onclick='() => NavigateTo("/load-requests")'>
+
+            <span class="inventory-hub-icon">
+                🚚
+            </span>
+
+            <div class="inventory-hub-content">
+                <strong>طلبات التحميل</strong>
+                <small>إنشاء ومتابعة طلبات تحميل البضاعة</small>
+            </div>
+
+            <span class="inventory-hub-arrow">
+                ‹
+            </span>
+        </button>
+
+        <button type="button"
+                class="inventory-hub-card"
+                @onclick='() => NavigateTo("/unload-requests")'>
+
+            <span class="inventory-hub-icon">
+                📤
+            </span>
+
+            <div class="inventory-hub-content">
+                <strong>طلبات التفريغ</strong>
+                <small>تفريغ الحمولة المتبقية في المخزن</small>
+            </div>
+
+            <span class="inventory-hub-arrow">
+                ‹
+            </span>
+        </button>
+
+        <button type="button"
+                class="inventory-hub-card"
+                @onclick='() => NavigateTo("/return-requests")'>
+
+            <span class="inventory-hub-icon">
+                ↩️
+            </span>
+
+            <div class="inventory-hub-content">
+                <strong>طلبات المرتجع</strong>
+                <small>إنشاء ومتابعة مرتجعات المنتجات</small>
+            </div>
+
+            <span class="inventory-hub-arrow">
+                ‹
+            </span>
+        </button>
+
+    </section>
+
+</div>
+
+@code {
+    private void NavigateTo(string route)
+    {
+        NavigationManager.NavigateTo(route);
+    }
+}

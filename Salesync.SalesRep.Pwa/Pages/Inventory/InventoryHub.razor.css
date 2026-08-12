@@ -1,0 +1,103 @@
+﻿.inventory-hub-page {
+    padding: 16px;
+    padding-bottom: 90px;
+}
+
+.inventory-hub-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+    background: #ffffff;
+    border: 1px solid #d8e6ee;
+    border-radius: 24px;
+}
+
+    .inventory-hub-hero span {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        font-weight: 800;
+        color: #087f9c;
+    }
+
+    .inventory-hub-hero h1 {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 950;
+        color: #102a43;
+    }
+
+    .inventory-hub-hero p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.7;
+        color: #627d98;
+    }
+
+.inventory-hub-hero-icon {
+    flex: 0 0 auto;
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    background: #edf8fb;
+    font-size: 28px;
+}
+
+.inventory-hub-list {
+    display: grid;
+    gap: 10px;
+}
+
+.inventory-hub-card {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 54px 1fr 24px;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #d8e6ee;
+    border-radius: 20px;
+    background: #ffffff;
+    text-align: right;
+    cursor: pointer;
+}
+
+.inventory-hub-icon {
+    width: 50px;
+    height: 50px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: #f2f8fb;
+    font-size: 23px;
+}
+
+.inventory-hub-content {
+    min-width: 0;
+}
+
+    .inventory-hub-content strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 15px;
+        font-weight: 950;
+        color: #102a43;
+    }
+
+    .inventory-hub-content small {
+        display: block;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #829ab1;
+    }
+
+.inventory-hub-arrow {
+    font-size: 30px;
+    font-weight: 700;
+    color: #9fb3c8;
+}
