@@ -233,12 +233,12 @@
                                 }
 
                             </div>
-                            
 
+                            
                             <div class="return-item-availability">
 
                                 <div>
-                                    <span>المباع</span>
+                                    <span>إجمالي البيع</span>
                                     <strong>
                                         @FormatQuantity(
                                             entry.Item.SoldQuantity,
@@ -247,7 +247,7 @@
                                 </div>
 
                                 <div>
-                                    <span>مرتجع سابق</span>
+                                    <span>تم إرجاعه</span>
                                     <strong>
                                         @FormatQuantity(
                                             entry.Item.PreviouslyReturnedQuantity,
@@ -256,7 +256,7 @@
                                 </div>
 
                                 <div>
-                                    <span>متاح</span>
+                                    <span>المتبقي للمرتجع</span>
                                     <strong>
                                         @FormatQuantity(
                                             entry.Item.RemainingReturnableQuantity,
@@ -301,7 +301,7 @@
                                 <div class="quantity-section">
 
                                     <div class="quantity-section-title">
-                                        الكمية المدفوعة المرتجعة
+                                        كمية المرتجع
                                     </div>
 
                                     <div class="quantity-input-grid">
@@ -346,50 +346,7 @@
                                 </div>
                             }
 
-                            <!-- BONUS QUANTITY -->
-                            @if (entry.Item.RemainingReturnableBonusQuantity > 0)
-                            {
-                                <div class="quantity-section bonus">
-
-                                    <div class="quantity-section-title">
-                                        كمية البونص المرتجعة
-                                    </div>
-
-                                    <div class="quantity-input-grid">
-
-                                        <div class="create-return-field">
-                                            <label>@GetLargeUnit(entry.Item)</label>
-
-                                            <input type="number"
-                                                   min="0"
-                                                   value="@entry.BonusLargeQuantity"
-                                                   @onchange="e => OnBonusLargeQuantityChanged(entry, e)"
-                                                   disabled="@_isSubmitting" />
-                                        </div>
-
-                                        <div class="create-return-field">
-                                            <label>@GetSmallUnit(entry.Item)</label>
-
-                                            <input type="number"
-                                                   min="0"
-                                                   value="@entry.BonusSmallQuantity"
-                                                   @onchange="e => OnBonusSmallQuantityChanged(entry, e)"
-                                                   disabled="@_isSubmitting" />
-                                        </div>
-
-                                    </div>
-
-                                    <div class="quantity-result">
-                                        المحدد:
-                                        <strong>
-                                            @FormatQuantity(
-                                                GetBonusReturnQuantity(entry),
-                                                entry.Item)
-                                        </strong>
-                                    </div>
-
-                                </div>
-                            }
+                            
 
                             @if (HasSelectedQuantity(entry))
                             {
@@ -504,19 +461,15 @@
 
                 <div class="submit-summary">
 
+                    
                     <div>
                         <span>الأصناف المحددة</span>
                         <strong>@GetSelectedItemsCount()</strong>
                     </div>
 
                     <div>
-                        <span>الكمية المدفوعة</span>
+                        <span>إجمالي كمية المرتجع</span>
                         <strong>@GetSelectedSaleQuantity()</strong>
-                    </div>
-
-                    <div>
-                        <span>البونص</span>
-                        <strong>@GetSelectedBonusQuantity()</strong>
                     </div>
 
                 </div>
@@ -816,53 +769,24 @@
         ValidateEntryQuantities(entry);
     }
 
-    private void OnBonusLargeQuantityChanged(
-        ReturnItemEntry entry,
-        ChangeEventArgs e)
-    {
-        entry.BonusLargeQuantity =
-            Math.Max(0, ParseInt(e.Value));
+    
 
-        ValidateEntryQuantities(entry);
-    }
-
-    private void OnBonusSmallQuantityChanged(
-        ReturnItemEntry entry,
-        ChangeEventArgs e)
-    {
-        entry.BonusSmallQuantity =
-            Math.Max(0, ParseInt(e.Value));
-
-        ValidateEntryQuantities(entry);
-    }
-
-    private void ValidateEntryQuantities(
-    ReturnItemEntry entry)
+    
+    private void ValidateEntryQuantities(ReturnItemEntry entry)
     {
         ClearMessage();
 
         entry.ValidationError = null;
 
-        var saleQuantity =
+        var quantity =
             GetSaleReturnQuantity(entry);
 
-        var bonusQuantity =
-            GetBonusReturnQuantity(entry);
-
-        if (saleQuantity >
+        if (quantity >
             entry.Item.RemainingReturnableQuantity)
         {
             entry.ValidationError =
-                $"الكمية المدفوعة أكبر من المتاح للمرتجع. المتاح: {FormatQuantity(entry.Item.RemainingReturnableQuantity, entry.Item)}";
-
-            return;
-        }
-
-        if (bonusQuantity >
-            entry.Item.RemainingReturnableBonusQuantity)
-        {
-            entry.ValidationError =
-                $"كمية البونص أكبر من المتاح للمرتجع. المتاح: {FormatQuantity(entry.Item.RemainingReturnableBonusQuantity, entry.Item)}";
+                $"الحد الأقصى المسموح للمرتجع: " +
+                $"{FormatQuantity(entry.Item.RemainingReturnableQuantity, entry.Item)}";
         }
     }
 
@@ -906,23 +830,11 @@
             var saleQuantity =
                 GetSaleReturnQuantity(entry);
 
-            var bonusQuantity =
-                GetBonusReturnQuantity(entry);
-
             if (saleQuantity >
                 entry.Item.RemainingReturnableQuantity)
             {
                 ShowError(
-                    $"الكمية المدفوعة للصنف {entry.Item.ProductName} تتجاوز المتاح للمرتجع.");
-
-                return;
-            }
-
-            if (bonusQuantity >
-                entry.Item.RemainingReturnableBonusQuantity)
-            {
-                ShowError(
-                    $"كمية البونص للصنف {entry.Item.ProductName} تتجاوز المتاح للمرتجع.");
+                    $"كمية المرتجع للصنف {entry.Item.ProductName} تتجاوز المتاح للمرتجع.");
 
                 return;
             }
@@ -950,23 +862,17 @@
                         ? null
                         : _reasonNotes.Trim(),
 
-                Items =
-                    selectedEntries
-                        .Select(entry =>
-                            new CreateInvoiceReturnItemRequest
-                            {
-                                InvoiceItemId = entry.Item.InvoiceItemId,
-
-                                Quantity = GetSaleReturnQuantity(entry),
-
-                                BonusQuantity = GetBonusReturnQuantity(entry),
-
-                                Condition = entry.Condition,
-
-                                Notes = string.IsNullOrWhiteSpace(entry.Notes)
+                Items = selectedEntries.Select(entry =>
+                    new CreateInvoiceReturnItemRequest
+                    {
+                        InvoiceItemId = entry.Item.InvoiceItemId,
+                        Quantity = GetSaleReturnQuantity(entry),
+                        BonusQuantity = 0,
+                        Condition = entry.Condition,
+                        Notes = string.IsNullOrWhiteSpace(entry.Notes)
                                         ? null
                                         : entry.Notes.Trim()
-                            })
+                    })
                         .ToList()
             };
 
@@ -1011,38 +917,17 @@
         }
     }
 
-    private static int GetSaleReturnQuantity(
-        ReturnItemEntry entry)
+    private static int GetSaleReturnQuantity(ReturnItemEntry entry)
     {
-        var unitsPerLargeUnit =
-            GetUnitsPerLargeUnit(entry.Item);
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(entry.Item);
 
-        return
-            (entry.SaleLargeQuantity *
-             unitsPerLargeUnit)
-            +
-            entry.SaleSmallQuantity;
+        return (entry.SaleLargeQuantity * unitsPerLargeUnit) + entry.SaleSmallQuantity;
     }
 
-    private static int GetBonusReturnQuantity(
-        ReturnItemEntry entry)
+   
+    private static bool HasSelectedQuantity(ReturnItemEntry entry)
     {
-        var unitsPerLargeUnit =
-            GetUnitsPerLargeUnit(entry.Item);
-
-        return
-            (entry.BonusLargeQuantity *
-             unitsPerLargeUnit)
-            +
-            entry.BonusSmallQuantity;
-    }
-
-    private static bool HasSelectedQuantity(
-        ReturnItemEntry entry)
-    {
-        return
-            GetSaleReturnQuantity(entry) > 0 ||
-            GetBonusReturnQuantity(entry) > 0;
+        return GetSaleReturnQuantity(entry) > 0;
     }
 
     private int GetSelectedItemsCount()
@@ -1057,11 +942,7 @@
             GetSaleReturnQuantity);
     }
 
-    private int GetSelectedBonusQuantity()
-    {
-        return _itemEntries.Sum(
-            GetBonusReturnQuantity);
-    }
+    
 
     private static string FormatQuantity(
         int quantity,
@@ -1142,12 +1023,7 @@
     }
     private bool HasInvalidEntries()
     {
-        return _itemEntries.Any(entry =>
-            GetSaleReturnQuantity(entry) >
-                entry.Item.RemainingReturnableQuantity
-            ||
-            GetBonusReturnQuantity(entry) >
-                entry.Item.RemainingReturnableBonusQuantity);
+        return _itemEntries.Any(entry => GetSaleReturnQuantity(entry) > entry.Item.RemainingReturnableQuantity);
     }
     private void ShowError(string message)
     {
@@ -1169,19 +1045,11 @@
 
     private sealed class ReturnItemEntry
     {
-        public MobileReturnableInvoiceItemDto Item { get; set; }= new();
-
+        public MobileReturnableInvoiceItemDto Item { get; set; } = new();
         public int SaleLargeQuantity { get; set; }
-
         public int SaleSmallQuantity { get; set; }
-
-        public int BonusLargeQuantity { get; set; }
-
-        public int BonusSmallQuantity { get; set; }
-
         public int Condition { get; set; }
         public string? ValidationError { get; set; }
-
         public string? Notes { get; set; }
     }
 }

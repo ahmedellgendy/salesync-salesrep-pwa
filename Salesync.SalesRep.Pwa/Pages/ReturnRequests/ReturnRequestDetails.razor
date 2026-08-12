@@ -6,6 +6,7 @@
 @using Salesync.SalesRep.Pwa.Services.Interfaces
 
 @inject ISalesRepInvoiceReturnApiService ReturnApiService
+@inject ISalesRepInvoiceApiService InvoiceApiService
 @inject NavigationManager NavigationManager
 
 <div class="return-details-page" dir="rtl">
@@ -134,17 +135,12 @@
                         <div class="return-details-item-grid">
 
                             <div>
-                                <span>الكمية المدفوعة</span>
-                                <strong>@item.Quantity</strong>
+                                <span>كمية المرتجع</span>
+                                <strong>@FormatReturnQuantity(item)</strong>
                             </div>
 
                             <div>
-                                <span>البونص</span>
-                                <strong>@item.BonusQuantity</strong>
-                            </div>
-
-                            <div>
-                                <span>سعر الوحدة</span>
+                                <span>@GetPriceLabel(item)</span>
                                 <strong>@item.UnitPrice.ToString("N2") ج.م</strong>
                             </div>
 
@@ -212,7 +208,7 @@
     private string? _errorMessage;
     private string? _message;
     private bool _messageIsError;
-
+    private InvoiceDto? _invoice;
     private InvoiceReturnDto? _returnRequest;
 
     protected override async Task OnParametersSetAsync()
@@ -227,8 +223,7 @@
 
         try
         {
-            var response =
-                await ReturnApiService.GetByIdAsync(Id);
+            var response =await ReturnApiService.GetByIdAsync(Id);
 
             if (response is null)
             {
@@ -248,8 +243,15 @@
                 return;
             }
 
-            _returnRequest =
-                response.Data;
+            _returnRequest =response.Data;
+
+            var invoiceResponse =await InvoiceApiService.GetInvoiceDetailsAsync(_returnRequest.InvoiceId);
+
+            if (invoiceResponse?.Success == true &&
+                invoiceResponse.Data is not null)
+            {
+                _invoice = invoiceResponse.Data;
+            }
         }
         catch
         {
@@ -411,5 +413,70 @@
     {
         NavigationManager.NavigateTo(
             "/return-requests");
+    }
+
+    private InvoiceItemDto? GetInvoiceItem(
+    InvoiceReturnItemDto returnItem)
+    {
+        return _invoice?.InvoiceItems
+            .FirstOrDefault(x =>
+                x.Id == returnItem.InvoiceItemId);
+    }
+
+    private string FormatReturnQuantity(
+        InvoiceReturnItemDto returnItem)
+    {
+        var invoiceItem =
+            GetInvoiceItem(returnItem);
+
+        if (invoiceItem is null)
+            return returnItem.Quantity.ToString();
+
+        var unitsPerLargeUnit =
+            invoiceItem.UnitsPerLargeUnit <= 0
+                ? 1
+                : invoiceItem.UnitsPerLargeUnit;
+
+        var largeUnit =
+            string.IsNullOrWhiteSpace(invoiceItem.LargeUnit)
+                ? "كرتونة"
+                : invoiceItem.LargeUnit;
+
+        var smallUnit =
+            string.IsNullOrWhiteSpace(invoiceItem.SmallUnit)
+                ? "قطعة"
+                : invoiceItem.SmallUnit;
+
+        var largeQuantity =
+            returnItem.Quantity / unitsPerLargeUnit;
+
+        var smallQuantity =
+            returnItem.Quantity % unitsPerLargeUnit;
+
+        if (largeQuantity > 0 &&
+            smallQuantity > 0)
+        {
+            return $"{largeQuantity} {largeUnit} + {smallQuantity} {smallUnit}";
+        }
+
+        if (largeQuantity > 0)
+            return $"{largeQuantity} {largeUnit}";
+
+        return $"{smallQuantity} {smallUnit}";
+    }
+
+    private string GetPriceLabel(
+        InvoiceReturnItemDto returnItem)
+    {
+        var invoiceItem =
+            GetInvoiceItem(returnItem);
+
+        var largeUnit =
+            invoiceItem?.LargeUnit;
+
+        if (string.IsNullOrWhiteSpace(largeUnit))
+            largeUnit = "الكرتونة";
+
+        return $"سعر {largeUnit}";
     }
 }
