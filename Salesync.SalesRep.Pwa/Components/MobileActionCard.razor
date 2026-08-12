@@ -1,0 +1,37 @@
+﻿<button type="button"
+        class="mobile-action-card @CssClass"
+        @onclick="OnClick">
+
+    <div class="mobile-action-icon">
+        @Icon
+    </div>
+
+    <div class="mobile-action-title">
+        @Title
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Subtitle))
+    {
+        <div class="mobile-action-subtitle">
+            @Subtitle
+        </div>
+    }
+
+</button>
+
+@code {
+    [Parameter]
+    public string Icon { get; set; } = "•";
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Subtitle { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+}

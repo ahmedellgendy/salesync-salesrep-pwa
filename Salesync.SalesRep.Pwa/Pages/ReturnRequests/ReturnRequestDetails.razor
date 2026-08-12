@@ -1,0 +1,482 @@
+﻿@page "/return-requests/{Id:int}"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepInvoiceReturnApiService ReturnApiService
+@inject ISalesRepInvoiceApiService InvoiceApiService
+@inject NavigationManager NavigationManager
+
+<div class="return-details-page" dir="rtl">
+
+    @if (_isLoading)
+    {
+        <div class="return-details-state">
+            جاري تحميل تفاصيل طلب المرتجع...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="return-details-alert error">
+            @_errorMessage
+        </div>
+
+        <button class="return-details-secondary-btn"
+                @onclick="GoBack">
+            رجوع
+        </button>
+    }
+    else if (_returnRequest != null)
+    {
+        <section class="return-details-hero">
+
+            <div>
+                <span>طلب مرتجع</span>
+
+                <h1>@_returnRequest.ReturnNumber</h1>
+
+                <p>
+                    @_returnRequest.CustomerName
+                </p>
+            </div>
+
+            <div class="return-details-status @GetStatusClass(_returnRequest.Status)">
+                @GetStatusText(_returnRequest.Status)
+            </div>
+
+        </section>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <div class="return-details-alert @(_messageIsError ? "error" : "success")">
+                @_message
+            </div>
+        }
+
+        <section class="return-details-card">
+
+            <div class="return-details-section-title">
+                بيانات الطلب
+            </div>
+
+            <div class="return-details-grid">
+
+                <div>
+                    <span>الفاتورة</span>
+                    <strong>@GetInvoiceText()</strong>
+                </div>
+
+                <div>
+                    <span>العميل</span>
+                    <strong>@GetCustomerText()</strong>
+                </div>
+
+                <div>
+                    <span>سبب المرتجع</span>
+                    <strong>@GetReturnReasonText(_returnRequest.ReturnReason)</strong>
+                </div>
+
+                <div>
+                    <span>تاريخ الطلب</span>
+                    <strong>
+                        @(_returnRequest.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy - hh:mm tt"))
+                    </strong>
+                </div>
+
+                <div>
+                    <span>قيمة المرتجع</span>
+                    <strong>@_returnRequest.TotalAmount.ToString("N2") ج.م</strong>
+                </div>
+
+                <div>
+                    <span>عدد الأصناف</span>
+                    <strong>@_returnRequest.Items.Count</strong>
+                </div>
+
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_returnRequest.ReasonNotes))
+            {
+                <div class="return-details-notes">
+                    <span>ملاحظات الطلب</span>
+                    <p>@_returnRequest.ReasonNotes</p>
+                </div>
+            }
+
+        </section>
+
+        <section class="return-details-card">
+
+            <div class="return-details-section-title">
+                أصناف المرتجع
+            </div>
+
+            <div class="return-details-items">
+
+                @foreach (var item in _returnRequest.Items)
+                {
+                    <article class="return-details-item">
+
+                        <div class="return-details-item-header">
+
+                            <div>
+                                <span>@item.ItemCode</span>
+                                <strong>@item.ProductName</strong>
+                            </div>
+
+                            <div class="condition-badge @GetConditionClass(item.Condition)">
+                                @GetConditionText(item.Condition)
+                            </div>
+
+                        </div>
+
+                        <div class="return-details-item-grid">
+
+                            <div>
+                                <span>كمية المرتجع</span>
+                                <strong>@FormatReturnQuantity(item)</strong>
+                            </div>
+
+                            <div>
+                                <span>@GetPriceLabel(item)</span>
+                                <strong>@item.UnitPrice.ToString("N2") ج.م</strong>
+                            </div>
+
+                            <div>
+                                <span>قيمة المرتجع</span>
+                                <strong>@item.TotalAmount.ToString("N2") ج.م</strong>
+                            </div>
+
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(item.Notes))
+                        {
+                            <div class="return-details-item-notes">
+                                @item.Notes
+                            </div>
+                        }
+
+                    </article>
+                }
+
+            </div>
+
+        </section>
+
+        @if (_returnRequest.Status == 1)
+        {
+            <section class="return-details-actions">
+
+                <button type="button"
+                        class="return-details-cancel-btn"
+                        @onclick="CancelAsync"
+                        disabled="@_isCancelling">
+
+                    @if (_isCancelling)
+                    {
+                        <span>جاري الإلغاء...</span>
+                    }
+                    else
+                    {
+                        <span>إلغاء طلب المرتجع</span>
+                    }
+
+                </button>
+
+            </section>
+        }
+
+        <button type="button"
+                class="return-details-secondary-btn"
+                @onclick="GoBack">
+            الرجوع لطلبات المرتجع
+        </button>
+    }
+
+</div>
+
+@code
+{
+    [Parameter]
+    public int Id { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isCancelling;
+
+    private string? _errorMessage;
+    private string? _message;
+    private bool _messageIsError;
+    private InvoiceDto? _invoice;
+    private InvoiceReturnDto? _returnRequest;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var response =await ReturnApiService.GetByIdAsync(Id);
+
+            if (response is null)
+            {
+                _errorMessage =
+                    "لم يتم استلام استجابة من الخادم.";
+
+                return;
+            }
+
+            if (!response.Success ||
+                response.Data is null)
+            {
+                _errorMessage =
+                    response.Message
+                    ?? "تعذر تحميل تفاصيل طلب المرتجع.";
+
+                return;
+            }
+
+            _returnRequest =response.Data;
+
+            var invoiceResponse =await InvoiceApiService.GetInvoiceDetailsAsync(_returnRequest.InvoiceId);
+
+            if (invoiceResponse?.Success == true &&
+                invoiceResponse.Data is not null)
+            {
+                _invoice = invoiceResponse.Data;
+            }
+        }
+        catch
+        {
+            _errorMessage =
+                "حدث خطأ أثناء تحميل تفاصيل طلب المرتجع.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        if (_returnRequest is null ||
+            _returnRequest.Status != 1)
+        {
+            return;
+        }
+
+        _message = null;
+        _isCancelling = true;
+
+        try
+        {
+            var response =
+                await ReturnApiService.CancelAsync(
+                    _returnRequest.Id);
+
+            if (response is null)
+            {
+                ShowError(
+                    "لم يتم استلام استجابة من الخادم.");
+
+                return;
+            }
+
+            if (!response.Success ||
+                response.Data is null)
+            {
+                ShowError(
+                    response.Message
+                    ?? response.Errors?.FirstOrDefault()
+                    ?? "تعذر إلغاء طلب المرتجع.");
+
+                return;
+            }
+
+            _returnRequest =
+                response.Data;
+
+            _message =
+                "تم إلغاء طلب المرتجع بنجاح.";
+
+            _messageIsError =
+                false;
+        }
+        catch
+        {
+            ShowError(
+                "حدث خطأ أثناء إلغاء طلب المرتجع.");
+        }
+        finally
+        {
+            _isCancelling = false;
+        }
+    }
+
+    private string GetInvoiceText()
+    {
+        if (_returnRequest is null)
+            return "-";
+
+        return !string.IsNullOrWhiteSpace(
+            _returnRequest.InvoiceNumber)
+            ? _returnRequest.InvoiceNumber
+            : $"فاتورة رقم {_returnRequest.InvoiceId}";
+    }
+
+    private string GetCustomerText()
+    {
+        if (_returnRequest is null)
+            return "-";
+
+        return !string.IsNullOrWhiteSpace(
+            _returnRequest.CustomerName)
+            ? _returnRequest.CustomerName
+            : $"عميل رقم {_returnRequest.CustomerId}";
+    }
+
+    private static string GetStatusText(int status)
+    {
+        return status switch
+        {
+            1 => "قيد المراجعة",
+            2 => "تم الاعتماد",
+            3 => "مرفوض",
+            4 => "تم الاستلام بالمخزن",
+            5 => "ملغي",
+            _ => "غير معروف"
+        };
+    }
+
+    private static string GetStatusClass(int status)
+    {
+        return status switch
+        {
+            1 => "pending",
+            2 => "approved",
+            3 => "rejected",
+            4 => "received",
+            5 => "cancelled",
+            _ => "unknown"
+        };
+    }
+
+    private static string GetReturnReasonText(int reason)
+    {
+        return reason switch
+        {
+            1 => "تالف",
+            2 => "منتهي الصلاحية",
+            3 => "منتج خاطئ",
+            4 => "طلب العميل",
+            5 => "أخرى",
+            _ => "غير محدد"
+        };
+    }
+
+    private static string GetConditionText(int condition)
+    {
+        return condition switch
+        {
+            1 => "سليم",
+            2 => "تالف",
+            3 => "منتهي الصلاحية",
+            _ => "غير محدد"
+        };
+    }
+
+    private static string GetConditionClass(int condition)
+    {
+        return condition switch
+        {
+            1 => "good",
+            2 => "damaged",
+            3 => "expired",
+            _ => "unknown"
+        };
+    }
+
+    private void ShowError(string message)
+    {
+        _message = message;
+        _messageIsError = true;
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo(
+            "/return-requests");
+    }
+
+    private InvoiceItemDto? GetInvoiceItem(
+    InvoiceReturnItemDto returnItem)
+    {
+        return _invoice?.InvoiceItems
+            .FirstOrDefault(x =>
+                x.Id == returnItem.InvoiceItemId);
+    }
+
+    private string FormatReturnQuantity(
+        InvoiceReturnItemDto returnItem)
+    {
+        var invoiceItem =
+            GetInvoiceItem(returnItem);
+
+        if (invoiceItem is null)
+            return returnItem.Quantity.ToString();
+
+        var unitsPerLargeUnit =
+            invoiceItem.UnitsPerLargeUnit <= 0
+                ? 1
+                : invoiceItem.UnitsPerLargeUnit;
+
+        var largeUnit =
+            string.IsNullOrWhiteSpace(invoiceItem.LargeUnit)
+                ? "كرتونة"
+                : invoiceItem.LargeUnit;
+
+        var smallUnit =
+            string.IsNullOrWhiteSpace(invoiceItem.SmallUnit)
+                ? "قطعة"
+                : invoiceItem.SmallUnit;
+
+        var largeQuantity =
+            returnItem.Quantity / unitsPerLargeUnit;
+
+        var smallQuantity =
+            returnItem.Quantity % unitsPerLargeUnit;
+
+        if (largeQuantity > 0 &&
+            smallQuantity > 0)
+        {
+            return $"{largeQuantity} {largeUnit} + {smallQuantity} {smallUnit}";
+        }
+
+        if (largeQuantity > 0)
+            return $"{largeQuantity} {largeUnit}";
+
+        return $"{smallQuantity} {smallUnit}";
+    }
+
+    private string GetPriceLabel(
+        InvoiceReturnItemDto returnItem)
+    {
+        var invoiceItem =
+            GetInvoiceItem(returnItem);
+
+        var largeUnit =
+            invoiceItem?.LargeUnit;
+
+        if (string.IsNullOrWhiteSpace(largeUnit))
+            largeUnit = "الكرتونة";
+
+        return $"سعر {largeUnit}";
+    }
+}

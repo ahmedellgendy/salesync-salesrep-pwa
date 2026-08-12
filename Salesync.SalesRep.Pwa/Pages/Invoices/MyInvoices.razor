@@ -10,92 +10,154 @@
 @inject ISalesRepSessionApiService SalesRepSessionApiService
 @inject NavigationManager NavigationManager
 
-<h3>My Invoices</h3>
+<div class="my-invoices-page" dir="rtl">
 
-@if (_isLoading)
-{
-    <p>جاري تحميل الفواتير...</p>
-}
-else if (!string.IsNullOrWhiteSpace(_errorMessage))
-{
-    <div class="alert alert-danger">
-        @_errorMessage
-    </div>
-}
-else
-{
-    <div class="d-grid gap-2 mb-3">
-        <button class="btn btn-secondary"
-                @onclick="GoToDashboard">
-            Back To Dashboard
-        </button>
+    <section class="my-invoices-hero">
+        <div>
+            <span>فواتير المندوب</span>
+            <h1>فواتير اليوم</h1>
+            <p>راجع فواتير السيشن الحالية وسجل التحصيل من العملاء.</p>
+        </div>
 
-        <button class="btn btn-outline-primary"
-                @onclick="GoToCustomers">
-            My Customers
-        </button>
-    </div>
+        <div class="my-invoices-hero-icon">
+            🧾
+        </div>
+    </section>
 
-    @if (_invoices.Count == 0)
+    @if (_isLoading)
     {
-        <div class="alert alert-warning">
-            لا يوجد فواتير في السيشن الحالية.
+        <div class="my-invoices-loading-card">
+            جاري تحميل الفواتير...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="my-invoices-alert error">
+            @_errorMessage
         </div>
     }
     else
     {
-        <div class="card p-3 mb-3">
-            <h5>ملخص الفواتير</h5>
+        <section class="my-invoices-actions">
+            <button type="button"
+                    @onclick="GoToDashboard">
+                الرئيسية
+            </button>
 
-            <p class="mb-1"><strong>عدد الفواتير:</strong> @_invoices.Count</p>
-            <p class="mb-1"><strong>Total Amount:</strong> @_invoices.Sum(x => x.TotalAmount)</p>
-            <p class="mb-1"><strong>Paid Amount:</strong> @_invoices.Sum(x => x.PaidAmount)</p>
-            <p class="mb-1"><strong>Remaining:</strong> @_invoices.Sum(x => x.RemainingAmount)</p>
-        </div>
+            <button type="button"
+                    @onclick="GoToRoutes">
+                الخطوط
+            </button>
+        </section>
 
-        @foreach (var invoice in _invoices)
+        @if (_invoices.Count == 0)
         {
-            <div class="card p-3 mb-3">
-                <h5>@invoice.InvoiceNumber</h5>
-
-                <p class="mb-1"><strong>Customer:</strong> @invoice.CustomerName</p>
-                <p class="mb-1"><strong>Customer Id:</strong> @invoice.CustomerId</p>
-                <p class="mb-1"><strong>Status:</strong> @GetInvoiceStatusText(invoice.Status)</p>
-                <p class="mb-1"><strong>Payment:</strong> @GetPaymentStatusText(invoice.PaymentStatus)</p>
-
-                <hr />
-
-                <p class="mb-1"><strong>SubTotal:</strong> @invoice.SubTotal</p>
-                <p class="mb-1"><strong>Discount:</strong> @invoice.DiscountAmount</p>
-                <p class="mb-1"><strong>Tax:</strong> @invoice.TaxAmount</p>
-                <p class="mb-1"><strong>Total:</strong> @invoice.TotalAmount</p>
-                <p class="mb-1"><strong>Paid:</strong> @invoice.PaidAmount</p>
-                <p class="mb-1"><strong>Remaining:</strong> @invoice.RemainingAmount</p>
-                @if (invoice.RemainingAmount > 0)
-                {
-                    <button class="btn btn-success w-100 mt-3"
-                            @onclick="() => GoToCollectPayment(invoice)">
-                        Collect Payment
-                    </button>
-                }
-                else
-                {
-                    <button class="btn btn-secondary w-100 mt-3" disabled>
-                        Paid
-                    </button>
-                }
-                <hr />
-
-                <p class="mb-1"><strong>Created:</strong> @invoice.CreatedAt.ToLocalTime()</p>
-
-                @if (!string.IsNullOrWhiteSpace(invoice.Notes))
-                {
-                    <p class="mb-1"><strong>Notes:</strong> @invoice.Notes</p>
-                }
+            <div class="my-invoices-empty-card">
+                <div>📄</div>
+                <h3>لا توجد فواتير</h3>
+                <p>لم يتم إنشاء أي فواتير في السيشن الحالية.</p>
             </div>
         }
+        else
+        {
+            <section class="my-invoices-summary-card">
+
+                <div class="invoice-summary-main-row">
+                    <div>
+                        <span>ملخص الفواتير</span>
+                        <strong>@_invoices.Count فاتورة</strong>
+                    </div>
+
+                    <small>@GetUnpaidInvoicesCount() غير محصلة</small>
+                </div>
+
+                <div class="my-invoices-summary-list">
+                    <div>
+                        <span>إجمالي المبيعات</span>
+                        <strong>@FormatMoney(GetTotalAmount())</strong>
+                    </div>
+
+                    <div>
+                        <span>المحصل</span>
+                        <strong>@FormatMoney(GetPaidAmount())</strong>
+                    </div>
+
+                    <div>
+                        <span>المتبقي</span>
+                        <strong>@FormatMoney(GetRemainingAmount())</strong>
+                    </div>
+                </div>
+
+            </section>
+
+            <section class="my-invoices-list">
+                @foreach (var invoice in _invoices)
+                {
+                    <article class="my-invoice-card compact @GetPaymentCardClass(invoice)"
+                             @onclick="() => GoToInvoiceDetails(invoice.Id)">
+
+                        <div class="invoice-card-header">
+                            <div class="invoice-title-block">
+                                <span class="invoice-number-label">رقم الفاتورة</span>
+                                <strong>@invoice.InvoiceNumber</strong>
+                            </div>
+
+                            <span class="payment-status-pill @GetPaymentStatusClass(invoice)">
+                                @GetPaymentStatusText(invoice)
+                            </span>
+                        </div>
+
+                        <div class="invoice-customer-block compact">
+                            <span>العميل</span>
+                            <strong>@invoice.CustomerName</strong>
+                        </div>
+
+                        <div class="invoice-money-list compact">
+                            <div>
+                                <span>الإجمالي</span>
+                                <strong>@FormatMoney(invoice.TotalAmount)</strong>
+                            </div>
+
+                            <div>
+                                <span>المتبقي</span>
+                                <strong>@FormatMoney(invoice.RemainingAmount)</strong>
+                            </div>
+                        </div>
+
+                        @if (invoice.RemainingAmount > 0)
+                        {
+                            <button type="button"
+                                    class="invoice-collect-btn"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="() => GoToCollectPayment(invoice)">
+                                تسجيل تحصيل الآن
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button"
+                                    class="invoice-paid-btn"
+                                    disabled>
+                                تم السداد
+                            </button>
+                        }
+
+                    </article>
+
+                    @if (!string.IsNullOrWhiteSpace(invoice.Notes))
+                    {
+                        <div class="invoice-notes-box">
+                            <span>ملاحظات</span>
+                            <strong>@invoice.Notes</strong>
+                        </div>
+                    }
+
+                }
+            </section>
+        }
     }
-}
+
+</div>
 
 @code {
     [Parameter]
@@ -140,9 +202,9 @@ else
             return;
         }
 
-        if (todayResponse.Data?.HasOpenSession != true || todayResponse.Data.Session is null)
+        if (todayResponse.Data?.HasTodaySession != true || todayResponse.Data.Session is null)
         {
-            _errorMessage = "لا يوجد يوم مفتوح حاليًا.";
+            _errorMessage = "لا يوجد سيشن لليوم الحالي.";
             return;
         }
 
@@ -153,7 +215,7 @@ else
     {
         if (!SessionId.HasValue || SessionId.Value <= 0)
         {
-            _errorMessage = "SessionId غير صحيح.";
+            _errorMessage = "بيانات السيشن غير صحيحة.";
             return;
         }
 
@@ -172,29 +234,80 @@ else
             return;
         }
 
-        _invoices = response.Data?.ToList() ?? new List<SalesRepMobileInvoiceDto>();
+        _invoices = response.Data?
+            .OrderByDescending(x => x.CreatedAt)
+            .ToList()
+            ?? new List<SalesRepMobileInvoiceDto>();
+    }
+
+    private decimal GetTotalAmount()
+    {
+        return _invoices.Sum(x => x.TotalAmount);
+    }
+
+    private decimal GetPaidAmount()
+    {
+        return _invoices.Sum(x => x.PaidAmount);
+    }
+
+    private decimal GetRemainingAmount()
+    {
+        return _invoices.Sum(x => x.RemainingAmount);
+    }
+
+    private int GetUnpaidInvoicesCount()
+    {
+        return _invoices.Count(x => x.RemainingAmount > 0);
     }
 
     private static string GetInvoiceStatusText(int status)
     {
         return status switch
         {
-            1 => "Draft",
-            2 => "Confirmed",
-            3 => "Cancelled",
-            _ => status.ToString()
+            1 => "مسودة",
+            2 => "مؤكدة",
+            3 => "ملغاة",
+            _ => "غير معروف"
         };
     }
 
-    private static string GetPaymentStatusText(int status)
+    private static string GetPaymentStatusText(SalesRepMobileInvoiceDto invoice)
     {
-        return status switch
-        {
-            1 => "Pending",
-            2 => "Partial",
-            3 => "Paid",
-            _ => status.ToString()
-        };
+        if (invoice.RemainingAmount <= 0)
+            return "مدفوعة";
+
+        if (invoice.PaidAmount > 0)
+            return "مدفوعة جزئيًا";
+
+        return "غير مدفوعة";
+    }
+
+    private static string GetPaymentStatusClass(SalesRepMobileInvoiceDto invoice)
+    {
+        if (invoice.RemainingAmount <= 0)
+            return "paid";
+
+        if (invoice.PaidAmount > 0)
+            return "partial";
+
+        return "pending";
+    }
+
+    private static string GetPaymentCardClass(SalesRepMobileInvoiceDto invoice)
+    {
+        return invoice.RemainingAmount <= 0
+            ? "paid"
+            : "pending";
+    }
+
+    private static string FormatMoney(decimal value)
+    {
+        return value.ToString("N2");
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToLocalTime().ToString("dd/MM/yyyy - hh:mm tt");
     }
 
     private void GoToDashboard()
@@ -202,21 +315,22 @@ else
         NavigationManager.NavigateTo("/dashboard");
     }
 
-    private void GoToCustomers()
+    private void GoToRoutes()
     {
         if (SessionId.HasValue && SessionId.Value > 0)
         {
-            NavigationManager.NavigateTo($"/customers/{SessionId.Value}");
+            NavigationManager.NavigateTo($"/routes/{SessionId.Value}");
             return;
         }
 
-        NavigationManager.NavigateTo("/customers");
+        NavigationManager.NavigateTo("/routes");
     }
+
     private void GoToCollectPayment(SalesRepMobileInvoiceDto invoice)
     {
         if (!SessionId.HasValue || SessionId.Value <= 0)
         {
-            _errorMessage = "SessionId غير صحيح.";
+            _errorMessage = "بيانات السيشن غير صحيحة.";
             return;
         }
 
@@ -224,5 +338,17 @@ else
 
         NavigationManager.NavigateTo(
             $"/payments/create?invoiceId={invoice.Id}&sessionId={SessionId.Value}&remainingAmount={invoice.RemainingAmount}&invoiceNumber={invoiceNumber}");
+    }
+
+    private void GoToInvoiceDetails(int invoiceId)
+    {
+        if (!SessionId.HasValue || SessionId.Value <= 0)
+        {
+            _errorMessage = "بيانات السيشن غير صحيحة.";
+            return;
+        }
+
+        NavigationManager.NavigateTo(
+            $"/invoices/details/{invoiceId}?sessionId={SessionId.Value}");
     }
 }

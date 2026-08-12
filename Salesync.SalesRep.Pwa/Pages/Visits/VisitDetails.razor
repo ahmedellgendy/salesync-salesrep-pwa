@@ -8,100 +8,142 @@
 @inject ISalesRepVisitApiService SalesRepVisitApiService
 @inject NavigationManager NavigationManager
 
-<h3>تفاصيل الزيارة</h3>
+<div class="visit-details-page" dir="rtl">
 
-@if (!string.IsNullOrWhiteSpace(_errorMessage))
-{
-    <div class="alert alert-danger">@_errorMessage</div>
-}
+    <section class="visit-details-card">
 
-@if (!string.IsNullOrWhiteSpace(_infoMessage))
-{
-    <div class="alert alert-info">@_infoMessage</div>
-}
+        <div class="visit-details-header">
 
-@if (!string.IsNullOrWhiteSpace(_successMessage))
-{
-    <div class="alert alert-success">@_successMessage</div>
-}
+            <div class="visit-details-title">
+                <span class="visit-status-badge">
+                    زيارة مفتوحة
+                </span>
 
-<div class="card p-3 mb-3">
-    <h5>بيانات الزيارة</h5>
+                <h1>تفاصيل الزيارة</h1>
 
-    <p class="mb-1"><strong>Visit Id:</strong> @VisitId</p>
-    <p class="mb-1"><strong>Session Id:</strong> @SessionId</p>
-    <p class="mb-1"><strong>Customer Id:</strong> @CustomerId</p>
-    <p class="mb-1"><strong>Route Id:</strong> @RouteId</p>
-</div>
+                <p>
+                    اختر نتيجة الزيارة حسب موقف العميل.
+                </p>
+            </div>
 
-<div class="card p-3 mb-3">
-    <h5>اختار نتيجة الزيارة</h5>
+            <div class="visit-details-icon">
+                🧾
+            </div>
 
-    <div class="d-grid gap-2 mt-3">
-        <button class="btn btn-success"
-                @onclick="SelectPositiveVisit">
-            Positive Visit
-        </button>
-
-        <button class="btn btn-warning"
-                @onclick="SelectNegativeVisit">
-            Negative Visit
-        </button>
-    </div>
-</div>
-
-@if (_selectedVisitMode == VisitMode.Positive)
-{
-    <div class="card p-3 mb-3">
-        <h5>زيارة إيجابية</h5>
-
-        <p class="mb-2">
-            العميل طلب أوردر. الخطوة الجاية هنضيف إنشاء فاتورة من هنا.
-        </p>
-
-        <button class="btn btn-success w-100"
-                @onclick="GoToCreateInvoice">
-            Create Invoice
-        </button>
-    </div>
-}
-
-@if (_selectedVisitMode == VisitMode.Negative)
-{
-    <div class="card p-3 mb-3">
-        <h5>إغلاق زيارة سلبية</h5>
-
-        <div class="mb-3">
-            <label class="form-label">سبب الزيارة السلبية</label>
-
-            <select class="form-select" @bind="_negativeReason">
-                <option value="1">العميل مغلق</option>
-                <option value="2">لا يوجد طلب</option>
-                <option value="3">العميل رفض الطلب</option>
-                <option value="4">مشكلة في الدفع</option>
-                <option value="5">خارج خط السير</option>
-                <option value="6">سبب آخر</option>
-            </select>
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">ملاحظات</label>
-            <textarea class="form-control" @bind="_notes"></textarea>
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="visit-details-alert error">
+                @_errorMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_infoMessage))
+        {
+            <div class="visit-details-alert info">
+                @_infoMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_successMessage))
+        {
+            <div class="visit-details-alert success">
+                @_successMessage
+            </div>
+        }
+
+        <div class="visit-result-section">
+            <label>نتيجة الزيارة</label>
+
+            <div class="visit-mode-grid">
+
+                <button type="button"
+                        class="visit-mode-btn positive @GetVisitModeButtonClass(VisitMode.Positive)"
+                        disabled="@HasInvalidVisitData"
+                        @onclick="SelectPositiveVisit">
+                    <span>🧾</span>
+                    <strong>إنشاء فاتورة</strong>
+                    <small>العميل طلب أوردر</small>
+                </button>
+
+                <button type="button"
+                        class="visit-mode-btn negative @GetVisitModeButtonClass(VisitMode.Negative)"
+                        disabled="@HasInvalidVisitData"
+                        @onclick="SelectNegativeVisit">
+                    <span>🚫</span>
+                    <strong>زيارة بدون بيع</strong>
+                    <small>لا يوجد طلب من العميل</small>
+                </button>
+
+            </div>
         </div>
 
-        <button class="btn btn-warning w-100"
+        @if (_selectedVisitMode == VisitMode.Positive)
+        {
+            <div class="visit-positive-panel">
+
+                <h2>زيارة إيجابية</h2>
+
+                <p>
+                    سيتم إنشاء فاتورة للعميل، وبعد حفظ الفاتورة يتم إكمال الزيارة كزيارة إيجابية.
+                </p>
+
+                <button type="button"
+                        class="visit-primary-btn"
+                        disabled="@HasInvalidVisitData"
+                        @onclick="GoToCreateInvoice">
+                    إنشاء الفاتورة
+                </button>
+
+            </div>
+        }
+
+        @if (_selectedVisitMode == VisitMode.Negative)
+        {
+            <div class="visit-negative-panel">
+
+                <h2>إغلاق زيارة بدون بيع</h2>
+
+                <div class="visit-form-group">
+                    <label>سبب الزيارة</label>
+
+                    <select @bind="_negativeReason">
+                        <option value="1">العميل مغلق</option>
+                        <option value="2">لا يوجد طلب</option>
+                        <option value="3">العميل رفض الطلب</option>
+                        <option value="4">مشكلة في الدفع</option>
+                        <option value="5">خارج خط السير</option>
+                        <option value="6">سبب آخر</option>
+                    </select>
+                </div>
+
+                <div class="visit-form-group">
+                    <label>ملاحظات</label>
+
+                    <textarea placeholder="اكتب ملاحظات الزيارة..."
+                              @bind="_notes"></textarea>
+                </div>
+
+                <button type="button"
+                        class="visit-warning-btn"
+                        disabled="@_isProcessing"
+                        @onclick="CompleteNegativeVisitAsync">
+                    @(_isProcessing ? "جاري إغلاق الزيارة..." : "إغلاق الزيارة")
+                </button>
+
+            </div>
+        }
+
+        <button type="button"
+                class="visit-back-btn"
                 disabled="@_isProcessing"
-                @onclick="CompleteNegativeVisitAsync">
-            @(_isProcessing ? "جاري إغلاق الزيارة..." : "Complete Negative Visit")
+                @onclick="GoBackToRouteCustomers">
+            رجوع لعملاء الخط
         </button>
-    </div>
-}
 
-<div class="d-grid mt-3">
-    <button class="btn btn-outline-secondary"
-            @onclick="GoBackToCustomers">
-        Back To Customers
-    </button>
+    </section>
+
 </div>
 
 @code {
@@ -128,70 +170,121 @@
 
     private bool _isProcessing;
 
+    private bool HasInvalidVisitData =>
+        VisitId <= 0 || SessionId <= 0 || CustomerId <= 0 || RouteId <= 0;
+
+    protected override void OnInitialized()
+    {
+        if (HasInvalidVisitData)
+        {
+            _errorMessage = "بيانات الزيارة غير مكتملة.";
+        }
+    }
+
     private void SelectPositiveVisit()
     {
         ClearMessages();
 
-        _selectedVisitMode = VisitMode.Positive;
+        if (HasInvalidVisitData)
+        {
+            _errorMessage = "بيانات الزيارة غير مكتملة لإنشاء فاتورة.";
+            return;
+        }
 
-        _infoMessage =
-            "تمام، دي زيارة إيجابية. الخطوة الجاية هنضيف Create Invoice ونقفل الزيارة Positive بعد الفاتورة.";
+        _selectedVisitMode = VisitMode.Positive;
     }
 
     private void SelectNegativeVisit()
     {
         ClearMessages();
 
+        if (HasInvalidVisitData)
+        {
+            _errorMessage = "بيانات الزيارة غير مكتملة.";
+            return;
+        }
+
         _selectedVisitMode = VisitMode.Negative;
     }
 
     private async Task CompleteNegativeVisitAsync()
     {
-        if (VisitId <= 0)
+        if (HasInvalidVisitData)
         {
-            _errorMessage = "VisitId غير صحيح.";
+            _errorMessage = "بيانات الزيارة غير مكتملة.";
             return;
         }
 
         _isProcessing = true;
         ClearMessages();
 
-        var request = new CompleteSalesRepMobileVisitRequest
+        try
         {
-            VisitType = 2,
-            NegativeReason = _negativeReason,
-            InvoiceId = null,
-            PaymentId = null,
-            InvoiceReturnId = null,
-            Notes = _notes
-        };
+            var request = new CompleteSalesRepMobileVisitRequest
+            {
+                VisitType = 2,
+                NegativeReason = _negativeReason,
+                InvoiceId = null,
+                PaymentId = null,
+                InvoiceReturnId = null,
+                Notes = _notes
+            };
 
-        var response =
-            await SalesRepVisitApiService.CompleteVisitAsync(VisitId, request);
+            var response =
+                await SalesRepVisitApiService.CompleteVisitAsync(VisitId, request);
 
-        if (response is null)
-        {
-            _errorMessage = "لم يتم استلام استجابة من الخادم.";
-        }
-        else if (!response.Success)
-        {
-            _errorMessage = response.Message ?? "فشل إغلاق الزيارة.";
-        }
-        else
-        {
-            _successMessage = "تم إغلاق الزيارة السلبية بنجاح.";
+            if (response is null)
+            {
+                _errorMessage = "لم يتم استلام استجابة من الخادم.";
+                return;
+            }
+
+            if (!response.Success)
+            {
+                _errorMessage = response.Message ?? "فشل إغلاق الزيارة.";
+                return;
+            }
+
+            _successMessage = "تم إغلاق الزيارة بنجاح.";
 
             await Task.Delay(700);
 
-            NavigationManager.NavigateTo("/customers", replace: true);
+            GoBackToRouteCustomers();
         }
-
-        _isProcessing = false;
+        catch
+        {
+            _errorMessage = "حدث خطأ غير متوقع أثناء إغلاق الزيارة.";
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
     }
 
-    private void GoBackToCustomers()
+    private void GoToCreateInvoice()
     {
-        NavigationManager.NavigateTo("/customers");
+        if (HasInvalidVisitData)
+        {
+            _errorMessage = "بيانات الزيارة غير مكتملة لإنشاء فاتورة.";
+            return;
+        }
+
+        NavigationManager.NavigateTo(
+            $"/invoices/create?visitId={VisitId}&sessionId={SessionId}&customerId={CustomerId}&routeId={RouteId}");
+    }
+
+    private void GoBackToRouteCustomers()
+    {
+        if (SessionId > 0 && RouteId > 0)
+        {
+            NavigationManager.NavigateTo(
+                $"/routes/{RouteId}/customers?sessionId={SessionId}",
+                replace: true);
+
+            return;
+        }
+
+        NavigationManager.NavigateTo("/routes", replace: true);
     }
 
     private void ClearMessages()
@@ -201,21 +294,16 @@
         _successMessage = null;
     }
 
+    private string GetVisitModeButtonClass(VisitMode mode)
+    {
+        return _selectedVisitMode == mode
+            ? "selected"
+            : string.Empty;
+    }
+
     private enum VisitMode
     {
         Positive = 1,
         Negative = 2
-    }
-
-    private void GoToCreateInvoice()
-    {
-        if (VisitId <= 0 || SessionId <= 0 || CustomerId <= 0)
-        {
-            _errorMessage = "بيانات الزيارة غير مكتملة لإنشاء فاتورة.";
-            return;
-        }
-
-        NavigationManager.NavigateTo(
-            $"/invoices/create?visitId={VisitId}&sessionId={SessionId}&customerId={CustomerId}");
     }
 }

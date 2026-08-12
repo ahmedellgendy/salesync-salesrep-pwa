@@ -8,38 +8,55 @@
 @inject NavigationManager NavigationManager
 @inject ISalesRepVisitApiService SalesRepVisitApiService
 
-<h3>بدء زيارة</h3>
+<div class="start-visit-page simple" dir="rtl">
 
-@if (!string.IsNullOrWhiteSpace(_errorMessage))
-{
-    <div class="alert alert-danger">@_errorMessage</div>
-}
+    <section class="start-visit-simple-card">
 
-@if (!string.IsNullOrWhiteSpace(_successMessage))
-{
-    <div class="alert alert-success">@_successMessage</div>
-}
+        <div class="start-visit-top-icon">
+            📍
+        </div>
 
-<div class="card p-3">
-    <p><strong>Session Id:</strong> @SessionId</p>
-    <p><strong>Customer Id:</strong> @CustomerId</p>
-    <p><strong>Route Id:</strong> @RouteId</p>
+        <h1>بدء زيارة العميل</h1>
 
-    <div class="mb-3">
-        <label class="form-label">Notes</label>
-        <textarea class="form-control" @bind="_notes"></textarea>
-    </div>
+        <p>
+            تأكد من الوصول لموقع العميل قبل بدء الزيارة.
+        </p>
 
-    <button class="btn btn-primary"
-            disabled="@_isProcessing"
-            @onclick="StartVisitAsync">
-        @(_isProcessing ? "جاري بدء الزيارة..." : "Start Visit")
-    </button>
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="start-visit-alert error">
+                @_errorMessage
+            </div>
+        }
 
-    <button class="btn btn-secondary mt-2"
-            @onclick="BackToCustomers">
-        رجوع للعملاء
-    </button>
+        @if (!string.IsNullOrWhiteSpace(_successMessage))
+        {
+            <div class="start-visit-alert success">
+                @_successMessage
+            </div>
+        }
+
+        <div class="start-visit-notes simple">
+            <label>ملاحظات اختيارية</label>
+
+            <textarea placeholder="اكتب ملاحظة لو محتاج..."
+                      @bind="_notes"></textarea>
+        </div>
+
+        <button class="start-visit-main-btn"
+                disabled="@_isProcessing"
+                @onclick="StartVisitAsync">
+            @(_isProcessing ? "جاري بدء الزيارة..." : "بدء الزيارة")
+        </button>
+
+        <button class="start-visit-back-btn"
+                disabled="@_isProcessing"
+                @onclick="BackToCustomers">
+            رجوع للعملاء
+        </button>
+
+    </section>
+
 </div>
 
 @code {
@@ -52,13 +69,18 @@
     [SupplyParameterFromQuery(Name = "routeId")]
     public int RouteId { get; set; }
 
-    
     private string? _notes;
     private string? _errorMessage;
     private string? _successMessage;
     private bool _isProcessing;
 
-    
+    protected override void OnParametersSet()
+    {
+        if (SessionId <= 0 || CustomerId <= 0 || RouteId <= 0)
+        {
+            _errorMessage = "بيانات الزيارة غير مكتملة.";
+        }
+    }
 
     private async Task StartVisitAsync()
     {
@@ -72,52 +94,57 @@
         _errorMessage = null;
         _successMessage = null;
 
-        var request = new StartSalesRepMobileVisitRequest
+        try
         {
-            SalesRepSessionId = SessionId,
-            CustomerId = CustomerId,
-            RouteId = RouteId,
-            Latitude = null,
-            Longitude = null,
-            Notes = _notes
-        };
+            var request = new StartSalesRepMobileVisitRequest
+            {
+                SalesRepSessionId = SessionId,
+                CustomerId = CustomerId,
+                RouteId = RouteId,
+                Latitude = null,
+                Longitude = null,
+                Notes = _notes
+            };
 
-        var response = await SalesRepVisitApiService.StartVisitAsync(request);
+            var response = await SalesRepVisitApiService.StartVisitAsync(request);
 
-        if (response is null)
-        {
-            _errorMessage = "لم يتم استلام استجابة من الخادم.";
-        }
-        else if (!response.Success)
-        {
-            _errorMessage = response.Message ?? "فشل بدء الزيارة.";
-        }
-        else
-        {
-            _successMessage = "تم بدء الزيارة بنجاح.";
+            if (response is null)
+            {
+                _errorMessage = "لم يتم استلام استجابة من الخادم.";
+                return;
+            }
+
+            if (!response.Success)
+            {
+                _errorMessage = response.Message ?? "فشل بدء الزيارة.";
+                return;
+            }
 
             var visitId = response.Data?.Id;
 
-            if (visitId.HasValue && visitId.Value > 0)
+            if (!visitId.HasValue || visitId.Value <= 0)
             {
-                NavigationManager.NavigateTo(
-    $"/visits/{response.Data.Id}?sessionId={SessionId}&customerId={CustomerId}&routeId={RouteId}");
+                _errorMessage = "تم بدء الزيارة ولكن لم يتم استلام رقم الزيارة.";
+                return;
             }
-        }
 
-        _isProcessing = false;
+            _successMessage = "تم بدء الزيارة بنجاح.";
+
+            NavigationManager.NavigateTo(
+                $"/visits/{visitId.Value}?sessionId={SessionId}&customerId={CustomerId}&routeId={RouteId}");
+        }
+        catch
+        {
+            _errorMessage = "حدث خطأ غير متوقع أثناء بدء الزيارة.";
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
     }
 
     private void BackToCustomers()
     {
-        NavigationManager.NavigateTo($"/customers/{SessionId}");
-    }
-
-    protected override void OnParametersSet()
-    {
-        if (SessionId <= 0 || CustomerId <= 0 || RouteId <= 0)
-        {
-            _errorMessage = "بيانات الزيارة غير مكتملة.";
-        }
+        NavigationManager.NavigateTo($"/routes/{RouteId}/customers?sessionId={SessionId}");
     }
 }

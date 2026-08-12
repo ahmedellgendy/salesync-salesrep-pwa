@@ -46,6 +46,10 @@ builder.Services.AddScoped<ISalesRepCustomerApiService, SalesRepCustomerApiServi
 builder.Services.AddScoped<ISalesRepVisitApiService, SalesRepVisitApiService>();
 builder.Services.AddScoped<ISalesRepInvoiceApiService, SalesRepInvoiceApiService>();
 builder.Services.AddScoped<ISalesRepLoadRequestApiService, SalesRepLoadRequestApiService>();
+builder.Services.AddScoped<ISalesRepUnloadRequestApiService, SalesRepUnloadRequestApiService>();
 builder.Services.AddScoped<ISalesRepPaymentApiService, SalesRepPaymentApiService>();
+builder.Services.AddScoped<ISalesRepRouteApiService, SalesRepRouteApiService>();
+builder.Services.AddScoped<ISalesRepInvoiceReturnApiService,SalesRepInvoiceReturnApiService>();
+
 
 await builder.Build().RunAsync();

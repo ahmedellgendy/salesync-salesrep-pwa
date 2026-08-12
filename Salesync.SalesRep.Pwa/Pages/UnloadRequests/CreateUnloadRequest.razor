@@ -1,0 +1,451 @@
+﻿@page "/unload-requests/create"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+@using Salesync.SalesRep.Pwa.Models.Requests
+
+@inject ISalesRepLoadRequestApiService LoadRequestApiService
+@inject ISalesRepUnloadRequestApiService UnloadRequestApiService
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+
+<div class="inventory-page" dir="rtl">
+
+    <section class="inventory-hero">
+        <div>
+            <span>تسوية حمولة نهاية اليوم</span>
+            <h1>تفريغ الحمولة</h1>
+            <p>
+                راجع البضاعة المتبقية ثم أرسل طلب تفريغ للمخزن.
+            </p>
+        </div>
+
+        <div class="inventory-hero-icon">
+            🚚
+        </div>
+    </section>
+
+    @if (_isLoading)
+    {
+        <div class="inventory-loading-card">
+            جاري تحميل بيانات الحمولة...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="inventory-alert error">
+            @_errorMessage
+        </div>
+    }
+    else if (_inventory.Count == 0)
+    {
+        <section class="inventory-empty-card">
+            <div class="inventory-empty-icon">
+                ✅
+            </div>
+
+            <h3>لا توجد حمولة للتفريغ</h3>
+
+            <p>
+                مخزون المندوب فارغ حاليًا ولا يوجد منتجات تحتاج إلى تفريغ.
+            </p>
+
+            <button type="button"
+                    class="inventory-empty-btn"
+                    @onclick="GoBack">
+                العودة للرئيسية
+            </button>
+        </section>
+    }
+    else
+    {
+        <section class="inventory-summary-compact">
+            <div>
+                <span>الأصناف</span>
+                <strong>@_inventory.Count</strong>
+            </div>
+
+            <div>
+                <span>إجمالي القطع</span>
+                <strong>@_inventory.Sum(x => x.Quantity)</strong>
+            </div>
+
+            <div>
+                <span>حالة التفريغ</span>
+                <strong>جاهز للإرسال</strong>
+            </div>
+        </section>
+
+        <section class="inventory-list">
+            @foreach (var item in _inventory.OrderBy(x => x.ProductName))
+            {
+                <article class="inventory-product-card compact"
+                         @key="item.ProductId">
+
+                    <div class="inventory-product-row">
+
+                        <div class="inventory-product-data">
+                            <strong>@item.ProductName</strong>
+
+                            @if (!string.IsNullOrWhiteSpace(item.ItemCode))
+                            {
+                                <span>كود: @item.ItemCode</span>
+                            }
+
+                            <small>
+                                1 @GetLargeUnit(item)
+                                =
+                                @GetUnitsPerLargeUnit(item)
+                                @GetSmallUnit(item)
+                            </small>
+                        </div>
+
+                        <div class="inventory-product-stock">
+                            <strong>@FormatMainQuantity(item)</strong>
+
+                            <span>
+                                @FormatFullQuantity(item)
+                            </span>
+                        </div>
+
+                    </div>
+                </article>
+            }
+        </section>
+
+        <section class="unload-form-card">
+
+            <div class="unload-form-group">
+                <label>المخزن المستلم</label>
+
+                <select @bind="_selectedWarehouseId"
+                        class="unload-select">
+
+                    <option value="0">
+                        اختر المخزن
+                    </option>
+
+                    @foreach (var warehouse in _warehouses)
+                    {
+                        <option value="@warehouse.Id">
+                            @warehouse.Name
+                        </option>
+                    }
+
+                </select>
+            </div>
+
+            <div class="unload-form-group">
+
+                <label>ملاحظات للمخزن</label>
+
+                <textarea @bind="_notes"
+                          class="unload-textarea"
+                          placeholder="اكتب أي ملاحظات خاصة بالتفريغ...">
+                </textarea>
+
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_submitError))
+            {
+                <div class="inventory-alert error">
+                    @_submitError
+                </div>
+            }
+
+            <button type="button"
+                    class="unload-submit-btn"
+                    disabled="@_isSubmitting"
+                    @onclick="SubmitUnloadRequestAsync">
+
+                @if (_isSubmitting)
+                {
+                    <span>
+                        جاري إرسال الطلب...
+                    </span>
+                }
+                else
+                {
+                    <span>
+                        إرسال طلب تفريغ الحمولة
+                    </span>
+                }
+
+            </button>
+
+        </section>
+    }
+
+</div>
+
+@code {
+
+    private bool _isLoading = true;
+    private bool _isSubmitting;
+
+    private string? _errorMessage;
+    private string? _submitError;
+
+    private int _salesRepId;
+    private int _salesRepSessionId;
+    private int _selectedWarehouseId;
+
+    private string? _notes;
+
+    private List<SalesRepInventoryDto> _inventory = new();
+
+    private List<MobileWarehouseOptionDto> _warehouses = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _salesRepId = await GetCurrentSalesRepIdAsync();
+
+        if (_salesRepId <= 0)
+        {
+            _errorMessage = "لم يتم تحديد المندوب الحالي.";
+            _isLoading = false;
+            return;
+        }
+
+        await LoadCurrentSessionAsync();
+
+        if (_salesRepSessionId <= 0)
+        {
+            _errorMessage = "لا توجد جلسة عمل مفتوحة للمندوب.";
+            _isLoading = false;
+            return;
+        }
+
+        await LoadPageDataAsync();
+
+        _isLoading = false;
+    }
+
+    private async Task LoadCurrentSessionAsync()
+    {
+        try
+        {
+            var httpClient =
+                HttpClientFactory.CreateClient("SalesyncApi");
+
+            var response =
+                await httpClient.GetFromJsonAsync<
+                    ApiResponse<SalesRepMobileTodayDto>
+                >(
+                    "api/mobile/salesrep/today");
+
+            if (response?.Success == true &&
+                response.Data?.HasOpenSession == true &&
+                response.Data.Session is not null)
+            {
+                _salesRepSessionId =
+                    response.Data.Session.Id;
+            }
+        }
+        catch
+        {
+            _salesRepSessionId = 0;
+        }
+    }
+    private async Task LoadPageDataAsync()
+    {
+        var inventoryResponse =
+            await LoadRequestApiService.GetInventoryAsync(_salesRepId);
+
+        if (inventoryResponse?.Success != true)
+        {
+            _errorMessage =
+                inventoryResponse?.Message
+                ?? "فشل تحميل مخزون المندوب.";
+
+            return;
+        }
+
+        _inventory =
+            inventoryResponse.Data?
+                .Where(x => x.Quantity > 0)
+                .ToList()
+            ?? new();
+
+        var warehousesResponse =
+            await LoadRequestApiService.GetWarehousesAsync();
+
+        if (warehousesResponse?.Success != true)
+        {
+            _errorMessage =
+                warehousesResponse?.Message
+                ?? "فشل تحميل المخازن.";
+
+            return;
+        }
+
+        _warehouses =
+            warehousesResponse.Data?.ToList()
+            ?? new();
+    }
+
+    private async Task SubmitUnloadRequestAsync()
+    {
+        _submitError = null;
+
+        if (_selectedWarehouseId <= 0)
+        {
+            _submitError = "يرجى اختيار المخزن المستلم.";
+
+            return;
+        }
+
+        _isSubmitting = true;
+
+        try
+        {
+            var request = new CreateUnloadRequestRequest
+            {
+                SalesRepSessionId = _salesRepSessionId,
+
+                WarehouseId = _selectedWarehouseId,
+
+                SalesRepNotes = string.IsNullOrWhiteSpace(_notes) ? null : _notes.Trim()
+            };
+
+            var response = await UnloadRequestApiService.CreateAsync(request);
+
+            if (response?.Success != true)
+            {
+                _submitError =
+                    response?.Message
+                    ?? "فشل إرسال طلب التفريغ.";
+
+                return;
+            }
+
+            if (response.Data is not null)
+            {
+                NavigationManager.NavigateTo(
+                 $"/unload-requests/{response.Data.Id}");
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task<int> GetCurrentSalesRepIdAsync()
+    {
+        try
+        {
+            var httpClient =
+                HttpClientFactory.CreateClient("SalesyncApi");
+
+            var response =
+                await httpClient
+                    .GetFromJsonAsync<
+                        ApiResponse<SalesRepMobileProfileDto>
+                    >(
+                        "api/mobile/salesrep/me");
+
+            return
+                response?.Success == true
+                && response.Data is not null
+
+                ? response.Data.SalesRepId
+
+                : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private static string FormatMainQuantity(
+        SalesRepInventoryDto item)
+    {
+        var units =
+            GetUnitsPerLargeUnit(item);
+
+        var large =
+            item.Quantity / units;
+
+        if (large > 0)
+        {
+            return
+                $"{large} {GetLargeUnit(item)}";
+        }
+
+        return
+            $"{item.Quantity} {GetSmallUnit(item)}";
+    }
+
+    private static string FormatFullQuantity(
+        SalesRepInventoryDto item)
+    {
+        var units =
+            GetUnitsPerLargeUnit(item);
+
+        var large =
+            item.Quantity / units;
+
+        var small =
+            item.Quantity % units;
+
+        if (large > 0 && small > 0)
+        {
+            return
+                $"{large} {GetLargeUnit(item)} + " +
+                $"{small} {GetSmallUnit(item)}";
+        }
+
+        if (large > 0)
+        {
+            return
+                $"{large} {GetLargeUnit(item)}";
+        }
+
+        return
+            $"{small} {GetSmallUnit(item)}";
+    }
+
+    private static string GetSmallUnit(
+        SalesRepInventoryDto item)
+    {
+        return
+            string.IsNullOrWhiteSpace(item.SmallUnit)
+
+            ? "قطعة"
+
+            : item.SmallUnit;
+    }
+
+    private static string GetLargeUnit(
+        SalesRepInventoryDto item)
+    {
+        return
+            string.IsNullOrWhiteSpace(item.LargeUnit)
+
+            ? "كرتونة"
+
+            : item.LargeUnit;
+    }
+
+    private static int GetUnitsPerLargeUnit(
+        SalesRepInventoryDto item)
+    {
+        return
+            item.UnitsPerLargeUnit <= 0
+
+            ? 1
+
+            : item.UnitsPerLargeUnit;
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+}

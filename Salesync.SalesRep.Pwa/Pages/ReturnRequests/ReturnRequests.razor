@@ -1,0 +1,326 @@
+﻿@page "/return-requests"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepInvoiceReturnApiService ReturnApiService
+@inject NavigationManager NavigationManager
+
+<div class="return-requests-page" dir="rtl">
+
+    <section class="return-requests-hero">
+        <div>
+            <span>طلبات المرتجع</span>
+            <h1>طلباتي</h1>
+            <p>راجع طلبات المرتجع وحالة مراجعتها واعتمادها.</p>
+        </div>
+
+        <div class="return-requests-hero-icon">
+            ↩️
+        </div>
+    </section>
+
+    @if (_isLoading)
+    {
+        <div class="return-requests-loading-card">
+            جاري تحميل طلبات المرتجع...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="return-requests-alert error">
+            @_errorMessage
+        </div>
+    }
+    else
+    {
+        <section class="return-requests-actions">
+
+            <button type="button"
+                    class="return-requests-action-btn primary"
+                    @onclick="GoToCreate">
+
+                <span>➕</span>
+
+                <div>
+                    <strong>طلب مرتجع جديد</strong>
+                    <small>إنشاء مرتجع من فاتورة مؤكدة</small>
+                </div>
+
+            </button>
+
+        </section>
+
+        <section class="return-requests-summary-card">
+
+            <div>
+                <span>إجمالي الطلبات</span>
+                <strong>@_returns.Count</strong>
+            </div>
+
+            <div>
+                <span>قيد المراجعة</span>
+                <strong>@GetPendingCount()</strong>
+            </div>
+
+            <div>
+                <span>تم اعتمادها</span>
+                <strong>@GetApprovedCount()</strong>
+            </div>
+
+        </section>
+
+        @if (_returns.Count == 0)
+        {
+            <section class="return-requests-empty-card">
+
+                <div class="return-requests-empty-icon">
+                    ↩️
+                </div>
+
+                <h3>لا توجد طلبات مرتجع</h3>
+
+                <p>
+                    لم تقم بإنشاء أي طلب مرتجع حتى الآن.
+                </p>
+
+                <button type="button"
+                        class="return-requests-empty-btn"
+                        @onclick="GoToCreate">
+                    إنشاء طلب مرتجع
+                </button>
+
+            </section>
+        }
+        else
+        {
+            <section class="return-requests-list">
+
+                @foreach (var item in _returns)
+                {
+                    <article class="return-request-card @GetStatusClass(item.Status)"
+                             @onclick="() => GoToDetails(item.Id)">
+
+                        <div class="return-request-header">
+
+                            <div>
+                                <span>رقم المرتجع</span>
+                                <strong>@item.ReturnNumber</strong>
+                            </div>
+
+                            <div class="return-request-status @GetStatusClass(item.Status)">
+                                @GetStatusText(item.Status)
+                            </div>
+
+                        </div>
+
+                        <div class="return-request-info-grid">
+
+                            <div>
+                                <span>الفاتورة</span>
+                                <strong>@GetInvoiceText(item)</strong>
+                            </div>
+
+                            <div>
+                                <span>العميل</span>
+                                <strong>@GetCustomerText(item)</strong>
+                            </div>
+
+                            <div>
+                                <span>سبب المرتجع</span>
+                                <strong>@GetReturnReasonText(item.ReturnReason)</strong>
+                            </div>
+
+                            <div>
+                                <span>تاريخ الطلب</span>
+                                <strong>@FormatDate(item.CreatedAt)</strong>
+                            </div>
+
+                        </div>
+
+                        <div class="return-request-summary">
+
+                            <div>
+                                <span>الأصناف</span>
+                                <strong>@item.Items.Count</strong>
+                            </div>
+
+                            <div>
+                                <span>إجمالي الكمية</span>
+                                <strong>@GetTotalQuantity(item)</strong>
+                            </div>
+
+                            <div>
+                                <span>القيمة</span>
+                                <strong>@FormatMoney(item.TotalAmount)</strong>
+                            </div>
+
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(item.ReasonNotes))
+                        {
+                            <div class="return-request-notes">
+                                @item.ReasonNotes
+                            </div>
+                        }
+
+                        <div class="return-request-details-link">
+                            عرض تفاصيل الطلب
+                            <span>‹</span>
+                        </div>
+
+                    </article>
+                }
+
+            </section>
+        }
+    }
+
+</div>
+
+@code {
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private List<InvoiceReturnDto> _returns = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReturnsAsync();
+        _isLoading = false;
+    }
+
+    private async Task LoadReturnsAsync()
+    {
+        try
+        {
+            var response =
+                await ReturnApiService.GetMyReturnsAsync();
+
+            if (response is null)
+            {
+                _errorMessage =
+                    "لم يتم استلام استجابة من الخادم.";
+
+                return;
+            }
+
+            if (!response.Success)
+            {
+                _errorMessage =
+                    response.Message
+                    ?? "فشل تحميل طلبات المرتجع.";
+
+                return;
+            }
+
+            _returns =
+                response.Data?
+                    .OrderByDescending(x => x.CreatedAt)
+                    .ToList()
+                ?? new List<InvoiceReturnDto>();
+        }
+        catch
+        {
+            _errorMessage =
+                "حدث خطأ أثناء تحميل طلبات المرتجع.";
+        }
+    }
+
+    private int GetPendingCount()
+    {
+        return _returns.Count(x => x.Status == 1);
+    }
+
+    private int GetApprovedCount()
+    {
+        return _returns.Count(x =>
+            x.Status == 2 ||
+            x.Status == 4);
+    }
+
+    private static string GetStatusText(int status)
+    {
+        return status switch
+        {
+            1 => "قيد المراجعة",
+            2 => "تم الاعتماد",
+            3 => "مرفوض",
+            4 => "تم الاستلام بالمخزن",
+            5 => "ملغي",
+            _ => "غير معروف"
+        };
+    }
+
+    private static string GetStatusClass(int status)
+    {
+        return status switch
+        {
+            1 => "pending",
+            2 => "approved",
+            3 => "rejected",
+            4 => "received",
+            5 => "cancelled",
+            _ => "unknown"
+        };
+    }
+
+    private static string GetReturnReasonText(int reason)
+    {
+        return reason switch
+        {
+            1 => "تالف",
+            2 => "منتهي الصلاحية",
+            3 => "منتج خاطئ",
+            4 => "طلب العميل",
+            5 => "أخرى",
+            _ => "غير محدد"
+        };
+    }
+
+    private static string GetInvoiceText(InvoiceReturnDto item)
+    {
+        return !string.IsNullOrWhiteSpace(item.InvoiceNumber)
+            ? item.InvoiceNumber
+            : $"فاتورة رقم {item.InvoiceId}";
+    }
+
+    private static string GetCustomerText(InvoiceReturnDto item)
+    {
+        return !string.IsNullOrWhiteSpace(item.CustomerName)
+            ? item.CustomerName
+            : $"عميل رقم {item.CustomerId}";
+    }
+
+    private static int GetTotalQuantity(InvoiceReturnDto item)
+    {
+        return item.Items.Sum(x => x.Quantity);
+    }
+
+    private static string FormatMoney(decimal value)
+    {
+        return $"{value:N2} ج.م";
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value
+            .ToLocalTime()
+            .ToString("dd/MM/yyyy - hh:mm tt");
+    }
+
+    private void GoToCreate()
+    {
+        NavigationManager.NavigateTo(
+            "/return-requests/create");
+    }
+
+    private void GoToDetails(int id)
+    {
+        NavigationManager.NavigateTo(
+            $"/return-requests/{id}");
+    }
+}

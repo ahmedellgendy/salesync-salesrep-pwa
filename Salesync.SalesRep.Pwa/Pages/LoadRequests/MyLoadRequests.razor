@@ -10,72 +10,230 @@
 @inject NavigationManager NavigationManager
 @inject IHttpClientFactory HttpClientFactory
 
-<h3>My Load Requests</h3>
+<div class="load-requests-page" dir="rtl">
 
-@if (_isLoading)
-{
-    <p>جاري تحميل طلبات التحميل...</p>
-}
-else if (!string.IsNullOrWhiteSpace(_errorMessage))
-{
-    <div class="alert alert-danger">@_errorMessage</div>
-}
-else
-{
-    <div class="d-grid gap-2 mb-3">
-        <button class="btn btn-primary"
-                @onclick="GoToCreate">
-            Create Load Request
-        </button>
+    <section class="load-requests-hero">
+        <div>
+            <span>طلبات التحميل</span>
+            <h1>طلباتي</h1>
+            <p>راجع طلبات التحميل وحالة موافقة المخزن عليها.</p>
+        </div>
 
-        <button class="btn btn-outline-dark"
-                @onclick="GoToInventory">
-            My Inventory
-        </button>
-    </div>
+        <div class="load-requests-hero-icon">
+            📋
+        </div>
+    </section>
 
-    @if (_loadRequests.Count == 0)
+    @if (_isLoading)
     {
-        <div class="alert alert-warning">
-            لا يوجد Load Requests حتى الآن.
+        <div class="load-requests-loading-card">
+            جاري تحميل طلبات التحميل...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="load-requests-alert error">
+            @_errorMessage
         </div>
     }
     else
     {
-        @foreach (var loadRequest in _loadRequests)
-        {
-            <div class="card p-3 mb-3">
-                <h5>@loadRequest.LoadRequestNumber</h5>
+        <section class="load-requests-actions">
+            <button type="button"
+                    class="load-requests-action-btn primary"
+                    @onclick="GoToCreate">
+                <span>➕</span>
+                <div>
+                    <strong>طلب تحميل جديد</strong>
+                    <small>اطلب منتجات من المخزن</small>
+                </div>
+            </button>
+        </section>
 
-                <p class="mb-1"><strong>Id:</strong> @loadRequest.Id</p>
-                <p class="mb-1"><strong>Status:</strong> @GetStatusText(loadRequest.Status)</p>
-                <p class="mb-1"><strong>Warehouse:</strong> @loadRequest.WarehouseName (@loadRequest.WarehouseId)</p>
-                <p class="mb-1"><strong>Request Date:</strong> @loadRequest.RequestDate.ToLocalTime()</p>
-
-                @if (!string.IsNullOrWhiteSpace(loadRequest.Notes))
-                {
-                    <p class="mb-1"><strong>Notes:</strong> @loadRequest.Notes</p>
-                }
-
-                @if (loadRequest.Items.Count > 0)
-                {
-                    <hr />
-
-                    @foreach (var item in loadRequest.Items)
-                    {
-                        <div class="border rounded p-2 mb-2">
-                            <p class="mb-1"><strong>Product:</strong> @item.ProductName (@item.ProductId)</p>
-                            <p class="mb-1"><strong>Item Code:</strong> @item.ItemCode</p>
-                            <p class="mb-1"><strong>Requested:</strong> @item.RequestedQuantity</p>
-                            <p class="mb-1"><strong>Approved:</strong> @item.ApprovedQuantity</p>
-                            <p class="mb-1"><strong>Confirmed:</strong> @item.ConfirmedQuantity</p>
-                        </div>
-                    }
-                }
+        <section class="load-requests-summary-card">
+            <div>
+                <span>إجمالي الطلبات</span>
+                <strong>@_loadRequests.Count</strong>
             </div>
+
+            <div>
+                <span>قيد المراجعة</span>
+                <strong>@GetPendingCount()</strong>
+            </div>
+
+            <div>
+                <span>تم تأكيدها</span>
+                <strong>@GetConfirmedCount()</strong>
+            </div>
+        </section>
+
+        @if (_loadRequests.Count == 0)
+        {
+            <section class="load-requests-empty-card">
+                <div class="load-requests-empty-icon">
+                    📦
+                </div>
+
+                <h3>لا توجد طلبات تحميل</h3>
+
+                <p>
+                    لم تقم بإنشاء أي طلب تحميل حتى الآن.
+                </p>
+
+                <button type="button"
+                        class="load-requests-empty-btn"
+                        @onclick="GoToCreate">
+                    إنشاء طلب تحميل
+                </button>
+            </section>
+        }
+        else
+        {
+            <section class="load-requests-list">
+
+                @foreach (var loadRequest in _loadRequests)
+                {
+                    <article class="load-request-card @GetStatusClass(loadRequest.Status)">
+
+                        <div class="load-request-card-header">
+                            <div>
+                                <span>رقم الطلب</span>
+                                <strong>@loadRequest.LoadRequestNumber</strong>
+                            </div>
+
+                            <div class="load-request-status @GetStatusClass(loadRequest.Status)">
+                                @GetStatusText(loadRequest.Status)
+                            </div>
+                        </div>
+
+                        <div class="load-request-info-list">
+                            <div>
+                                <span>المخزن</span>
+                                <strong>@GetWarehouseText(loadRequest)</strong>
+                            </div>
+
+                            <div>
+                                <span>تاريخ الطلب</span>
+                                <strong>@FormatDate(loadRequest.RequestDate)</strong>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(loadRequest.Notes))
+                            {
+                                <div>
+                                    <span>ملاحظات</span>
+                                    <strong>@loadRequest.Notes</strong>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(loadRequest.RejectionReason))
+                            {
+                                <div class="rejection">
+                                    <span>سبب الرفض</span>
+                                    <strong>@loadRequest.RejectionReason</strong>
+                                </div>
+                            }
+                        </div>
+
+                        <section class="load-request-items-section">
+
+                            <div class="load-request-items-title">
+                                <span>الأصناف المطلوبة</span>
+                                <strong>@GetItems(loadRequest).Count صنف</strong>
+                            </div>
+
+                            @if (GetItems(loadRequest).Count == 0)
+                            {
+                                <div class="load-request-item-empty">
+                                    لا توجد أصناف داخل هذا الطلب.
+                                </div>
+                            }
+                            else
+                            {
+                                @foreach (var item in GetItems(loadRequest))
+                                {
+                                    <article class="load-request-item-card">
+
+                                        <div class="load-request-item-header">
+                                            <div>
+                                                <strong>@item.ProductName</strong>
+
+                                                @if (!string.IsNullOrWhiteSpace(item.ItemCode))
+                                                {
+                                                    <span>كود: @item.ItemCode</span>
+                                                }
+
+                                                <small>
+                                                    1 @GetLargeUnit(item) = @GetUnitsPerLargeUnit(item) @GetSmallUnit(item)
+                                                </small>
+                                            </div>
+
+                                            <div class="load-request-item-qty">
+                                                @FormatLargeQuantity(item.RequestedLargeQuantity, item.LargeUnit)
+                                            </div>
+                                        </div>
+
+                                        <div class="load-request-unit-display">
+
+                                            <div class="load-request-unit-main">
+                                                <span>المطلوب</span>
+                                                <strong>
+                                                    @FormatLargeAndSmallQuantity(
+                                                        item.RequestedLargeQuantity,
+                                                        item.RequestedQuantity,
+                                                        item.LargeUnit,
+                                                        item.SmallUnit)
+                                                </strong>
+                                            </div>
+
+                                            <div class="load-request-unit-values">
+                                                <div>
+                                                    <span>الموافق عليه</span>
+                                                    <strong>
+                                                        @FormatLargeAndSmallQuantity(
+                                                         item.ApprovedLargeQuantity,
+                                                         item.ApprovedQuantity,
+                                                         item.LargeUnit,
+                                                         item.SmallUnit,
+                                                         "لم تتم الموافقة بعد")
+                                                    </strong>
+                                                </div>
+
+                                                <div>
+                                                    <span>المؤكد من المخزن</span>
+                                                    <strong>
+                                                        @FormatLargeAndSmallQuantity(
+                                                          item.ConfirmedLargeQuantity,
+                                                          item.ConfirmedQuantity,
+                                                          item.LargeUnit,
+                                                          item.SmallUnit,
+                                                          "لم يتم التأكيد بعد")
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(item.Notes))
+                                        {
+                                            <div class="load-request-item-notes">
+                                                @item.Notes
+                                            </div>
+                                        }
+
+                                    </article>
+                                }
+                            }
+
+                        </section>
+
+                    </article>
+                }
+
+            </section>
         }
     }
-}
+
+</div>
 
 @code {
     private bool _isLoading = true;
@@ -90,7 +248,7 @@ else
 
         if (_salesRepId <= 0)
         {
-            _errorMessage = "لم يتم العثور على SalesRepId للمندوب الحالي.";
+            _errorMessage = "لم يتم تحديد المندوب الحالي.";
             _isLoading = false;
             return;
         }
@@ -116,7 +274,10 @@ else
             return;
         }
 
-        _loadRequests = response.Data?.ToList() ?? new List<LoadRequestDto>();
+        _loadRequests = response.Data?
+            .OrderByDescending(x => x.RequestDate)
+            .ToList()
+            ?? new List<LoadRequestDto>();
     }
 
     private async Task<int> GetCurrentSalesRepIdAsync()
@@ -139,17 +300,107 @@ else
         }
     }
 
+    private static List<LoadRequestItemDto> GetItems(LoadRequestDto loadRequest)
+    {
+        return loadRequest.Items ?? new List<LoadRequestItemDto>();
+    }
+
+    private int GetPendingCount()
+    {
+        return _loadRequests.Count(x => x.Status == 1);
+    }
+
+    private int GetConfirmedCount()
+    {
+        return _loadRequests.Count(x => x.Status == 4);
+    }
+
     private static string GetStatusText(int status)
     {
         return status switch
         {
-            1 => "Pending",
-            2 => "Approved",
-            3 => "Rejected",
-            4 => "Warehouse Confirmed",
-            5 => "Cancelled",
-            _ => status.ToString()
+            1 => "قيد المراجعة",
+            2 => "تمت الموافقة",
+            3 => "مرفوض",
+            4 => "تم تأكيد المخزن",
+            5 => "ملغي",
+            _ => "غير معروف"
         };
+    }
+
+    private static string GetStatusClass(int status)
+    {
+        return status switch
+        {
+            1 => "pending",
+            2 => "approved",
+            3 => "rejected",
+            4 => "confirmed",
+            5 => "cancelled",
+            _ => "unknown"
+        };
+    }
+
+    private static string GetWarehouseText(LoadRequestDto loadRequest)
+    {
+        if (!string.IsNullOrWhiteSpace(loadRequest.WarehouseName))
+            return loadRequest.WarehouseName;
+
+        return $"مخزن رقم {loadRequest.WarehouseId}";
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToLocalTime().ToString("dd/MM/yyyy - hh:mm tt");
+    }
+
+    private static string FormatLargeAndSmallQuantity(int largeQuantity, int smallQuantity, string? largeUnit, string? smallUnit, string emptyText = "0 قطعة")
+    {
+        var largeUnitText = string.IsNullOrWhiteSpace(largeUnit)
+            ? "كرتونة"
+            : largeUnit;
+
+        var smallUnitText = string.IsNullOrWhiteSpace(smallUnit)
+            ? "قطعة"
+            : smallUnit;
+
+        if (largeQuantity > 0)
+            return $"{largeQuantity} {largeUnitText} = {smallQuantity} {smallUnitText}";
+
+        if (smallQuantity > 0)
+            return $"{smallQuantity} {smallUnitText}";
+
+        return emptyText;
+    }
+
+    private static string FormatLargeQuantity(int largeQuantity, string? largeUnit)
+    {
+        var largeUnitText = string.IsNullOrWhiteSpace(largeUnit)
+            ? "كرتونة"
+            : largeUnit;
+
+        return $"{largeQuantity} {largeUnitText}";
+    }
+
+    private static string GetSmallUnit(LoadRequestItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.SmallUnit)
+            ? "قطعة"
+            : item.SmallUnit;
+    }
+
+    private static string GetLargeUnit(LoadRequestItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.LargeUnit)
+            ? "كرتونة"
+            : item.LargeUnit;
+    }
+
+    private static int GetUnitsPerLargeUnit(LoadRequestItemDto item)
+    {
+        return item.UnitsPerLargeUnit <= 0
+            ? 1
+            : item.UnitsPerLargeUnit;
     }
 
     private void GoToCreate()

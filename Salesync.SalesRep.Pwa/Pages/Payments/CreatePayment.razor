@@ -8,61 +8,102 @@
 @inject ISalesRepPaymentApiService SalesRepPaymentApiService
 @inject NavigationManager NavigationManager
 
-<h3>Collect Payment</h3>
+<div class="collect-payment-page" dir="rtl">
 
-@if (!string.IsNullOrWhiteSpace(_errorMessage))
-{
-    <div class="alert alert-danger">@_errorMessage</div>
-}
+    <section class="collect-payment-card">
 
-@if (!string.IsNullOrWhiteSpace(_successMessage))
-{
-    <div class="alert alert-success">@_successMessage</div>
-}
+        <div class="collect-payment-header">
+            <div class="collect-payment-title">
+                <span class="payment-page-badge">
+                    تحصيل فاتورة
+                </span>
 
-<div class="card p-3 mb-3">
-    <h5>Invoice Info</h5>
+                <h1>تسجيل تحصيل</h1>
 
-    <p class="mb-1"><strong>Invoice Id:</strong> @InvoiceId</p>
-    <p class="mb-1"><strong>Invoice Number:</strong> @InvoiceNumber</p>
-    <p class="mb-1"><strong>Session Id:</strong> @SessionId</p>
-    <p class="mb-1"><strong>Remaining:</strong> @RemainingAmount</p>
-</div>
+                <p>
+                    سجل المبلغ المحصل من العميل لهذه الفاتورة.
+                </p>
+            </div>
 
-<div class="card p-3">
-    <div class="mb-3">
-        <label class="form-label">Amount</label>
-        <input type="number"
-               class="form-control"
-               step="0.01"
-               @bind="_amount" />
-    </div>
+            <div class="collect-payment-icon">
+                💵
+            </div>
+        </div>
 
-    <div class="mb-3">
-        <label class="form-label">Payment Method</label>
-        <select class="form-select" @bind="_paymentMethod">
-            <option value="1">Cash</option>
-            <option value="2">Check</option>
-            <option value="3">Transfer</option>
-        </select>
-    </div>
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="collect-payment-alert error">
+                @_errorMessage
+            </div>
+        }
 
-    <div class="mb-3">
-        <label class="form-label">Notes</label>
-        <textarea class="form-control" @bind="_notes"></textarea>
-    </div>
+        @if (!string.IsNullOrWhiteSpace(_successMessage))
+        {
+            <div class="collect-payment-alert success">
+                @_successMessage
+            </div>
+        }
 
-    <button class="btn btn-success w-100"
-            disabled="@_isProcessing"
-            @onclick="CreatePaymentAsync">
-        @(_isProcessing ? "جاري تسجيل التحصيل..." : "Collect Payment")
-    </button>
+        <section class="payment-invoice-summary">
 
-    <button class="btn btn-secondary w-100 mt-2"
-            disabled="@_isProcessing"
-            @onclick="GoBack">
-        Back To Invoices
-    </button>
+            <div class="payment-invoice-number">
+                <span>رقم الفاتورة</span>
+                <strong>@GetInvoiceNumberText()</strong>
+            </div>
+
+            <div class="payment-amount-box">
+                <span>المتبقي للتحصيل</span>
+                <strong>@FormatMoney(RemainingAmount)</strong>
+            </div>
+
+        </section>
+
+        <div class="collect-payment-form-group">
+            <label>المبلغ المحصل</label>
+
+            <input type="number"
+                   step="0.01"
+                   min="0"
+                   max="@RemainingAmount"
+                   disabled="@_isProcessing"
+                   @bind="_amount" />
+        </div>
+
+        <div class="collect-payment-form-group">
+            <label>طريقة الدفع</label>
+
+            <select disabled="@_isProcessing"
+                    @bind="_paymentMethod">
+                <option value="1">نقدي</option>
+                <option value="2">شيك</option>
+                <option value="3">تحويل</option>
+            </select>
+        </div>
+
+        <div class="collect-payment-form-group">
+            <label>ملاحظات</label>
+
+            <textarea placeholder="اكتب ملاحظات التحصيل..."
+                      disabled="@_isProcessing"
+                      @bind="_notes"></textarea>
+        </div>
+
+        <button type="button"
+                class="collect-payment-main-btn"
+                disabled="@_isProcessing"
+                @onclick="CreatePaymentAsync">
+            @(_isProcessing ? "جاري تسجيل التحصيل..." : "حفظ التحصيل")
+        </button>
+
+        <button type="button"
+                class="collect-payment-back-btn"
+                disabled="@_isProcessing"
+                @onclick="GoBack">
+            رجوع للفواتير
+        </button>
+
+    </section>
+
 </div>
 
 @code {
@@ -141,6 +182,10 @@
 
             NavigationManager.NavigateTo($"/invoices/{SessionId}", replace: true);
         }
+        catch
+        {
+            _errorMessage = "حدث خطأ غير متوقع أثناء تسجيل التحصيل.";
+        }
         finally
         {
             _isProcessing = false;
@@ -149,31 +194,45 @@
 
     private bool Validate()
     {
+        _errorMessage = null;
+
         if (InvoiceId <= 0)
         {
-            _errorMessage = "InvoiceId غير صحيح.";
+            _errorMessage = "بيانات الفاتورة غير صحيحة.";
             return false;
         }
 
         if (SessionId <= 0)
         {
-            _errorMessage = "SessionId غير صحيح.";
+            _errorMessage = "بيانات السيشن غير صحيحة.";
             return false;
         }
 
         if (_amount <= 0)
         {
-            _errorMessage = "Amount لازم يكون أكبر من صفر.";
+            _errorMessage = "المبلغ المحصل لازم يكون أكبر من صفر.";
             return false;
         }
 
         if (RemainingAmount > 0 && _amount > RemainingAmount)
         {
-            _errorMessage = "Amount لا يمكن يكون أكبر من المتبقي.";
+            _errorMessage = "المبلغ المحصل لا يمكن يكون أكبر من المتبقي.";
             return false;
         }
 
         return true;
+    }
+
+    private string GetInvoiceNumberText()
+    {
+        return string.IsNullOrWhiteSpace(InvoiceNumber)
+            ? "غير محدد"
+            : InvoiceNumber;
+    }
+
+    private static string FormatMoney(decimal value)
+    {
+        return value.ToString("N2");
     }
 
     private void GoBack()

@@ -1,4 +1,4 @@
-﻿@page "/inventory"
+﻿@page "/inventory/my"
 @attribute [Authorize]
 
 @using Microsoft.AspNetCore.Authorization
@@ -10,64 +10,151 @@
 @inject NavigationManager NavigationManager
 @inject IHttpClientFactory HttpClientFactory
 
-<h3>My Inventory</h3>
+<div class="inventory-page" dir="rtl">
 
-@if (_isLoading)
-{
-    <p>جاري تحميل مخزون المندوب...</p>
-}
-else if (!string.IsNullOrWhiteSpace(_errorMessage))
-{
-    <div class="alert alert-danger">@_errorMessage</div>
-}
-else
-{
-    <div class="card p-3 mb-3">
-        <p class="mb-1">
-            <strong>SalesRep Id:</strong> @_salesRepId
-        </p>
-    </div>
+    <section class="inventory-hero">
+        <div>
+            <span>مخزون المندوب</span>
+            <h1>المخزون الحالي</h1>
+            <p>راجع الكميات المتاحة قبل إنشاء الفواتير أو طلب تحميل جديد.</p>
+        </div>
 
-    <div class="d-grid gap-2 mb-3">
-        <button class="btn btn-primary"
-                @onclick="GoToCreateLoadRequest">
-            Create Load Request
-        </button>
+        <div class="inventory-hero-icon">
+            📦
+        </div>
+    </section>
 
-        <button class="btn btn-secondary"
-                @onclick="GoToLoadRequests">
-            My Load Requests
-        </button>
-    </div>
-
-    @if (_inventory.Count == 0)
+    @if (_isLoading)
     {
-        <div class="alert alert-warning">
-            لا يوجد مخزون للمندوب حاليًا.
+        <div class="inventory-loading-card">
+            جاري تحميل مخزون المندوب...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="inventory-alert error">
+            @_errorMessage
         </div>
     }
     else
     {
-        @foreach (var item in _inventory)
-        {
-            <div class="card p-3 mb-3">
-                <h5>@item.ProductName</h5>
-
-                <p class="mb-1"><strong>Product Id:</strong> @item.ProductId</p>
-                <p class="mb-1"><strong>Item Code:</strong> @item.ItemCode</p>
-                <p class="mb-1"><strong>Quantity:</strong> @item.Quantity</p>
-                <p class="mb-1"><strong>Last Updated:</strong> @item.LastUpdatedAt.ToLocalTime()</p>
+        
+        <section class="inventory-summary-compact">
+            <div>
+                <span>الأصناف</span>
+                <strong>@GetProductsCount()</strong>
             </div>
+
+            <div>
+                <span>إجمالي القطع</span>
+                <strong>@GetTotalQuantity()</strong>
+            </div>
+
+            <div>
+                <span>آخر تحديث</span>
+                <strong>@GetLastInventoryUpdateText()</strong>
+            </div>
+        </section>
+
+        @if (_inventory.Count == 0)
+        {
+            <section class="inventory-empty-card">
+                <div class="inventory-empty-icon">
+                    📦
+                </div>
+
+                <h3>لا يوجد مخزون متاح</h3>
+
+                <p>
+                    لا يوجد مخزون للمندوب حاليًا. اطلب تحميل من المخزن حتى تتمكن من إنشاء فواتير.
+                </p>
+
+                <button type="button"
+                        class="inventory-empty-btn"
+                        @onclick="GoToCreateLoadRequest">
+                    طلب تحميل جديد
+                </button>
+            </section>
+        }
+        else
+        {
+            <section class="inventory-search-card">
+                <input class="inventory-search-input"
+                       placeholder="ابحث عن منتج أو كود..."
+                       @bind="_searchText"
+                       @bind:event="oninput" />
+            </section>
+
+            @if (FilteredInventory.Count == 0)
+            {
+                <section class="inventory-empty-card small">
+                    <div class="inventory-empty-icon">
+                        🔍
+                    </div>
+
+                    <h3>لا توجد نتائج</h3>
+
+                    <p>
+                        لا يوجد منتج مطابق للبحث الحالي.
+                    </p>
+                </section>
+            }
+            else
+            {
+                <section class="inventory-list">
+                    @foreach (var item in FilteredInventory)
+                    {
+                        <article class="inventory-product-card compact" @key="item.ProductId">
+
+                            <div class="inventory-product-row">
+
+                                <div class="inventory-product-data">
+                                    <strong>@item.ProductName</strong>
+
+                                    @if (!string.IsNullOrWhiteSpace(item.ItemCode))
+                                    {
+                                        <span>كود: @item.ItemCode</span>
+                                    }
+
+                                    <small>
+                                        1 @GetLargeUnit(item) = @GetUnitsPerLargeUnit(item) @GetSmallUnit(item)
+                                    </small>
+                                </div>
+
+                                <div class="inventory-product-stock">
+                                    <strong>@FormatMainInventoryQuantity(item)</strong>
+                                    <span>@item.Quantity @GetSmallUnit(item)</span>
+                                </div>
+
+                            </div>
+
+                            <div class="inventory-product-bottom">
+                                <span>@FormatInventoryQuantity(item)</span>
+                                <small>تحديث: @FormatDateShort(item.LastUpdatedAt)</small>
+                            </div>
+
+                        </article>
+                    }
+                </section>
+            }
         }
     }
-}
+
+</div>
 
 @code {
     private bool _isLoading = true;
     private string? _errorMessage;
+    private string? _searchText;
 
     private int _salesRepId;
     private List<SalesRepInventoryDto> _inventory = new();
+
+    private List<SalesRepInventoryDto> FilteredInventory =>
+        _inventory
+            .Where(MatchesSearchText)
+            .OrderBy(x => x.ProductName)
+            .ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -75,7 +162,7 @@ else
 
         if (_salesRepId <= 0)
         {
-            _errorMessage = "لم يتم العثور على SalesRepId للمندوب الحالي.";
+            _errorMessage = "لم يتم تحديد المندوب الحالي.";
             _isLoading = false;
             return;
         }
@@ -101,7 +188,10 @@ else
             return;
         }
 
-        _inventory = response.Data?.ToList() ?? new List<SalesRepInventoryDto>();
+        _inventory = response.Data?
+            .Where(x => x.Quantity > 0)
+            .ToList()
+            ?? new List<SalesRepInventoryDto>();
     }
 
     private async Task<int> GetCurrentSalesRepIdAsync()
@@ -124,6 +214,89 @@ else
         }
     }
 
+    private bool MatchesSearchText(SalesRepInventoryDto item)
+    {
+        if (string.IsNullOrWhiteSpace(_searchText))
+            return true;
+
+        var search = _searchText.Trim();
+
+        return Contains(item.ProductName, search)
+            || Contains(item.ItemCode, search)
+            || Contains(item.SmallUnit, search)
+            || Contains(item.LargeUnit, search);
+    }
+
+    private static bool Contains(string? value, string search)
+    {
+        return !string.IsNullOrWhiteSpace(value)
+            && value.Contains(search, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private int GetProductsCount()
+    {
+        return _inventory.Count;
+    }
+
+    private int GetTotalQuantity()
+    {
+        return _inventory.Sum(x => x.Quantity);
+    }
+
+    private static string FormatMainInventoryQuantity(SalesRepInventoryDto item)
+    {
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(item);
+
+        var largeQuantity = item.Quantity / unitsPerLargeUnit;
+
+        if (largeQuantity > 0)
+            return $"{largeQuantity} {GetLargeUnit(item)}";
+
+        return $"{item.Quantity} {GetSmallUnit(item)}";
+    }
+
+    private static string FormatInventoryQuantity(SalesRepInventoryDto item)
+    {
+        var unitsPerLargeUnit = GetUnitsPerLargeUnit(item);
+
+        var largeQuantity = item.Quantity / unitsPerLargeUnit;
+        var remainingSmallQuantity = item.Quantity % unitsPerLargeUnit;
+
+        if (largeQuantity > 0 && remainingSmallQuantity > 0)
+            return $"{largeQuantity} {GetLargeUnit(item)} + {remainingSmallQuantity} {GetSmallUnit(item)} = {item.Quantity} {GetSmallUnit(item)}";
+
+        if (largeQuantity > 0)
+            return $"{largeQuantity} {GetLargeUnit(item)} = {item.Quantity} {GetSmallUnit(item)}";
+
+        return $"{remainingSmallQuantity} {GetSmallUnit(item)}";
+    }
+
+    private static string GetSmallUnit(SalesRepInventoryDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.SmallUnit)
+            ? "قطعة"
+            : item.SmallUnit;
+    }
+
+    private static string GetLargeUnit(SalesRepInventoryDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.LargeUnit)
+            ? "كرتونة"
+            : item.LargeUnit;
+    }
+
+    private static int GetUnitsPerLargeUnit(SalesRepInventoryDto item)
+    {
+        return item.UnitsPerLargeUnit <= 0
+            ? 1
+            : item.UnitsPerLargeUnit;
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToLocalTime().ToString("dd/MM/yyyy - hh:mm tt");
+    }
+
     private void GoToCreateLoadRequest()
     {
         NavigationManager.NavigateTo("/load-requests/create");
@@ -133,4 +306,21 @@ else
     {
         NavigationManager.NavigateTo("/load-requests");
     }
+
+    private string GetLastInventoryUpdateText()
+    {
+        if (_inventory.Count == 0)
+            return "-";
+
+        var lastUpdate = _inventory.Max(x => x.LastUpdatedAt);
+
+        return lastUpdate.ToLocalTime().ToString("dd/MM");
+    }
+
+    private static string FormatDateShort(DateTime value)
+    {
+        return value.ToLocalTime().ToString("dd/MM - h:mm tt");
+    }
+
+
 }

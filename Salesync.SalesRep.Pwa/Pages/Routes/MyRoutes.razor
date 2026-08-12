@@ -1,0 +1,194 @@
+﻿@page "/routes"
+@page "/routes/{SessionId:int}"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepRouteApiService SalesRepRouteApiService
+@inject ISalesRepSessionApiService SalesRepSessionApiService
+@inject NavigationManager NavigationManager
+
+<h3>خط سيري اليوم</h3>
+@if (_isLoading)
+{
+    <p>جاري تحميل خط السير....</p>
+}
+else if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+else
+{
+    <div class="d-grid gap-2 mb-3">
+        <button class="btn btn-secondary"
+                @onclick="GoToDashboard">
+            Back To Dashboard
+        </button>
+    </div>
+
+    @if (_routes.Count == 0)
+    {
+        <div class="alert alert-warning">
+            لا يوجد خط سير مخصص للمندوب الحالي.
+        </div>
+    }
+    else
+    {
+        @foreach (var route in _routes)
+        {
+            <div class="card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="mb-1">@route.RouteName</h5>
+                        <small class="text-muted">@route.RouteCode</small>
+                    </div>
+
+                    <span class="badge bg-primary">
+                        @route.VisitedCustomers / @route.TotalCustomers
+                    </span>
+                </div>
+
+                <hr />
+
+                <div class="row text-center g-2 mb-3">
+                    <div class="col-4">
+                        <div class="border rounded p-2">
+                            <strong>@route.TotalCustomers</strong>
+                            <div class="small text-muted">العملاء</div>
+                        </div>
+                    </div>
+
+                    <div class="col-4">
+                        <div class="border rounded p-2">
+                            <strong>@route.VisitedCustomers</strong>
+                            <div class="small text-muted">تمت زيارتهم</div>
+                        </div>
+                    </div>
+
+                    <div class="col-4">
+                        <div class="border rounded p-2">
+                            <strong>@route.RemainingCustomers</strong>
+                            <div class="small text-muted">متبقي</div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (route.HasActiveVisit)
+                {
+                    <div class="alert alert-info">
+                        يوجد زيارة مفتوحة حاليًا. أكملها أولًا قبل فتح عميل جديد.
+                    </div>
+                }
+
+                <button class="btn btn-success w-100"
+                        disabled="@(!route.CanOpen)"
+                        @onclick="() => ShowRouteCustomers(route)">
+                    عرض العملاء
+                </button>
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter]
+    public int? SessionId { get; set; }
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private List<SalesRepMobileRouteDto> _routes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await EnsureSessionIdAsync();
+
+        if (!SessionId.HasValue || SessionId.Value <= 0)
+        {
+            _isLoading = false;
+            return;
+        }
+
+        await LoadRoutesAsync();
+
+        _isLoading = false;
+    }
+
+    private async Task EnsureSessionIdAsync()
+    {
+        if (SessionId.HasValue && SessionId.Value > 0)
+            return;
+
+        var todayResponse = await SalesRepSessionApiService.GetTodayAsync();
+
+        if (todayResponse is null)
+        {
+            _errorMessage = "لم يتم استلام بيانات اليوم من الخادم.";
+            return;
+        }
+
+        if (!todayResponse.Success)
+        {
+            _errorMessage = todayResponse.Message ?? "فشل تحميل بيانات اليوم.";
+            return;
+        }
+
+        if (todayResponse.Data?.HasOpenSession != true || todayResponse.Data.Session is null)
+        {
+            _errorMessage = "لا يوجد يوم مفتوح حاليًا. ابدأ اليوم أولًا.";
+            return;
+        }
+
+        SessionId = todayResponse.Data.Session.Id;
+    }
+
+    private async Task LoadRoutesAsync()
+    {
+        if (!SessionId.HasValue || SessionId.Value <= 0)
+        {
+            _errorMessage = "SessionId غير صحيح.";
+            return;
+        }
+
+        var response = await SalesRepRouteApiService.GetRoutesAsync(SessionId.Value);
+
+        if (response is null)
+        {
+            _errorMessage = "لم يتم استلام استجابة من الخادم.";
+            return;
+        }
+
+        if (!response.Success)
+        {
+            _errorMessage = response.Message ?? "فشل تحميل خطوط السير.";
+            return;
+        }
+
+        _routes = response.Data?.ToList() ?? new List<SalesRepMobileRouteDto>();
+
+        if (_routes.Count == 1 && SessionId.HasValue && SessionId.Value > 0)
+        {
+            var route = _routes.First();
+
+            NavigationManager.NavigateTo(
+                $"/routes/{route.RouteId}/customers?sessionId={SessionId.Value}",
+                replace: true);
+        }
+    }
+
+    private void ShowRouteCustomers(SalesRepMobileRouteDto route)
+    {
+        if (!SessionId.HasValue || SessionId.Value <= 0)
+            return;
+
+        NavigationManager.NavigateTo(
+            $"/routes/{route.RouteId}/customers?sessionId={SessionId.Value}");
+    }
+
+    private void GoToDashboard()
+    {
+        NavigationManager.NavigateTo("/dashboard");
+    }
+}

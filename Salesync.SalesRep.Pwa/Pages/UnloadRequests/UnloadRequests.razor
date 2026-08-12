@@ -1,0 +1,291 @@
+﻿@page "/unload-requests"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepUnloadRequestApiService UnloadRequestApiService
+@inject NavigationManager NavigationManager
+
+<div class="unload-requests-page" dir="rtl">
+
+    <section class="unload-requests-hero">
+        <div>
+            <span>طلبات التفريغ</span>
+            <h1>طلباتي</h1>
+            <p>راجع طلبات تفريغ الحمولة وحالة استلام المخزن لها.</p>
+        </div>
+
+        <div class="unload-requests-hero-icon">
+            📤
+        </div>
+    </section>
+
+    @if (_isLoading)
+    {
+        <div class="unload-requests-loading-card">
+            جاري تحميل طلبات التفريغ...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="unload-requests-alert error">
+            @_errorMessage
+        </div>
+    }
+    else
+    {
+        <section class="unload-requests-actions">
+
+            <button type="button"
+                    class="unload-requests-action-btn primary"
+                    @onclick="GoToCreate">
+
+                <span>➕</span>
+
+                <div>
+                    <strong>طلب تفريغ جديد</strong>
+                    <small>أرسل الحمولة المتبقية للمخزن</small>
+                </div>
+
+            </button>
+
+        </section>
+
+        <section class="unload-requests-summary-card">
+
+            <div>
+                <span>إجمالي الطلبات</span>
+                <strong>@_requests.Count</strong>
+            </div>
+
+            <div>
+                <span>بانتظار المخزن</span>
+                <strong>@GetPendingCount()</strong>
+            </div>
+
+            <div>
+                <span>تم التأكيد</span>
+                <strong>@GetConfirmedCount()</strong>
+            </div>
+
+        </section>
+
+        @if (_requests.Count == 0)
+        {
+            <section class="unload-requests-empty-card">
+
+                <div class="unload-requests-empty-icon">
+                    📤
+                </div>
+
+                <h3>لا توجد طلبات تفريغ</h3>
+
+                <p>
+                    لم تقم بإنشاء أي طلب تفريغ حتى الآن.
+                </p>
+
+                <button type="button"
+                        class="unload-requests-empty-btn"
+                        @onclick="GoToCreate">
+
+                    إنشاء طلب تفريغ
+
+                </button>
+
+            </section>
+        }
+        else
+        {
+            <section class="unload-requests-list">
+
+                @foreach (var request in _requests)
+                {
+                    <article class="unload-request-card @GetStatusClass(request.Status)"
+                             @onclick="() => GoToDetails(request.Id)">
+
+                        <div class="unload-request-header">
+
+                            <div>
+                                <span>رقم الطلب</span>
+                                <strong>@request.RequestNumber</strong>
+                            </div>
+
+                            <div class="unload-request-status @GetStatusClass(request.Status)">
+                                @GetStatusText(request.Status)
+                            </div>
+
+                        </div>
+
+                        <div class="unload-request-info-grid">
+
+                            <div>
+                                <span>المخزن</span>
+                                <strong>@GetWarehouseText(request)</strong>
+                            </div>
+
+                            <div>
+                                <span>تاريخ الطلب</span>
+                                <strong>@FormatDate(request.RequestedAt)</strong>
+                            </div>
+
+                        </div>
+
+                        <div class="unload-request-quantity-summary">
+
+                            <div>
+                                <span>الأصناف</span>
+                                <strong>@request.TotalItems</strong>
+                            </div>
+
+                            <div>
+                                <span>المطلوب</span>
+                                <strong>@request.TotalRequestedQuantity قطعة</strong>
+                            </div>
+
+                            <div>
+                                <span>المؤكد</span>
+                                <strong>@request.TotalConfirmedQuantity قطعة</strong>
+                            </div>
+
+                        </div>
+
+                        @if (request.TotalVarianceQuantity > 0)
+                        {
+                            <div class="unload-request-variance">
+                                فرق الكمية:
+                                <strong>@request.TotalVarianceQuantity قطعة</strong>
+                            </div>
+                        }
+
+                        <div class="unload-request-details-link">
+                            عرض تفاصيل الطلب
+                            <span>‹</span>
+                        </div>
+
+                    </article>
+                }
+
+            </section>
+        }
+    }
+
+</div>
+
+@code {
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private List<SalesRepUnloadRequestDto> _requests = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRequestsAsync();
+        _isLoading = false;
+    }
+
+    private async Task LoadRequestsAsync()
+    {
+        try
+        {
+            var response =
+                await UnloadRequestApiService.GetMyRequestsAsync();
+
+            if (response is null)
+            {
+                _errorMessage =
+                    "لم يتم استلام استجابة من الخادم.";
+
+                return;
+            }
+
+            if (!response.Success)
+            {
+                _errorMessage =
+                    response.Message
+                    ?? "فشل تحميل طلبات التفريغ.";
+
+                return;
+            }
+
+            _requests =
+                response.Data?
+                    .OrderByDescending(x => x.RequestedAt)
+                    .ToList()
+                ?? new List<SalesRepUnloadRequestDto>();
+        }
+        catch
+        {
+            _errorMessage =
+                "حدث خطأ أثناء تحميل طلبات التفريغ.";
+        }
+    }
+
+    private int GetPendingCount()
+    {
+        return _requests.Count(x =>
+            x.Status == 2);
+    }
+
+    private int GetConfirmedCount()
+    {
+        return _requests.Count(x =>
+            x.Status == 4);
+    }
+
+    private static string GetStatusText(int status)
+    {
+        return status switch
+        {
+            1 => "مسودة",
+            2 => "بانتظار المخزن",
+            3 => "تأكيد جزئي",
+            4 => "تم التأكيد",
+            5 => "ملغي",
+            _ => "غير معروف"
+        };
+    }
+
+    private static string GetStatusClass(int status)
+    {
+        return status switch
+        {
+            1 => "draft",
+            2 => "pending",
+            3 => "partial",
+            4 => "confirmed",
+            5 => "cancelled",
+            _ => "unknown"
+        };
+    }
+
+    private static string GetWarehouseText(
+        SalesRepUnloadRequestDto request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.WarehouseName))
+            return request.WarehouseName;
+
+        return $"مخزن رقم {request.WarehouseId}";
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value
+            .ToLocalTime()
+            .ToString("dd/MM/yyyy - hh:mm tt");
+    }
+
+    private void GoToCreate()
+    {
+        NavigationManager.NavigateTo(
+            "/unload-requests/create");
+    }
+
+    private void GoToDetails(int id)
+    {
+        NavigationManager.NavigateTo(
+            $"/unload-requests/{id}");
+    }
+}

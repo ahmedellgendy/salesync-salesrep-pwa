@@ -1,0 +1,42 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+
+<AuthorizeView>
+    <Authorized>
+        <nav class="mobile-bottom-nav"
+             aria-label="القائمة الرئيسية">
+
+            <NavLink class="mobile-nav-link"
+                     href="/dashboard"
+                     Match="NavLinkMatch.All">
+                <span class="mobile-nav-icon">⌂</span>
+                <span>الرئيسية</span>
+            </NavLink>
+
+            <NavLink class="mobile-nav-link"
+                     href="/routes">
+                <span class="mobile-nav-icon">☷</span>
+                <span>الخط</span>
+            </NavLink>
+
+            <NavLink class="mobile-nav-link"
+                     href="/inventory">
+                <span class="mobile-nav-icon">▣</span>
+                <span>المخزون</span>
+            </NavLink>
+
+            <NavLink class="mobile-nav-link"
+                     href="/reports">
+                <span class="mobile-nav-icon">▤</span>
+                <span>التقارير</span>
+            </NavLink>
+
+            <NavLink class="mobile-nav-link"
+                     href="/profile">
+                <span class="mobile-nav-icon">●</span>
+                <span>حسابي</span>
+            </NavLink>
+
+        </nav>
+    </Authorized>
+</AuthorizeView>
