@@ -1,0 +1,296 @@
+﻿@page "/supervisor/customers"
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Api.Supervisor
+
+@attribute [Authorize(Roles = "Supervisor")]
+
+@inject SupervisorSalesRepApiService SupervisorSalesRepApiService
+
+<PageTitle>العملاء - Salesync</PageTitle>
+
+<div class="supervisor-customers-page" dir="rtl">
+
+    <section class="page-header">
+
+        <div>
+            <span class="page-eyebrow">
+                فريق المبيعات
+            </span>
+
+            <h1>
+                العملاء
+            </h1>
+
+            <p>
+                جميع العملاء التابعين لخطوط مناديبك.
+            </p>
+        </div>
+
+    </section>
+
+
+    @if (_isLoading)
+    {
+        <section class="state-card">
+            <strong>
+                جاري تحميل العملاء...
+            </strong>
+        </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <section class="state-card error">
+
+            <strong>
+                تعذر تحميل العملاء
+            </strong>
+
+            <p>
+                @_errorMessage
+            </p>
+
+            <button type="button"
+                    class="retry-button"
+                    @onclick="LoadCustomersAsync">
+                إعادة المحاولة
+            </button>
+
+        </section>
+    }
+    else if (_customers.Count == 0)
+    {
+        <section class="state-card">
+
+            <strong>
+                لا يوجد عملاء
+            </strong>
+
+            <p>
+                لا يوجد عملاء مرتبطون بفريقك حاليًا.
+            </p>
+
+        </section>
+    }
+    else
+    {
+        <section class="customers-summary">
+
+            <span>
+                إجمالي العملاء
+            </span>
+
+            <strong>
+                @_customers.Count
+            </strong>
+
+        </section>
+
+
+        <section class="customers-list">
+
+            @foreach (var customer in _customers)
+            {
+                <article class="customer-card">
+
+                    <div class="customer-card-header">
+
+                        <div class="customer-avatar">
+                            @GetInitial(customer.Name)
+                        </div>
+
+                        <div class="customer-main-info">
+
+                            <div class="customer-name-row">
+
+                                <h2>
+                                    @customer.Name
+                                </h2>
+
+                                <span class="@GetStatusClass(customer.Status)">
+                                    @GetStatusText(customer.Status)
+                                </span>
+
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(customer.Phone))
+                            {
+                                <span class="customer-phone">
+                                    @customer.Phone
+                                </span>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="customer-details">
+
+                        <div class="detail-row">
+
+                            <span class="detail-label">
+                                العنوان
+                            </span>
+
+                            <strong>
+                                @GetAddress(customer)
+                            </strong>
+
+                        </div>
+
+
+                        <div class="detail-row">
+
+                            <span class="detail-label">
+                                الرصيد الحالي
+                            </span>
+
+                            <strong>
+                                @customer.CurrentBalance.ToString("N2")
+                            </strong>
+
+                        </div>
+
+
+                        <div class="detail-row">
+
+                            <span class="detail-label">
+                                حد الائتمان
+                            </span>
+
+                            <strong>
+                                @customer.CreditLimit.ToString("N2")
+                            </strong>
+
+                        </div>
+
+
+                        <div class="detail-row">
+
+                            <span class="detail-label">
+                                سقف الطلب
+                            </span>
+
+                            <strong>
+                                @customer.OrderCeiling.ToString("N2")
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+@code
+{
+    private readonly List<SupervisorCustomerDto>
+        _customers = new();
+
+    private bool _isLoading = true;
+
+    private string? _errorMessage;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomersAsync();
+    }
+
+
+    private async Task LoadCustomersAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var response =
+                await SupervisorSalesRepApiService
+                    .GetMyTeamCustomersAsync();
+
+
+            if (response?.Success == true &&
+                response.Data is not null)
+            {
+                _customers.Clear();
+
+                _customers.AddRange(
+                    response.Data
+                        .OrderBy(x => x.Name));
+
+                return;
+            }
+
+
+            _errorMessage =
+                response?.Message ??
+                "حدث خطأ أثناء تحميل العملاء.";
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "تعذر الاتصال بالخادم.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+
+    private static string GetInitial(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "ع";
+
+        return name.Trim()[0].ToString();
+    }
+
+
+    private static string GetAddress(
+        SupervisorCustomerDto customer)
+    {
+        var parts = new[]
+        {
+            customer.Address,
+            customer.Area,
+            customer.City
+        }
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .ToArray();
+
+        return parts.Length == 0
+            ? "-"
+            : string.Join(" - ", parts);
+    }
+
+
+    private static string GetStatusText(
+        string? status)
+    {
+        return status?.Equals(
+            "Active",
+            StringComparison.OrdinalIgnoreCase) == true
+                ? "نشط"
+                : "غير نشط";
+    }
+
+
+    private static string GetStatusClass(
+        string? status)
+    {
+        return status?.Equals(
+            "Active",
+            StringComparison.OrdinalIgnoreCase) == true
+                ? "customer-status active"
+                : "customer-status inactive";
+    }
+}

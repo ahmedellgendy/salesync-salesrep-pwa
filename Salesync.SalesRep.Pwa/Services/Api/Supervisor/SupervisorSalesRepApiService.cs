@@ -31,5 +31,11 @@ namespace Salesync.SalesRep.Pwa.Services.Api.Supervisor
                 .GetFromJsonAsync<
                     ApiResponse<IEnumerable<SupervisorRouteCustomerDto>>>($"api/RouteCustomer/route/{routeId}/customers");
         }
+
+        public async Task<ApiResponse<IEnumerable<SupervisorCustomerDto>>?>GetMyTeamCustomersAsync()
+        {
+            return await _httpClient
+                .GetFromJsonAsync<ApiResponse<IEnumerable<SupervisorCustomerDto>>>("api/RouteCustomer/my-team/customers");
+        }
     }
 }
