@@ -7853,4 +7853,9 @@ body,
     color: #102a43 !important;
 }
 
+.mobile-nav-disabled {
+    opacity: 0.38;
+    cursor: default;
+    pointer-events: none;
+}
 

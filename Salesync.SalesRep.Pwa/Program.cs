@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Salesync.SalesRep.Pwa;
 using Salesync.SalesRep.Pwa.Auth;
 using Salesync.SalesRep.Pwa.Services.Api;
+using Salesync.SalesRep.Pwa.Services.Api.Operations;
+using Salesync.SalesRep.Pwa.Services.Api.Supervisor;
 using Salesync.SalesRep.Pwa.Services.Interfaces;
 using Salesync.SalesRep.Pwa.Storage;
 
@@ -51,5 +53,7 @@ builder.Services.AddScoped<ISalesRepPaymentApiService, SalesRepPaymentApiService
 builder.Services.AddScoped<ISalesRepRouteApiService, SalesRepRouteApiService>();
 builder.Services.AddScoped<ISalesRepInvoiceReturnApiService,SalesRepInvoiceReturnApiService>();
 
+builder.Services.AddScoped<LoadRequestOperationsApiService>();
+builder.Services.AddScoped<SupervisorSalesRepApiService>();
 
 await builder.Build().RunAsync();

@@ -1,0 +1,1319 @@
+﻿@page "/operations/load-requests/{Id:int}"
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Requests.Operations.LoadRequests
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Api.Operations
+
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+
+@inject LoadRequestOperationsApiService LoadRequestApiService
+@inject NavigationManager NavigationManager
+
+<PageTitle>تفاصيل طلب التحميل</PageTitle>
+
+<div class="load-review-page" dir="rtl">
+
+    @if (_isLoading)
+    {
+        <div class="state-card">
+
+            <div class="loading-spinner"></div>
+
+            <strong>
+                جاري تحميل الطلب
+            </strong>
+
+            <span>
+                برجاء الانتظار...
+            </span>
+
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="state-card error">
+
+            <strong>
+                تعذر تحميل الطلب
+            </strong>
+
+            <span>
+                @_errorMessage
+            </span>
+
+            <button type="button"
+                    class="secondary-button"
+                    @onclick="Back">
+                رجوع
+            </button>
+
+        </div>
+    }
+    else if (_request is null)
+    {
+        <div class="state-card">
+
+            <strong>
+                لم يتم العثور على الطلب
+            </strong>
+
+            <span>
+                قد يكون الطلب غير موجود أو لم يعد متاحًا.
+            </span>
+
+            <button type="button"
+                    class="secondary-button"
+                    @onclick="Back">
+                رجوع
+            </button>
+
+        </div>
+    }
+    else
+    {
+        <header class="review-header">
+
+            <button type="button"
+                    class="back-button"
+                    disabled="@_isProcessing"
+                    @onclick="Back">
+                رجوع
+            </button>
+
+            <div class="review-header-content">
+
+                <span class="review-header-label">
+                    @GetPageLabel()
+                </span>
+
+                <h1>
+                    @_request.LoadRequestNumber
+                </h1>
+
+                <p>
+                    @FormatDate(_request.RequestDate)
+                </p>
+
+            </div>
+
+        </header>
+
+
+        <section class="request-overview-card">
+
+            <div class="overview-top">
+
+                <div>
+
+                    <span class="overview-label">
+                        حالة الطلب
+                    </span>
+
+                    <strong class="overview-title">
+                        @GetOverviewTitle()
+                    </strong>
+
+                </div>
+
+                <span class="@GetRequestStatusClass()">
+                    @GetRequestStatusText()
+                </span>
+
+            </div>
+
+
+            <div class="overview-grid">
+
+                <div class="overview-item">
+
+                    <span>
+                        المندوب
+                    </span>
+
+                    <strong>
+                        @GetSalesRepText()
+                    </strong>
+
+                </div>
+
+
+                <div class="overview-item">
+
+                    <span>
+                        المخزن
+                    </span>
+
+                    <strong>
+                        @GetWarehouseText()
+                    </strong>
+
+                </div>
+
+
+                <div class="overview-item">
+
+                    <span>
+                        عدد الأصناف
+                    </span>
+
+                    <strong>
+                        @_entries.Count
+                    </strong>
+
+                </div>
+
+
+                <div class="overview-item">
+
+                    <span>
+                        إجمالي الكمية المطلوبة
+                    </span>
+
+                    <strong>
+                        @GetTotalRequestedQuantity()
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            @if (IsApproved || IsWarehouseConfirmed)
+            {
+                <div class="approved-summary">
+
+                    <span>
+                        إجمالي الكمية المعتمدة
+                    </span>
+
+                    <strong>
+                        @GetTotalApprovedLargeQuantity()
+                    </strong>
+
+                </div>
+            }
+
+
+            @if (IsWarehouseConfirmed)
+            {
+                <div class="confirmed-summary">
+
+                    <span>
+                        إجمالي الكمية المؤكدة من المخزن
+                    </span>
+
+                    <strong>
+                        @GetTotalConfirmedLargeQuantity()
+                    </strong>
+
+                </div>
+            }
+
+
+            @if (!string.IsNullOrWhiteSpace(_request.Notes))
+            {
+                <div class="request-notes">
+
+                    <span>
+                        ملاحظات الطلب
+                    </span>
+
+                    <p>
+                        @_request.Notes
+                    </p>
+
+                </div>
+            }
+
+        </section>
+
+
+        <section class="items-section">
+
+            <div class="section-heading">
+
+                <div class="section-heading-main">
+
+                    <h2>
+                        الأصناف المطلوبة
+                    </h2>
+
+                    <span class="items-count">
+                        @_entries.Count صنف
+                    </span>
+
+                </div>
+
+                <p>
+                    @GetItemsDescription()
+                </p>
+
+            </div>
+
+
+            @if (IsPending)
+            {
+                <div class="items-quick-actions">
+
+                    <button type="button"
+                            class="quick-action-button approve-all"
+                            disabled="@_isProcessing"
+                            @onclick="ApproveAllItems">
+
+                        ✓ اعتماد الكل
+
+                    </button>
+
+                    <button type="button"
+                            class="quick-action-button clear-all"
+                            disabled="@_isProcessing"
+                            @onclick="ClearAllItems">
+
+                        تصفير الكل
+
+                    </button>
+
+                </div>
+            }
+
+
+            <div class="items-list">
+
+                @foreach (var entry in _entries)
+                {
+                    <article class="item-card"
+                             @key="entry.Item.Id">
+
+                        <div class="item-card-header">
+
+                            <div class="product-info">
+
+                                <span class="product-label">
+                                    الصنف
+                                </span>
+
+                                <strong>
+                                    @entry.Item.ProductName
+                                </strong>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    entry.Item.ItemCode))
+                                {
+                                    <small>
+                                        @entry.Item.ItemCode
+                                    </small>
+                                }
+
+                            </div>
+
+
+                            <div class="requested-quantity">
+
+                                <span>
+                                    المطلوب
+                                </span>
+
+                                <strong>
+                                    @FormatRequestedQuantity(entry.Item)
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        @if (IsPending)
+                        {
+                            <div class="approval-field">
+
+                                <label>
+                                    كمية الموافقة
+                                </label>
+
+                                <div class="quantity-input-wrapper">
+
+                                    <input type="number"
+                                           min="0"
+                                           max="@entry.Item.RequestedLargeQuantity"
+                                           disabled="@_isProcessing"
+                                           @bind="entry.ApprovedLargeQuantity" />
+
+                                    <span>
+                                        @GetLargeUnit(entry.Item)
+                                    </span>
+
+                                </div>
+
+
+                                <div class="quantity-hint">
+                                    الحد الأقصى:
+                                    @entry.Item.RequestedLargeQuantity
+                                    @GetLargeUnit(entry.Item)
+                                </div>
+
+
+                                @if (entry.ApprovedLargeQuantity >
+                                    entry.Item.RequestedLargeQuantity)
+                                {
+                                    <div class="validation-message">
+                                        لا يمكن اعتماد كمية أكبر من المطلوبة.
+                                    </div>
+                                }
+
+                                @if (entry.ApprovedLargeQuantity < 0)
+                                {
+                                    <div class="validation-message">
+                                        كمية الموافقة لا يمكن أن تكون أقل من صفر.
+                                    </div>
+                                }
+
+                            </div>
+                        }
+
+
+                        @if (IsApproved)
+                        {
+                            <div class="approval-field readonly">
+
+                                <label>
+                                    الكمية المعتمدة
+                                </label>
+
+                                <div class="approved-quantity-value">
+
+                                    <strong>
+                                        @entry.Item.ApprovedLargeQuantity
+                                    </strong>
+
+                                    <span>
+                                        @GetLargeUnit(entry.Item)
+                                    </span>
+
+                                </div>
+
+                                @if (entry.Item.ApprovedLargeQuantity <
+                                    entry.Item.RequestedLargeQuantity)
+                                {
+                                    <div class="quantity-hint">
+
+                                        تم تعديل الكمية من
+                                        @entry.Item.RequestedLargeQuantity
+                                        إلى
+                                        @entry.Item.ApprovedLargeQuantity
+                                        @GetLargeUnit(entry.Item)
+
+                                    </div>
+                                }
+
+                            </div>
+                        }
+
+
+                        @if (IsWarehouseConfirmed)
+                        {
+                            <div class="quantity-history">
+
+                                <div class="quantity-history-item">
+
+                                    <span>
+                                        المعتمد
+                                    </span>
+
+                                    <strong>
+                                        @entry.Item.ApprovedLargeQuantity
+                                        @GetLargeUnit(entry.Item)
+                                    </strong>
+
+                                </div>
+
+                                <div class="quantity-history-item confirmed">
+
+                                    <span>
+                                        تم تحميله فعليًا
+                                    </span>
+
+                                    <strong>
+                                        @entry.Item.ConfirmedLargeQuantity
+                                        @GetLargeUnit(entry.Item)
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+
+                            @if (entry.Item.ConfirmedLargeQuantity !=
+                                entry.Item.ApprovedLargeQuantity)
+                            {
+                                <div class="warehouse-difference">
+
+                                    الكمية الفعلية تختلف عن الكمية المعتمدة:
+                                    @entry.Item.ApprovedLargeQuantity
+                                    ←
+                                    @entry.Item.ConfirmedLargeQuantity
+                                    @GetLargeUnit(entry.Item)
+
+                                </div>
+                            }
+                        }
+
+
+                        @if (IsRejected)
+                        {
+                            <div class="item-final-status rejected">
+
+                                <span>
+                                    ×
+                                </span>
+
+                                <strong>
+                                    لم يتم اعتماد هذا الصنف بسبب رفض الطلب.
+                                </strong>
+
+                            </div>
+                        }
+
+
+                        @if (IsCancelled)
+                        {
+                            <div class="item-final-status cancelled">
+
+                                <span>
+                                    —
+                                </span>
+
+                                <strong>
+                                    لم يتم تنفيذ هذا الصنف بسبب إلغاء الطلب.
+                                </strong>
+
+                            </div>
+                        }
+
+
+                        @if (!string.IsNullOrWhiteSpace(
+                            GetCleanNotes(entry.Item)))
+                        {
+                            <div class="item-notes">
+
+                                <span>
+                                    ملاحظات الصنف
+                                </span>
+
+                                <p>
+                                    @GetCleanNotes(entry.Item)
+                                </p>
+
+                            </div>
+                        }
+
+                    </article>
+                }
+
+            </div>
+
+        </section>
+
+
+        @if (IsPending)
+        {
+            <section class="approval-notes-card">
+
+                <label>
+                    ملاحظات الاعتماد
+                </label>
+
+                <textarea rows="3"
+                          placeholder="أضف أي ملاحظات خاصة بقرار الاعتماد..."
+                          disabled="@_isProcessing"
+                          @bind="_approvalNotes">
+                </textarea>
+
+            </section>
+
+
+            @if (!string.IsNullOrWhiteSpace(_actionError))
+            {
+                <div class="action-error">
+                    @_actionError
+                </div>
+            }
+
+
+            <section class="review-actions">
+
+                <button type="button"
+                        class="approve-button"
+                        disabled="@(_isProcessing || !CanApprove())"
+                        @onclick="ApproveAsync">
+
+                    @if (_isProcessing)
+                    {
+                        <span>
+                            جاري التنفيذ...
+                        </span>
+                    }
+                    else
+                    {
+                        <span>
+                            اعتماد الطلب
+                        </span>
+
+                        <span class="button-icon">
+                            ✓
+                        </span>
+                    }
+
+                </button>
+
+
+                <button type="button"
+                        class="reject-button"
+                        disabled="@_isProcessing"
+                        @onclick="ShowReject">
+
+                    رفض الطلب
+
+                </button>
+
+            </section>
+
+
+            @if (_showReject)
+            {
+                <section class="reject-card">
+
+                    <div class="reject-card-heading">
+
+                        <div>
+
+                            <span>
+                                إجراء رفض الطلب
+                            </span>
+
+                            <h3>
+                                سبب الرفض
+                            </h3>
+
+                        </div>
+
+                        <button type="button"
+                                class="close-reject-button"
+                                disabled="@_isProcessing"
+                                @onclick="HideReject">
+                            ×
+                        </button>
+
+                    </div>
+
+
+                    <p class="reject-description">
+
+                        اكتب سببًا واضحًا حتى يظهر في سجل الطلب
+                        ويمكن الرجوع إليه لاحقًا.
+
+                    </p>
+
+
+                    <textarea rows="3"
+                              placeholder="اكتب سبب رفض الطلب..."
+                              disabled="@_isProcessing"
+                              @bind="_rejectionReason">
+                    </textarea>
+
+
+                    <div class="reject-actions">
+
+                        <button type="button"
+                                class="confirm-reject-button"
+                                disabled="@(_isProcessing ||
+                                                                        string.IsNullOrWhiteSpace(_rejectionReason))"
+                                @onclick="RejectAsync">
+
+                            @(_isProcessing
+                                ? "جاري التنفيذ..."
+                                : "تأكيد الرفض")
+
+                        </button>
+
+                        <button type="button"
+                                class="cancel-reject-button"
+                                disabled="@_isProcessing"
+                                @onclick="HideReject">
+
+                            إلغاء
+
+                        </button>
+
+                    </div>
+
+                </section>
+            }
+        }
+        else
+        {
+            <section class="@GetFinalStateClass()">
+
+                <div class="final-state-main-icon">
+                    @GetFinalStateIcon()
+                </div>
+
+                <div>
+
+                    <strong>
+                        @GetFinalStateTitle()
+                    </strong>
+
+                    <p>
+                        @GetFinalStateDescription()
+                    </p>
+
+                </div>
+
+            </section>
+        }
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public int Id { get; set; }
+
+
+    private const int PendingStatus = 1;
+    private const int ApprovedStatus = 2;
+    private const int RejectedStatus = 3;
+    private const int WarehouseConfirmedStatus = 4;
+    private const int CancelledStatus = 5;
+
+
+    private bool _isLoading = true;
+    private bool _isProcessing;
+    private bool _showReject;
+
+
+    private string? _errorMessage;
+    private string? _actionError;
+    private string? _approvalNotes;
+    private string? _rejectionReason;
+
+
+    private LoadRequestDto? _request;
+
+
+    private List<ApprovalEntry> _entries = new();
+
+
+    private bool IsPending =>
+        _request?.Status == PendingStatus;
+
+    private bool IsApproved =>
+        _request?.Status == ApprovedStatus;
+
+    private bool IsRejected =>
+        _request?.Status == RejectedStatus;
+
+    private bool IsWarehouseConfirmed =>
+        _request?.Status == WarehouseConfirmedStatus;
+
+    private bool IsCancelled =>
+        _request?.Status == CancelledStatus;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _isLoading = true;
+
+            _errorMessage = null;
+            _actionError = null;
+
+            _request = null;
+
+            _entries.Clear();
+
+
+            var response =
+                await LoadRequestApiService
+                    .GetByIdAsync(Id);
+
+
+            if (response?.Success != true ||
+                response.Data is null)
+            {
+                _errorMessage =
+                    response?.Message
+                    ?? "تعذر تحميل الطلب.";
+
+                return;
+            }
+
+
+            _request = response.Data;
+
+
+            _entries = (_request.Items
+                    ?? new List<LoadRequestItemDto>())
+                .Select(item =>
+                    new ApprovalEntry
+                    {
+                        Item = item,
+
+                        ApprovedLargeQuantity =
+                            IsPending
+                                ? item.RequestedLargeQuantity
+                                : item.ApprovedLargeQuantity
+                    })
+                .ToList();
+        }
+        catch
+        {
+            _errorMessage =
+                "حدث خطأ أثناء تحميل الطلب.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+
+    private bool CanApprove()
+    {
+        if (!IsPending)
+            return false;
+
+        if (_entries.Count == 0)
+            return false;
+
+        if (_entries.Any(x =>
+            x.ApprovedLargeQuantity < 0 ||
+            x.ApprovedLargeQuantity >
+            x.Item.RequestedLargeQuantity))
+        {
+            return false;
+        }
+
+        return _entries
+            .Sum(x => x.ApprovedLargeQuantity) > 0;
+    }
+
+
+    private async Task ApproveAsync()
+    {
+        if (!IsPending || !CanApprove())
+            return;
+
+
+        try
+        {
+            _isProcessing = true;
+            _actionError = null;
+
+
+            var request =
+                new ApproveLoadRequestRequest
+                {
+                    Notes =
+                        string.IsNullOrWhiteSpace(_approvalNotes)
+                            ? null
+                            : _approvalNotes.Trim(),
+
+                    Items = _entries
+                        .Select(x =>
+                            new ApproveLoadRequestItemRequest
+                            {
+                                LoadRequestItemId =
+                                    x.Item.Id,
+
+                                ApprovedLargeQuantity =
+                                    x.ApprovedLargeQuantity
+                            })
+                        .ToList()
+                };
+
+
+            var response =
+                await LoadRequestApiService
+                    .ApproveAsync(Id, request);
+
+
+            if (response?.Success != true)
+            {
+                _actionError =
+                    response?.Message
+                    ?? "فشل اعتماد الطلب.";
+
+                return;
+            }
+
+
+            NavigationManager.NavigateTo(
+                "/operations/load-requests/waiting-warehouse",
+                replace: true);
+        }
+        catch
+        {
+            _actionError =
+                "حدث خطأ أثناء اعتماد الطلب.";
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+
+    private async Task RejectAsync()
+    {
+        if (!IsPending)
+            return;
+
+
+        if (string.IsNullOrWhiteSpace(
+            _rejectionReason))
+        {
+            return;
+        }
+
+
+        try
+        {
+            _isProcessing = true;
+            _actionError = null;
+
+
+            var request =
+                new RejectLoadRequestRequest
+                {
+                    RejectionReason =
+                        _rejectionReason.Trim()
+                };
+
+
+            var response =
+                await LoadRequestApiService
+                    .RejectAsync(Id, request);
+
+
+            if (response?.Success != true)
+            {
+                _actionError =
+                    response?.Message
+                    ?? "فشل رفض الطلب.";
+
+                return;
+            }
+
+
+            NavigationManager.NavigateTo(
+                "/operations/load-requests/history",
+                replace: true);
+        }
+        catch
+        {
+            _actionError =
+                "حدث خطأ أثناء رفض الطلب.";
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+
+    private void ShowReject()
+    {
+        if (!IsPending)
+            return;
+
+        _showReject = true;
+        _actionError = null;
+    }
+
+
+    private void HideReject()
+    {
+        _showReject = false;
+        _rejectionReason = null;
+    }
+
+
+    private void Back()
+    {
+        if (IsApproved)
+        {
+            NavigationManager.NavigateTo(
+                "/operations/load-requests/waiting-warehouse");
+
+            return;
+        }
+
+
+        if (IsRejected ||
+            IsWarehouseConfirmed ||
+            IsCancelled)
+        {
+            NavigationManager.NavigateTo(
+                "/operations/load-requests/history");
+
+            return;
+        }
+
+
+        NavigationManager.NavigateTo(
+            "/operations/load-requests/pending");
+    }
+
+
+    private void ApproveAllItems()
+    {
+        if (!IsPending)
+            return;
+
+
+        foreach (var entry in _entries)
+        {
+            entry.ApprovedLargeQuantity =
+                entry.Item.RequestedLargeQuantity;
+        }
+
+        _actionError = null;
+    }
+
+
+    private void ClearAllItems()
+    {
+        if (!IsPending)
+            return;
+
+
+        foreach (var entry in _entries)
+        {
+            entry.ApprovedLargeQuantity = 0;
+        }
+
+        _actionError = null;
+    }
+
+
+    private string GetPageLabel()
+    {
+        if (IsPending)
+            return "مراجعة طلب التحميل";
+
+        if (IsApproved)
+            return "متابعة طلب التحميل";
+
+        return "سجل طلب التحميل";
+    }
+
+
+    private string GetOverviewTitle()
+    {
+        if (IsPending)
+            return "طلب بانتظار المراجعة";
+
+        if (IsApproved)
+            return "تم الاعتماد - بانتظار المخزن";
+
+        if (IsWarehouseConfirmed)
+            return "تم تنفيذ التحميل بواسطة المخزن";
+
+        if (IsRejected)
+            return "تم رفض طلب التحميل";
+
+        if (IsCancelled)
+            return "تم إلغاء طلب التحميل";
+
+        return "طلب تحميل";
+    }
+
+
+    private string GetRequestStatusText()
+    {
+        if (IsPending)
+            return "قيد المراجعة";
+
+        if (IsApproved)
+            return "تم الاعتماد";
+
+        if (IsWarehouseConfirmed)
+            return "تم التحميل";
+
+        if (IsRejected)
+            return "مرفوض";
+
+        if (IsCancelled)
+            return "ملغي";
+
+        return "غير معروف";
+    }
+
+
+    private string GetRequestStatusClass()
+    {
+        if (IsApproved)
+            return "request-status approved";
+
+        if (IsWarehouseConfirmed)
+            return "request-status confirmed";
+
+        if (IsRejected)
+            return "request-status rejected";
+
+        if (IsCancelled)
+            return "request-status cancelled";
+
+        return "request-status";
+    }
+
+
+    private string GetItemsDescription()
+    {
+        if (IsPending)
+            return "راجع كل صنف وحدد الكمية التي ستتم الموافقة عليها.";
+
+        if (IsApproved)
+            return "تفاصيل الكميات المطلوبة والكميات التي تم اعتمادها.";
+
+        if (IsWarehouseConfirmed)
+            return "راجع الكمية المطلوبة والمعتمدة والكمية التي تم تحميلها فعليًا.";
+
+        if (IsRejected)
+            return "الأصناف التي كانت مدرجة في الطلب قبل رفضه.";
+
+        if (IsCancelled)
+            return "الأصناف التي كانت مدرجة في الطلب قبل إلغائه.";
+
+        return string.Empty;
+    }
+
+
+    private string GetFinalStateClass()
+    {
+        if (IsApproved)
+            return "final-request-state approved";
+
+        if (IsWarehouseConfirmed)
+            return "final-request-state confirmed";
+
+        if (IsRejected)
+            return "final-request-state rejected";
+
+        if (IsCancelled)
+            return "final-request-state cancelled";
+
+        return "final-request-state";
+    }
+
+
+    private string GetFinalStateIcon()
+    {
+        if (IsApproved || IsWarehouseConfirmed)
+            return "✓";
+
+        if (IsRejected)
+            return "×";
+
+        return "—";
+    }
+
+
+    private string GetFinalStateTitle()
+    {
+        if (IsApproved)
+            return "تم اعتماد الطلب";
+
+        if (IsWarehouseConfirmed)
+            return "تم تنفيذ التحميل";
+
+        if (IsRejected)
+            return "تم رفض الطلب";
+
+        if (IsCancelled)
+            return "تم إلغاء الطلب";
+
+        return "حالة الطلب";
+    }
+
+
+    private string GetFinalStateDescription()
+    {
+        if (IsApproved)
+            return "الطلب الآن بانتظار المخزن لتأكيد عملية التحميل الفعلية.";
+
+        if (IsWarehouseConfirmed)
+            return "أكد المخزن تنفيذ عملية التحميل وتسليم الكميات الفعلية للمندوب.";
+
+        if (IsRejected)
+            return "انتهى الطلب بعد قرار الرفض ولم ينتقل إلى مرحلة تنفيذ المخزن.";
+
+        if (IsCancelled)
+            return "تم إلغاء الطلب ولم يعد ضمن دورة التنفيذ.";
+
+        return string.Empty;
+    }
+
+
+    private string GetSalesRepText()
+    {
+        if (_request is null)
+            return "-";
+
+
+        return !string.IsNullOrWhiteSpace(
+            _request.SalesRepName)
+            ? _request.SalesRepName
+            : $"مندوب #{_request.SalesRepId}";
+    }
+
+
+    private string GetWarehouseText()
+    {
+        if (_request is null)
+            return "-";
+
+
+        return !string.IsNullOrWhiteSpace(
+            _request.WarehouseName)
+            ? _request.WarehouseName
+            : $"مخزن #{_request.WarehouseId}";
+    }
+
+
+    private int GetTotalRequestedQuantity()
+    {
+        return _request?.Items?
+            .Sum(x => x.RequestedQuantity)
+            ?? 0;
+    }
+
+
+    private int GetTotalApprovedLargeQuantity()
+    {
+        return _request?.Items?
+            .Sum(x => x.ApprovedLargeQuantity)
+            ?? 0;
+    }
+
+
+    private int GetTotalConfirmedLargeQuantity()
+    {
+        return _request?.Items?
+            .Sum(x => x.ConfirmedLargeQuantity)
+            ?? 0;
+    }
+
+
+    private static string GetLargeUnit(
+        LoadRequestItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(
+            item.LargeUnit)
+            ? "كرتونة"
+            : item.LargeUnit;
+    }
+
+
+    private static string FormatRequestedQuantity(
+        LoadRequestItemDto item)
+    {
+        var largeUnit =
+            string.IsNullOrWhiteSpace(item.LargeUnit)
+                ? "كرتونة"
+                : item.LargeUnit;
+
+
+        var smallUnit =
+            string.IsNullOrWhiteSpace(item.SmallUnit)
+                ? "قطعة"
+                : item.SmallUnit;
+
+
+        var unitsPerLargeUnit =
+            item.UnitsPerLargeUnit <= 0
+                ? 1
+                : item.UnitsPerLargeUnit;
+
+
+        var large =
+            item.RequestedQuantity /
+            unitsPerLargeUnit;
+
+
+        var small =
+            item.RequestedQuantity %
+            unitsPerLargeUnit;
+
+
+        if (large > 0 && small > 0)
+        {
+            return
+                $"{large} {largeUnit} + " +
+                $"{small} {smallUnit}";
+        }
+
+
+        if (large > 0)
+        {
+            return $"{large} {largeUnit}";
+        }
+
+
+        return $"{small} {smallUnit}";
+    }
+
+
+    private static string? GetCleanNotes(
+        LoadRequestItemDto item)
+    {
+        if (string.IsNullOrWhiteSpace(
+            item.Notes))
+        {
+            return null;
+        }
+
+
+        var parts = item.Notes
+            .Split(
+                '|',
+                StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => !x.Contains("="))
+            .ToList();
+
+
+        return parts.Count == 0
+            ? null
+            : string.Join(" | ", parts);
+    }
+
+
+    private static string FormatDate(
+        DateTime value)
+    {
+        return value
+            .ToLocalTime()
+            .ToString("dd/MM/yyyy - HH:mm");
+    }
+
+
+    private sealed class ApprovalEntry
+    {
+        public LoadRequestItemDto Item { get; set; }
+            = new();
+
+
+        public int ApprovedLargeQuantity { get; set; }
+    }
+}

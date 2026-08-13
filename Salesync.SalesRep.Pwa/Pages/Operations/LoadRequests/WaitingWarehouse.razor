@@ -1,0 +1,420 @@
+﻿@page "/operations/load-requests/waiting-warehouse"
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Api.Operations
+
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+
+@inject LoadRequestOperationsApiService LoadRequestApiService
+@inject NavigationManager NavigationManager
+
+<PageTitle>طلبات بانتظار المخزن</PageTitle>
+
+<div class="waiting-warehouse-page" dir="rtl">
+
+    <header class="page-header">
+
+        <div class="page-header-content">
+
+            <span class="page-header-label">
+                متابعة طلبات التحميل
+            </span>
+
+            <h1>
+                بانتظار المخزن
+            </h1>
+
+            <p>
+                الطلبات التي تم اعتمادها وتنتظر تنفيذ التحميل بواسطة المخزن.
+            </p>
+
+        </div>
+
+        <button type="button"
+                class="back-button"
+                @onclick="Back">
+            رجوع
+        </button>
+
+    </header>
+
+
+    @if (_isLoading)
+    {
+        <div class="state-card">
+
+            <div class="loading-spinner"></div>
+
+            <strong>
+                جاري تحميل الطلبات
+            </strong>
+
+            <span>
+                برجاء الانتظار...
+            </span>
+
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="state-card error">
+
+            <strong>
+                تعذر تحميل الطلبات
+            </strong>
+
+            <span>
+                @_errorMessage
+            </span>
+
+            <button type="button"
+                    class="retry-button"
+                    @onclick="LoadAsync">
+                إعادة المحاولة
+            </button>
+
+        </div>
+    }
+    else if (_requests.Count == 0)
+    {
+        <div class="state-card empty">
+
+            <div class="state-icon">
+                ✓
+            </div>
+
+            <strong>
+                لا توجد طلبات بانتظار المخزن
+            </strong>
+
+            <span>
+                لا توجد طلبات تحميل معتمدة تنتظر التنفيذ حاليًا.
+            </span>
+
+        </div>
+    }
+    else
+    {
+        <div class="requests-summary">
+
+            <div class="summary-content">
+
+                <span>
+                    طلبات بانتظار التنفيذ
+                </span>
+
+                <strong>
+                    @_requests.Count
+                </strong>
+
+            </div>
+
+            <span class="summary-status">
+                معتمدة
+            </span>
+
+        </div>
+
+
+        <section class="requests-list">
+
+            @foreach (var request in _requests)
+            {
+                <article class="request-card"
+                         @key="request.Id">
+
+                    <div class="request-card-header">
+
+                        <div class="request-number">
+
+                            <span>
+                                رقم الطلب
+                            </span>
+
+                            <strong>
+                                @request.LoadRequestNumber
+                            </strong>
+
+                            <small>
+                                @FormatDate(request.RequestDate)
+                            </small>
+
+                        </div>
+
+
+                        <span class="request-status">
+                            بانتظار المخزن
+                        </span>
+
+                    </div>
+
+
+                    <div class="workflow-status">
+
+                        <div class="workflow-step completed">
+
+                            <span class="workflow-dot">
+                                ✓
+                            </span>
+
+                            <div>
+                                <strong>
+                                    تمت المراجعة
+                                </strong>
+
+                                <small>
+                                    تم اعتماد الطلب
+                                </small>
+                            </div>
+
+                        </div>
+
+
+                        <div class="workflow-line"></div>
+
+
+                        <div class="workflow-step current">
+
+                            <span class="workflow-dot">
+                                2
+                            </span>
+
+                            <div>
+                                <strong>
+                                    المخزن
+                                </strong>
+
+                                <small>
+                                    بانتظار التنفيذ
+                                </small>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="request-info-grid">
+
+                        <div class="request-info-item">
+
+                            <span>
+                                المندوب
+                            </span>
+
+                            <strong>
+                                @GetSalesRepText(request)
+                            </strong>
+
+                        </div>
+
+
+                        <div class="request-info-item">
+
+                            <span>
+                                المخزن
+                            </span>
+
+                            <strong>
+                                @GetWarehouseText(request)
+                            </strong>
+
+                        </div>
+
+
+                        <div class="request-info-item">
+
+                            <span>
+                                عدد الأصناف
+                            </span>
+
+                            <strong>
+                                @GetItems(request).Count
+                            </strong>
+
+                        </div>
+
+
+                        <div class="request-info-item">
+
+                            <span>
+                                إجمالي الكمية المطلوبة
+                            </span>
+
+                            <strong>
+                                @GetTotalRequestedQuantity(request)
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    @if (!string.IsNullOrWhiteSpace(request.Notes))
+                    {
+                        <div class="request-notes">
+
+                            <span>
+                                ملاحظات الطلب
+                            </span>
+
+                            <p>
+                                @request.Notes
+                            </p>
+
+                        </div>
+                    }
+
+
+                    <button type="button"
+                            class="view-request-button"
+                            @onclick="() => OpenDetails(request.Id)">
+
+                        <span>
+                            عرض تفاصيل الطلب
+                        </span>
+
+                        <span class="button-arrow">
+                            ←
+                        </span>
+
+                    </button>
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+@code {
+
+    private bool _isLoading = true;
+
+    private string? _errorMessage;
+
+    private List<LoadRequestDto> _requests = new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            _errorMessage = null;
+
+
+            var response =
+                await LoadRequestApiService
+                    .GetApprovedAsync();
+
+
+            if (response is null)
+            {
+                _errorMessage =
+                    "لم يتم استلام استجابة من الخادم.";
+
+                return;
+            }
+
+
+            if (!response.Success)
+            {
+                _errorMessage =
+                    response.Message
+                    ?? "فشل تحميل الطلبات المعتمدة.";
+
+                return;
+            }
+
+
+            _requests =
+                response.Data?
+                    .OrderByDescending(x => x.RequestDate)
+                    .ToList()
+                ?? new List<LoadRequestDto>();
+        }
+        catch
+        {
+            _errorMessage =
+                "حدث خطأ أثناء تحميل الطلبات المعتمدة.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+
+    private void OpenDetails(int id)
+    {
+        NavigationManager.NavigateTo($"/operations/load-requests/{id}");
+    }
+
+
+    private void Back()
+    {
+        NavigationManager.NavigateTo("/operations");
+    }
+
+
+    private static List<LoadRequestItemDto> GetItems(
+        LoadRequestDto request)
+    {
+        return request.Items
+            ?? new List<LoadRequestItemDto>();
+    }
+
+
+    private static int GetTotalRequestedQuantity(
+        LoadRequestDto request)
+    {
+        return GetItems(request)
+            .Sum(x => x.RequestedQuantity);
+    }
+
+
+    private static string GetSalesRepText(
+        LoadRequestDto request)
+    {
+        if (!string.IsNullOrWhiteSpace(
+            request.SalesRepName))
+        {
+            return request.SalesRepName;
+        }
+
+
+        return $"مندوب #{request.SalesRepId}";
+    }
+
+
+    private static string GetWarehouseText(
+        LoadRequestDto request)
+    {
+        if (!string.IsNullOrWhiteSpace(
+            request.WarehouseName))
+        {
+            return request.WarehouseName;
+        }
+
+
+        return $"مخزن #{request.WarehouseId}";
+    }
+
+
+    private static string FormatDate(
+        DateTime value)
+    {
+        return value
+            .ToLocalTime()
+            .ToString("dd/MM/yyyy - HH:mm");
+    }
+}

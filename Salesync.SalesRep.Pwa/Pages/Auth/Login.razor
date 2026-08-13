@@ -149,8 +149,7 @@
             }
 
             await AuthStateProvider.SignInAsync(response.Data);
-
-            Navigation.NavigateTo(GetDestination(), replace: true);
+            Navigation.NavigateTo(GetDestination(response.Data.Role));
         }
         catch
         {
@@ -163,42 +162,49 @@
         }
     }
 
-    private string GetDestination()
+    private string GetDestination(string role)
     {
-        if (string.IsNullOrWhiteSpace(ReturnUrl))
+        if (!string.IsNullOrWhiteSpace(ReturnUrl))
         {
-            return "/dashboard";
+            var returnUrl = ReturnUrl.Trim();
+
+            var isSafeRelativeUrl =
+                Uri.IsWellFormedUriString(
+                    returnUrl,
+                    UriKind.Relative)
+                && !returnUrl.StartsWith(
+                    "//",
+                    StringComparison.Ordinal)
+                && !returnUrl.StartsWith(
+                    "\\",
+                    StringComparison.Ordinal);
+
+            if (isSafeRelativeUrl)
+            {
+                var destination =
+                    $"/{returnUrl.TrimStart('/')}";
+
+                if (!destination.Equals(
+                    "/login",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return destination;
+                }
+            }
         }
 
-        var returnUrl = ReturnUrl.Trim();
-
-        var isSafeRelativeUrl =
-            Uri.IsWellFormedUriString(
-                returnUrl,
-                UriKind.Relative)
-            && !returnUrl.StartsWith(
-                "//",
-                StringComparison.Ordinal)
-            && !returnUrl.StartsWith(
-                "\\",
-                StringComparison.Ordinal);
-
-        if (!isSafeRelativeUrl)
+        return role switch
         {
-            return "/dashboard";
-        }
+            "SalesRep" => "/dashboard",
 
-        var destination =
-            $"/{returnUrl.TrimStart('/')}";
+            "Supervisor" => "/operations",
 
-        if (destination.Equals(
-                "/login",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return "/dashboard";
-        }
+            "Warehouse" => "/operations",
 
-        return destination;
+            "Admin" => "/operations",
+
+            _ => "/login"
+        };
     }
 
     private static string GetErrorMessage(

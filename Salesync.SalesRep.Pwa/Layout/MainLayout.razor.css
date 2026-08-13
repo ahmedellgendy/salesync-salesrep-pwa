@@ -62,7 +62,7 @@
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 1rem 1rem 6rem;
+    padding: 1rem 1rem calc(76px + 2rem + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 .mobile-bottom-nav {
@@ -192,10 +192,10 @@
     }
 
     .app-content {
-        padding: 1.5rem;
+        padding: 1.5rem !important;
     }
 
     .mobile-bottom-nav {
-        display: none;
+        display: none !important;
     }
 }
