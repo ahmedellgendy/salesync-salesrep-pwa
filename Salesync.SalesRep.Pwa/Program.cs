@@ -53,6 +53,7 @@ builder.Services.AddScoped<ISalesRepPaymentApiService, SalesRepPaymentApiService
 builder.Services.AddScoped<ISalesRepRouteApiService, SalesRepRouteApiService>();
 builder.Services.AddScoped<ISalesRepInvoiceReturnApiService,SalesRepInvoiceReturnApiService>();
 builder.Services.AddScoped<SupervisorReportApiService>();
+builder.Services.AddScoped<ProfileApiService>();
 
 builder.Services.AddScoped<LoadRequestOperationsApiService>();
 builder.Services.AddScoped<SupervisorSalesRepApiService>();
