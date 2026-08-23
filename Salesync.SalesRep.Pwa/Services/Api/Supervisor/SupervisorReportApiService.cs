@@ -1,4 +1,4 @@
-﻿using global::Salesync.SalesRep.Pwa.Models.Responses.Reports;
+﻿using Salesync.SalesRep.Pwa.Models.Responses.Reports;
 using System.Net.Http.Json;
 
 namespace Salesync.SalesRep.Pwa.Services.Api.Supervisor
@@ -12,17 +12,24 @@ namespace Salesync.SalesRep.Pwa.Services.Api.Supervisor
             _httpClient = httpClient;
         }
 
-        public async Task<SupervisorSummaryReportDto?> GetSummaryAsync(DateOnly fromDate, DateOnly toDate)
+        public async Task<SupervisorSummaryReportDto?> GetSummaryAsync(
+            DateOnly fromDate,
+            DateOnly toDate)
         {
             var url =
                 $"api/reports/supervisor/summary" +
                 $"?fromDate={fromDate:yyyy-MM-dd}" +
                 $"&toDate={toDate:yyyy-MM-dd}";
 
-            return await _httpClient.GetFromJsonAsync<SupervisorSummaryReportDto>(url);
+            return await _httpClient
+                .GetFromJsonAsync<SupervisorSummaryReportDto>(url);
         }
 
-        public async Task<PagedReportResult<SupervisorSalesReportItemDto>?> GetSalesAsync(DateOnly fromDate, DateOnly toDate, int pageNumber = 1, int pageSize = 10)
+        public async Task<PagedReportResult<SupervisorSalesReportItemDto>?> GetSalesAsync(
+            DateOnly fromDate,
+            DateOnly toDate,
+            int pageNumber = 1,
+            int pageSize = 10)
         {
             var url =
                 $"api/reports/supervisor/sales" +
@@ -33,11 +40,14 @@ namespace Salesync.SalesRep.Pwa.Services.Api.Supervisor
 
             return await _httpClient
                 .GetFromJsonAsync<
-                    PagedReportResult<
-                        SupervisorSalesReportItemDto>>(url);
+                    PagedReportResult<SupervisorSalesReportItemDto>>(url);
         }
 
-        public async Task<PagedReportResult<SupervisorInvoiceReportItemDto>?> GetInvoicesAsync(DateOnly fromDate, DateOnly toDate, int pageNumber = 1, int pageSize = 10)
+        public async Task<PagedReportResult<SupervisorInvoiceReportItemDto>?> GetInvoicesAsync(
+            DateOnly fromDate,
+            DateOnly toDate,
+            int pageNumber = 1,
+            int pageSize = 10)
         {
             var url =
                 $"api/reports/supervisor/invoices" +
@@ -46,10 +56,16 @@ namespace Salesync.SalesRep.Pwa.Services.Api.Supervisor
                 $"&pageNumber={pageNumber}" +
                 $"&pageSize={pageSize}";
 
-            return await _httpClient.GetFromJsonAsync<PagedReportResult<SupervisorInvoiceReportItemDto>>(url);
+            return await _httpClient
+                .GetFromJsonAsync<
+                    PagedReportResult<SupervisorInvoiceReportItemDto>>(url);
         }
 
-        public async Task<PagedReportResult<SupervisorPaymentReportItemDto>?> GetPaymentsAsync(DateOnly fromDate, DateOnly toDate, int pageNumber = 1, int pageSize = 10)
+        public async Task<PagedReportResult<SupervisorPaymentReportItemDto>?> GetPaymentsAsync(
+            DateOnly fromDate,
+            DateOnly toDate,
+            int pageNumber = 1,
+            int pageSize = 10)
         {
             var url =
                 $"api/reports/supervisor/payments" +
@@ -58,10 +74,16 @@ namespace Salesync.SalesRep.Pwa.Services.Api.Supervisor
                 $"&pageNumber={pageNumber}" +
                 $"&pageSize={pageSize}";
 
-            return await _httpClient.GetFromJsonAsync<PagedReportResult<SupervisorPaymentReportItemDto>>(url);
+            return await _httpClient
+                .GetFromJsonAsync<
+                    PagedReportResult<SupervisorPaymentReportItemDto>>(url);
         }
 
-        public async Task<PagedReportResult<SupervisorReturnReportItemDto>?> GetReturnsAsync(DateOnly fromDate, DateOnly toDate, int pageNumber = 1, int pageSize = 10)
+        public async Task<PagedReportResult<SupervisorReturnReportItemDto>?> GetReturnsAsync(
+            DateOnly fromDate,
+            DateOnly toDate,
+            int pageNumber = 1,
+            int pageSize = 10)
         {
             var url =
                 $"api/reports/supervisor/returns" +
@@ -72,11 +94,14 @@ namespace Salesync.SalesRep.Pwa.Services.Api.Supervisor
 
             return await _httpClient
                 .GetFromJsonAsync<
-                    PagedReportResult<
-                        SupervisorReturnReportItemDto>>(url);
+                    PagedReportResult<SupervisorReturnReportItemDto>>(url);
         }
 
-        public async Task<PagedReportResult<SupervisorVisitReportItemDto>?> GetVisitsAsync(DateOnly fromDate, DateOnly toDate, int pageNumber = 1, int pageSize = 10)
+        public async Task<PagedReportResult<SupervisorVisitReportItemDto>?> GetVisitsAsync(
+            DateOnly fromDate,
+            DateOnly toDate,
+            int pageNumber = 1,
+            int pageSize = 10)
         {
             var url =
                 $"api/reports/supervisor/visits" +
@@ -87,11 +112,12 @@ namespace Salesync.SalesRep.Pwa.Services.Api.Supervisor
 
             return await _httpClient
                 .GetFromJsonAsync<
-                    PagedReportResult<
-                        SupervisorVisitReportItemDto>>(url);
+                    PagedReportResult<SupervisorVisitReportItemDto>>(url);
         }
 
-        public async Task<List<SupervisorSalesRepPerformanceDto>?>GetSalesRepPerformanceAsync(DateOnly fromDate,DateOnly toDate)
+        public async Task<List<SupervisorSalesRepPerformanceDto>?> GetSalesRepPerformanceAsync(
+            DateOnly fromDate,
+            DateOnly toDate)
         {
             var url =
                 $"api/reports/supervisor/salesrep-performance" +
@@ -102,6 +128,5 @@ namespace Salesync.SalesRep.Pwa.Services.Api.Supervisor
                 .GetFromJsonAsync<
                     List<SupervisorSalesRepPerformanceDto>>(url);
         }
-
     }
 }

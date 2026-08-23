@@ -279,7 +279,7 @@
 
                 <button type="button"
                         class="report-link-card"
-                        @onclick="OpenSalesReport">
+                        @onclick='() => OpenReport("sales")'>
 
                     <div>
                         <strong>
@@ -299,7 +299,7 @@
 
                 <button type="button"
                         class="report-link-card"
-                        @onclick="OpenInvoicesReport">
+                        @onclick='() => OpenReport("invoices")'>
 
                     <div>
                         <strong>
@@ -319,7 +319,7 @@
 
                 <button type="button"
                         class="report-link-card"
-                        @onclick="OpenPaymentsReport">
+                        @onclick='() => OpenReport("payments")'>
 
                     <div>
                         <strong>
@@ -339,7 +339,7 @@
 
                 <button type="button"
                         class="report-link-card"
-                        @onclick="OpenReturnsReport">
+                        @onclick='() => OpenReport("returns")'>
 
                     <div>
                         <strong>
@@ -359,7 +359,7 @@
 
                 <button type="button"
                         class="report-link-card"
-                        @onclick="OpenVisitsReport">
+                        @onclick='() => OpenReport("visits")'>
 
                     <div>
                         <strong>
@@ -379,7 +379,7 @@
 
                 <button type="button"
                         class="report-link-card"
-                        @onclick="OpenSalesRepPerformanceReport">
+                        @onclick='() => OpenReport("salesrep-performance")'>
 
                     <div>
                         <strong>
@@ -474,50 +474,10 @@
         }
     }
 
-    private void OpenSalesReport()
+    private void OpenReport(string reportName)
     {
         NavigationManager.NavigateTo(
-            $"/supervisor/reports/sales" +
-            $"?fromDate={_fromDate:yyyy-MM-dd}" +
-            $"&toDate={_toDate:yyyy-MM-dd}");
-    }
-
-    private void OpenInvoicesReport()
-    {
-        NavigationManager.NavigateTo(
-            $"/supervisor/reports/invoices" +
-            $"?fromDate={_fromDate:yyyy-MM-dd}" +
-            $"&toDate={_toDate:yyyy-MM-dd}");
-    }
-
-    private void OpenPaymentsReport()
-    {
-        NavigationManager.NavigateTo(
-            $"/supervisor/reports/payments" +
-            $"?fromDate={_fromDate:yyyy-MM-dd}" +
-            $"&toDate={_toDate:yyyy-MM-dd}");
-    }
-
-    private void OpenReturnsReport()
-    {
-        NavigationManager.NavigateTo(
-            $"/supervisor/reports/returns" +
-            $"?fromDate={_fromDate:yyyy-MM-dd}" +
-            $"&toDate={_toDate:yyyy-MM-dd}");
-    }
-
-    private void OpenVisitsReport()
-    {
-        NavigationManager.NavigateTo(
-            $"/supervisor/reports/visits" +
-            $"?fromDate={_fromDate:yyyy-MM-dd}" +
-            $"&toDate={_toDate:yyyy-MM-dd}");
-    }
-
-    private void OpenSalesRepPerformanceReport()
-    {
-        NavigationManager.NavigateTo(
-            $"/supervisor/reports/salesrep-performance" +
+            $"/supervisor/reports/{reportName}" +
             $"?fromDate={_fromDate:yyyy-MM-dd}" +
             $"&toDate={_toDate:yyyy-MM-dd}");
     }
