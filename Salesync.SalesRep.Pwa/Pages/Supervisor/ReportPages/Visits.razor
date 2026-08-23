@@ -1,0 +1,610 @@
+﻿@page "/supervisor/reports/visits"
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses.Reports
+@using Salesync.SalesRep.Pwa.Services.Api.Supervisor
+
+@attribute [Authorize(Roles = "Supervisor")]
+
+@inject SupervisorReportApiService SupervisorReportApiService
+@inject NavigationManager NavigationManager
+
+<PageTitle>تقرير الزيارات - Salesync</PageTitle>
+
+<div class="visits-report-page" dir="rtl">
+
+    <header class="page-header">
+
+        <button type="button"
+                class="back-button"
+                @onclick="GoBack">
+            رجوع
+        </button>
+
+        <div>
+            <span class="page-eyebrow">
+                التقارير
+            </span>
+
+            <h1>
+                تقرير الزيارات
+            </h1>
+
+            <p>
+                متابعة زيارات العملاء ونتائج الزيارات ونشاط الفريق خلال الفترة المحددة.
+            </p>
+        </div>
+
+    </header>
+
+
+    <section class="report-filter-card">
+
+        <div class="date-fields">
+
+            <div class="filter-field">
+                <label>من</label>
+
+                <input type="date"
+                       @bind="_fromDate" />
+            </div>
+
+            <div class="filter-field">
+                <label>إلى</label>
+
+                <input type="date"
+                       @bind="_toDate" />
+            </div>
+
+        </div>
+
+        <button type="button"
+                class="apply-button"
+                @onclick="ApplyFilterAsync"
+                disabled="@_isLoading">
+            تطبيق
+        </button>
+
+    </section>
+
+
+    @if (_isLoading)
+    {
+        <section class="state-card">
+            <strong>
+                جاري تحميل الزيارات...
+            </strong>
+        </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <section class="state-card error">
+
+            <strong>
+                تعذر تحميل تقرير الزيارات
+            </strong>
+
+            <p>
+                @_errorMessage
+            </p>
+
+            <button type="button"
+                    class="retry-button"
+                    @onclick="LoadVisitsAsync">
+                إعادة المحاولة
+            </button>
+
+        </section>
+    }
+    else if (_result is null ||
+             _result.Items.Count == 0)
+    {
+        <section class="state-card">
+
+            <strong>
+                لا توجد زيارات
+            </strong>
+
+            <p>
+                لا توجد زيارات خلال الفترة المحددة.
+            </p>
+
+        </section>
+    }
+    else
+    {
+        <section class="report-summary">
+
+            <div>
+                <span>
+                    إجمالي الزيارات
+                </span>
+
+                <strong>
+                    @_result.TotalCount
+                </strong>
+            </div>
+
+            <div>
+                <span>
+                    الصفحة
+                </span>
+
+                <strong>
+                    @_result.PageNumber / @_result.TotalPages
+                </strong>
+            </div>
+
+        </section>
+
+
+        <section class="visits-list">
+
+            @foreach (var item in _result.Items)
+            {
+                <article class="visit-card">
+
+                    <div class="visit-header">
+
+                        <div>
+                            <span class="visit-number">
+                                VISIT-@item.VisitId
+                            </span>
+
+                            <h2>
+                                @item.CustomerName
+                            </h2>
+                        </div>
+
+                        <span class="@GetVisitTypeClass(item.VisitType)">
+                            @GetVisitTypeText(item.VisitType)
+                        </span>
+
+                    </div>
+
+
+                    <div class="visit-meta">
+
+                        <div class="meta-row">
+
+                            <span>
+                                المندوب
+                            </span>
+
+                            <strong>
+                                @item.SalesRepName
+                            </strong>
+
+                        </div>
+
+
+                        <div class="meta-row">
+
+                            <span>
+                                تاريخ الزيارة
+                            </span>
+
+                            <strong>
+                                @(item.VisitDate.ToString("dd/MM/yyyy - HH:mm"))
+                            </strong>
+
+                        </div>
+
+
+                        @if (item.EndTime.HasValue)
+                        {
+                            <div class="meta-row">
+
+                                <span>
+                                    وقت الانتهاء
+                                </span>
+
+                                <strong>
+                                    @(item.EndTime.Value.ToString("HH:mm"))
+                                </strong>
+
+                            </div>
+                        }
+
+
+                        <div class="meta-row">
+
+                            <span>
+                                الحالة
+                            </span>
+
+                            <strong>
+                                @GetVisitStatusText(item.Status)
+                            </strong>
+
+                        </div>
+
+
+                        @if (item.RouteId.HasValue)
+                        {
+                            <div class="meta-row">
+
+                                <span>
+                                    المسار
+                                </span>
+
+                                <strong>
+                                    Route #@item.RouteId
+                                </strong>
+
+                            </div>
+                        }
+
+                    </div>
+
+
+                    @if (item.VisitType == 2 ||
+                         item.NegativeReason.HasValue)
+                    {
+                        <div class="negative-visit-details">
+
+                            <span class="details-title">
+                                نتيجة الزيارة
+                            </span>
+
+                            @if (item.NegativeReason.HasValue)
+                            {
+                                <div class="meta-row">
+
+                                    <span>
+                                        سبب الزيارة السلبية
+                                    </span>
+
+                                    <strong>
+                                        @GetNegativeReasonText(
+                                            item.NegativeReason.Value)
+                                    </strong>
+
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(item.Notes))
+                            {
+                                <div class="visit-notes">
+
+                                    <span>
+                                        ملاحظات
+                                    </span>
+
+                                    <p>
+                                        @item.Notes
+                                    </p>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(item.Notes))
+                    {
+                        <div class="visit-notes normal-notes">
+
+                            <span>
+                                ملاحظات
+                            </span>
+
+                            <p>
+                                @item.Notes
+                            </p>
+
+                        </div>
+                    }
+
+
+                    @if (HasRelatedTransactions(item))
+                    {
+                        <div class="visit-operations">
+
+                            <span class="operations-title">
+                                العمليات المرتبطة
+                            </span>
+
+                            <div class="operation-items">
+
+                                @if (item.InvoiceId.HasValue)
+                                {
+                                    <div class="operation-item">
+
+                                        <span>
+                                            فاتورة
+                                        </span>
+
+                                        <strong>
+                                            #@item.InvoiceId
+                                        </strong>
+
+                                    </div>
+                                }
+
+                                @if (item.PaymentId.HasValue)
+                                {
+                                    <div class="operation-item">
+
+                                        <span>
+                                            تحصيل
+                                        </span>
+
+                                        <strong>
+                                            #@item.PaymentId
+                                        </strong>
+
+                                    </div>
+                                }
+
+                                @if (item.InvoiceReturnId.HasValue)
+                                {
+                                    <div class="operation-item">
+
+                                        <span>
+                                            مرتجع
+                                        </span>
+
+                                        <strong>
+                                            #@item.InvoiceReturnId
+                                        </strong>
+
+                                    </div>
+                                }
+
+                            </div>
+
+                        </div>
+                    }
+
+                </article>
+            }
+
+        </section>
+
+
+        @if (_result.TotalPages > 1)
+        {
+            <nav class="pagination">
+
+                <button type="button"
+                        class="page-button"
+                        disabled="@(_result.PageNumber <= 1 || _isLoading)"
+                        @onclick="PreviousPageAsync">
+                    السابق
+                </button>
+
+                <span class="page-info">
+                    @_result.PageNumber
+                    من
+                    @_result.TotalPages
+                </span>
+
+                <button type="button"
+                        class="page-button"
+                        disabled="@(_result.PageNumber >= _result.TotalPages || _isLoading)"
+                        @onclick="NextPageAsync">
+                    التالي
+                </button>
+
+            </nav>
+        }
+    }
+
+</div>
+
+
+@code
+{
+    private DateTime _fromDate =
+        new(
+            DateTime.Today.Year,
+            DateTime.Today.Month,
+            1);
+
+    private DateTime _toDate =
+        DateTime.Today;
+
+
+    private PagedReportResult<
+        SupervisorVisitReportItemDto>? _result;
+
+
+    private int _pageNumber = 1;
+
+    private const int PageSize = 10;
+
+    private bool _isLoading = true;
+
+    private string? _errorMessage;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        ReadQueryString();
+
+        await LoadVisitsAsync();
+    }
+
+
+    private void ReadQueryString()
+    {
+        var uri =
+            NavigationManager.ToAbsoluteUri(
+                NavigationManager.Uri);
+
+        var query =
+            uri.Query.TrimStart('?');
+
+        if (string.IsNullOrWhiteSpace(query))
+            return;
+
+
+        var parameters = query
+            .Split(
+                '&',
+                StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Split('=', 2))
+            .Where(x => x.Length == 2)
+            .ToDictionary(
+                x => Uri.UnescapeDataString(x[0]),
+                x => Uri.UnescapeDataString(x[1]),
+                StringComparer.OrdinalIgnoreCase);
+
+
+        if (parameters.TryGetValue(
+                "fromDate",
+                out var fromDateValue) &&
+            DateTime.TryParse(
+                fromDateValue,
+                out var parsedFromDate))
+        {
+            _fromDate =
+                parsedFromDate.Date;
+        }
+
+
+        if (parameters.TryGetValue(
+                "toDate",
+                out var toDateValue) &&
+            DateTime.TryParse(
+                toDateValue,
+                out var parsedToDate))
+        {
+            _toDate =
+                parsedToDate.Date;
+        }
+    }
+
+
+    private async Task ApplyFilterAsync()
+    {
+        _pageNumber = 1;
+
+        await LoadVisitsAsync();
+    }
+
+
+    private async Task LoadVisitsAsync()
+    {
+        if (_fromDate.Date > _toDate.Date)
+        {
+            _errorMessage =
+                "تاريخ البداية يجب أن يكون قبل تاريخ النهاية.";
+
+            return;
+        }
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _result =
+                await SupervisorReportApiService
+                    .GetVisitsAsync(
+                        DateOnly.FromDateTime(_fromDate),
+                        DateOnly.FromDateTime(_toDate),
+                        _pageNumber,
+                        PageSize);
+
+            if (_result is null)
+            {
+                _errorMessage =
+                    "لم يتم إرجاع بيانات الزيارات.";
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "تعذر الاتصال بالخادم.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+
+    private async Task PreviousPageAsync()
+    {
+        if (_result is null ||
+            _result.PageNumber <= 1)
+            return;
+
+        _pageNumber--;
+
+        await LoadVisitsAsync();
+    }
+
+
+    private async Task NextPageAsync()
+    {
+        if (_result is null ||
+            _result.PageNumber >= _result.TotalPages)
+            return;
+
+        _pageNumber++;
+
+        await LoadVisitsAsync();
+    }
+
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo(
+            "/supervisor/reports");
+    }
+
+
+    private static bool HasRelatedTransactions(
+        SupervisorVisitReportItemDto item)
+    {
+        return
+            item.InvoiceId.HasValue ||
+            item.PaymentId.HasValue ||
+            item.InvoiceReturnId.HasValue;
+    }
+
+
+    private static string GetVisitTypeText(int? visitType)
+    {
+        return visitType switch
+        {
+            1 => "زيارة إيجابية",
+            2 => "زيارة سلبية",
+            null => "غير محدد",
+            _ => $"نوع {visitType}"
+        };
+    }
+
+
+    private static string GetVisitTypeClass(int? visitType)
+    {
+        return visitType switch
+        {
+            1 => "visit-type positive",
+            2 => "visit-type negative",
+            _ => "visit-type unknown"
+        };
+    }
+
+
+    private static string GetVisitStatusText(int status)
+    {
+        return status switch
+        {
+            3 => "مكتملة",
+            _ => $"الحالة {status}"
+        };
+    }
+
+
+    private static string GetNegativeReasonText(int reason)
+    {
+        return reason switch
+        {
+            6 => "سبب سلبي مسجل",
+            _ => $"سبب رقم {reason}"
+        };
+    }
+}

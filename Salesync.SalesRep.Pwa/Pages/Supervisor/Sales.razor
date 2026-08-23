@@ -1,0 +1,473 @@
+﻿@page "/supervisor/reports/sales"
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses.Reports
+@using Salesync.SalesRep.Pwa.Services.Api.Supervisor
+
+@attribute [Authorize(Roles = "Supervisor")]
+
+@inject SupervisorReportApiService SupervisorReportApiService
+@inject NavigationManager NavigationManager
+
+<PageTitle>تقرير المبيعات - Salesync</PageTitle>
+
+<div class="sales-report-page" dir="rtl">
+
+    <header class="page-header">
+
+        <button type="button"
+                class="back-button"
+                @onclick="GoBack">
+            رجوع
+        </button>
+
+        <div>
+            <span class="page-eyebrow">
+                التقارير
+            </span>
+
+            <h1>
+                تقرير المبيعات
+            </h1>
+
+            <p>
+                تفاصيل مبيعات فريقك خلال الفترة المحددة.
+            </p>
+        </div>
+
+    </header>
+
+
+    <section class="report-filter-card">
+
+        <div class="date-fields">
+
+            <div class="filter-field">
+                <label>من</label>
+
+                <input type="date"
+                       @bind="_fromDate" />
+            </div>
+
+            <div class="filter-field">
+                <label>إلى</label>
+
+                <input type="date"
+                       @bind="_toDate" />
+            </div>
+
+        </div>
+
+
+        <button type="button"
+                class="apply-button"
+                @onclick="ApplyFilterAsync"
+                disabled="@_isLoading">
+            تطبيق
+        </button>
+
+    </section>
+
+
+    @if (_isLoading)
+    {
+        <section class="state-card">
+            <strong>
+                جاري تحميل المبيعات...
+            </strong>
+        </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <section class="state-card error">
+
+            <strong>
+                تعذر تحميل تقرير المبيعات
+            </strong>
+
+            <p>
+                @_errorMessage
+            </p>
+
+            <button type="button"
+                    class="retry-button"
+                    @onclick="LoadSalesAsync">
+                إعادة المحاولة
+            </button>
+
+        </section>
+    }
+    else if (_result is null ||
+             _result.Items.Count == 0)
+    {
+        <section class="state-card">
+
+            <strong>
+                لا توجد مبيعات
+            </strong>
+
+            <p>
+                لا توجد بيانات مبيعات خلال الفترة المحددة.
+            </p>
+
+        </section>
+    }
+    else
+    {
+        <section class="report-summary">
+
+            <div>
+                <span>
+                    إجمالي النتائج
+                </span>
+
+                <strong>
+                    @_result.TotalCount
+                </strong>
+            </div>
+
+
+            <div>
+                <span>
+                    الصفحة
+                </span>
+
+                <strong>
+                    @_result.PageNumber
+                    /
+                    @_result.TotalPages
+                </strong>
+            </div>
+
+        </section>
+
+
+        <section class="sales-list">
+
+            @foreach (var item in _result.Items)
+            {
+                <article class="sale-card">
+
+                    <div class="sale-header">
+
+                        <div>
+                            <span class="invoice-number">
+                                @item.InvoiceNumber
+                            </span>
+
+                            <h2>
+                                @item.CustomerName
+                            </h2>
+                        </div>
+
+
+                        <span class="@GetPaymentStatusClass(
+                                                        item.PaymentStatus)">
+                            @GetPaymentStatusText(
+                                item.PaymentStatus)
+                        </span>
+
+                    </div>
+
+
+                    <div class="sale-meta">
+
+                        <div class="meta-row">
+                            <span>
+                                المندوب
+                            </span>
+
+                            <strong>
+                                @item.SalesRepName
+                            </strong>
+                        </div>
+
+
+                        <div class="meta-row">
+                            <span>
+                                التاريخ
+                            </span>
+
+                            <strong>
+                                <strong>
+                                    @(item.InvoiceDate.ToString("dd/MM/yyyy - HH:mm"))
+                                </strong>
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="amount-grid">
+
+                        <div>
+                            <span>
+                                قبل الخصم
+                            </span>
+
+                            <strong>
+                                @item.SubTotal.ToString("N2")
+                            </strong>
+                        </div>
+
+
+                        <div>
+                            <span>
+                                الخصم
+                            </span>
+
+                            <strong>
+                                @item.DiscountAmount.ToString("N2")
+                            </strong>
+                        </div>
+
+
+                        <div>
+                            <span>
+                                الضريبة
+                            </span>
+
+                            <strong>
+                                @item.TaxAmount.ToString("N2")
+                            </strong>
+                        </div>
+
+
+                        <div class="total">
+                            <span>
+                                الإجمالي
+                            </span>
+
+                            <strong>
+                                @item.TotalAmount.ToString("N2")
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </article>
+            }
+
+        </section>
+
+
+        @if (_result.TotalPages > 1)
+        {
+            <nav class="pagination"
+                 aria-label="صفحات تقرير المبيعات">
+
+                <button type="button"
+                        class="page-button"
+                        disabled="@(_result.PageNumber <= 1 || _isLoading)"
+                        @onclick="PreviousPageAsync">
+                    السابق
+                </button>
+
+
+                <span class="page-info">
+                    @_result.PageNumber
+                    من
+                    @_result.TotalPages
+                </span>
+
+
+                <button type="button"
+                        class="page-button"
+                        disabled="@(_result.PageNumber >= _result.TotalPages || _isLoading)"
+                        @onclick="NextPageAsync">
+                    التالي
+                </button>
+
+            </nav>
+        }
+    }
+
+</div>
+
+@code
+{
+    private DateTime _fromDate =
+        new(
+            DateTime.Today.Year,
+            DateTime.Today.Month,
+            1);
+
+    private DateTime _toDate =
+        DateTime.Today;
+
+
+    private PagedReportResult<
+        SupervisorSalesReportItemDto>? _result;
+
+
+    private int _pageNumber = 1;
+
+    private const int PageSize = 10;
+
+    private bool _isLoading = true;
+
+    private string? _errorMessage;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        ReadQueryString();
+
+        await LoadSalesAsync();
+    }
+
+
+    private void ReadQueryString()
+    {
+        var uri = NavigationManager
+            .ToAbsoluteUri(NavigationManager.Uri);
+
+        var query = uri.Query.TrimStart('?');
+
+        if (string.IsNullOrWhiteSpace(query))
+            return;
+
+        var parameters = query
+            .Split(
+                '&',
+                StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Split('=', 2))
+            .Where(x => x.Length == 2)
+            .ToDictionary(
+                x => Uri.UnescapeDataString(x[0]),
+                x => Uri.UnescapeDataString(x[1]),
+                StringComparer.OrdinalIgnoreCase);
+
+
+        if (parameters.TryGetValue(
+                "fromDate",
+                out var fromDateValue) &&
+            DateTime.TryParse(
+                fromDateValue,
+                out var parsedFromDate))
+        {
+            _fromDate = parsedFromDate.Date;
+        }
+
+
+        if (parameters.TryGetValue(
+                "toDate",
+                out var toDateValue) &&
+            DateTime.TryParse(
+                toDateValue,
+                out var parsedToDate))
+        {
+            _toDate = parsedToDate.Date;
+        }
+    }
+
+
+    private async Task ApplyFilterAsync()
+    {
+        _pageNumber = 1;
+
+        await LoadSalesAsync();
+    }
+
+
+    private async Task LoadSalesAsync()
+    {
+        if (_fromDate.Date > _toDate.Date)
+        {
+            _errorMessage =
+                "تاريخ البداية يجب أن يكون قبل تاريخ النهاية.";
+
+            return;
+        }
+
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _result =
+                await SupervisorReportApiService
+                    .GetSalesAsync(
+                        DateOnly.FromDateTime(_fromDate),
+                        DateOnly.FromDateTime(_toDate),
+                        _pageNumber,
+                        PageSize);
+
+
+            if (_result is null)
+            {
+                _errorMessage =
+                    "لم يتم إرجاع بيانات المبيعات.";
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "تعذر الاتصال بالخادم.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+
+    private async Task PreviousPageAsync()
+    {
+        if (_result is null ||
+            _result.PageNumber <= 1)
+            return;
+
+        _pageNumber--;
+
+        await LoadSalesAsync();
+    }
+
+
+    private async Task NextPageAsync()
+    {
+        if (_result is null ||
+            _result.PageNumber >=
+            _result.TotalPages)
+            return;
+
+        _pageNumber++;
+
+        await LoadSalesAsync();
+    }
+
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo(
+            "/supervisor/reports");
+    }
+
+
+    private static string GetPaymentStatusText(
+        int paymentStatus)
+    {
+        return paymentStatus switch
+        {
+            1 => "معلق",
+            2 => "مدفوع",
+            3 => "مدفوع جزئيًا",
+            4 => "متأخر",
+            _ => "غير معروف"
+        };
+    }
+
+
+    private static string GetPaymentStatusClass(
+        int paymentStatus)
+    {
+        return paymentStatus switch
+        {
+            2 => "payment-status paid",
+            3 => "payment-status partial",
+            4 => "payment-status overdue",
+            _ => "payment-status pending"
+        };
+    }
+}

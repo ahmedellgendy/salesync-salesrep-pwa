@@ -1,0 +1,524 @@
+﻿@page "/supervisor/reports"
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses.Reports
+@using Salesync.SalesRep.Pwa.Services.Api.Supervisor
+
+@attribute [Authorize(Roles = "Supervisor")]
+
+@inject SupervisorReportApiService SupervisorReportApiService
+@inject NavigationManager NavigationManager
+
+<PageTitle>التقارير - Salesync</PageTitle>
+
+<div class="supervisor-reports-page" dir="rtl">
+
+    <header class="reports-header">
+        <span class="reports-eyebrow">
+            التقارير
+        </span>
+
+        <h1>
+            ملخص الأداء
+        </h1>
+
+        <p>
+            متابعة أداء فريق المبيعات خلال الفترة المحددة.
+        </p>
+    </header>
+
+
+    <section class="report-filter-card">
+
+        <div class="date-fields">
+
+            <div class="filter-field">
+                <label>
+                    من
+                </label>
+
+                <input type="date"
+                       @bind="_fromDate" />
+            </div>
+
+
+            <div class="filter-field">
+                <label>
+                    إلى
+                </label>
+
+                <input type="date"
+                       @bind="_toDate" />
+            </div>
+
+        </div>
+
+
+        <button type="button"
+                class="apply-button"
+                @onclick="LoadReportAsync"
+                disabled="@_isLoading">
+
+            @if (_isLoading)
+            {
+                <span>
+                    جاري التحميل...
+                </span>
+            }
+            else
+            {
+                <span>
+                    تطبيق
+                </span>
+            }
+
+        </button>
+
+    </section>
+
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <section class="state-card error">
+
+            <strong>
+                تعذر تحميل التقرير
+            </strong>
+
+            <p>
+                @_errorMessage
+            </p>
+
+            <button type="button"
+                    class="retry-button"
+                    @onclick="LoadReportAsync">
+                إعادة المحاولة
+            </button>
+
+        </section>
+    }
+    else if (_summary is not null)
+    {
+        <section class="report-section">
+
+            <div class="section-heading">
+                <div>
+                    <span>
+                        الأداء المالي
+                    </span>
+
+                    <h2>
+                        المبيعات والتحصيل
+                    </h2>
+                </div>
+            </div>
+
+
+            <div class="financial-grid">
+
+                <article class="financial-card primary">
+
+                    <span class="metric-label">
+                        صافي المبيعات
+                    </span>
+
+                    <strong class="metric-value">
+                        @_summary.NetSales.ToString("N2")
+                    </strong>
+
+                    <small>
+                        جنيه
+                    </small>
+
+                </article>
+
+
+                <article class="financial-card">
+
+                    <span class="metric-label">
+                        إجمالي المبيعات
+                    </span>
+
+                    <strong class="metric-value">
+                        @_summary.GrossSales.ToString("N2")
+                    </strong>
+
+                    <small>
+                        جنيه
+                    </small>
+
+                </article>
+
+
+                <article class="financial-card">
+
+                    <span class="metric-label">
+                        التحصيل
+                    </span>
+
+                    <strong class="metric-value">
+                        @_summary.TotalCollections.ToString("N2")
+                    </strong>
+
+                    <small>
+                        جنيه
+                    </small>
+
+                </article>
+
+
+                <article class="financial-card">
+
+                    <span class="metric-label">
+                        المرتجعات
+                    </span>
+
+                    <strong class="metric-value">
+                        @_summary.TotalReturns.ToString("N2")
+                    </strong>
+
+                    <small>
+                        جنيه
+                    </small>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+        <section class="report-section">
+
+            <div class="section-heading">
+                <div>
+                    <span>
+                        النشاط
+                    </span>
+
+                    <h2>
+                        حركة الفريق
+                    </h2>
+                </div>
+            </div>
+
+
+            <div class="activity-grid">
+
+                <article class="activity-card">
+
+                    <strong>
+                        @_summary.TotalInvoices
+                    </strong>
+
+                    <span>
+                        الفواتير
+                    </span>
+
+                </article>
+
+
+                <article class="activity-card">
+
+                    <strong>
+                        @_summary.TotalVisits
+                    </strong>
+
+                    <span>
+                        الزيارات
+                    </span>
+
+                </article>
+
+
+                <article class="activity-card">
+
+                    <strong>
+                        @_summary.ActiveSalesReps
+                    </strong>
+
+                    <span>
+                        المناديب النشطون
+                    </span>
+
+                </article>
+
+
+                <article class="activity-card">
+
+                    <strong>
+                        @_summary.CustomersVisited
+                    </strong>
+
+                    <span>
+                        العملاء الذين تمت زيارتهم
+                    </span>
+
+                </article>
+
+            </div>
+
+        </section>
+
+        <section class="report-section">
+
+            <div class="section-heading">
+                <div>
+                    <span>
+                        التقارير التفصيلية
+                    </span>
+
+                    <h2>
+                        تفاصيل الأداء
+                    </h2>
+                </div>
+            </div>
+
+
+            <div class="report-links">
+
+                <button type="button"
+                        class="report-link-card"
+                        @onclick="OpenSalesReport">
+
+                    <div>
+                        <strong>
+                            تقرير المبيعات
+                        </strong>
+
+                        <span>
+                            عرض الفواتير والمبيعات خلال الفترة المحددة.
+                        </span>
+                    </div>
+
+                    <span class="report-link-arrow">
+                        ←
+                    </span>
+
+                </button>
+
+                <button type="button"
+                        class="report-link-card"
+                        @onclick="OpenInvoicesReport">
+
+                    <div>
+                        <strong>
+                            تقرير الفواتير
+                        </strong>
+
+                        <span>
+                            متابعة إجمالي الفواتير والمدفوع والمتبقي وحالة السداد.
+                        </span>
+                    </div>
+
+                    <span class="report-link-arrow">
+                        ←
+                    </span>
+
+                </button>
+
+                <button type="button"
+                        class="report-link-card"
+                        @onclick="OpenPaymentsReport">
+
+                    <div>
+                        <strong>
+                            تقرير التحصيلات
+                        </strong>
+
+                        <span>
+                            متابعة المبالغ المحصلة وطرق الدفع والفواتير المرتبطة بها.
+                        </span>
+                    </div>
+
+                    <span class="report-link-arrow">
+                        ←
+                    </span>
+
+                </button>
+
+                <button type="button"
+                        class="report-link-card"
+                        @onclick="OpenReturnsReport">
+
+                    <div>
+                        <strong>
+                            تقرير المرتجعات
+                        </strong>
+
+                        <span>
+                            متابعة المرتجعات وأسبابها وحالتها وقيمتها خلال الفترة المحددة.
+                        </span>
+                    </div>
+
+                    <span class="report-link-arrow">
+                        ←
+                    </span>
+
+                </button>
+
+                <button type="button"
+                        class="report-link-card"
+                        @onclick="OpenVisitsReport">
+
+                    <div>
+                        <strong>
+                            تقرير الزيارات
+                        </strong>
+
+                        <span>
+                            متابعة زيارات العملاء ونتائج الزيارات ونشاط الفريق خلال الفترة المحددة.
+                        </span>
+                    </div>
+
+                    <span class="report-link-arrow">
+                        ←
+                    </span>
+
+                </button>
+
+                <button type="button"
+                        class="report-link-card"
+                        @onclick="OpenSalesRepPerformanceReport">
+
+                    <div>
+                        <strong>
+                            أداء المناديب
+                        </strong>
+
+                        <span>
+                            مقارنة أداء مندوبي الفريق من حيث المبيعات والتحصيلات والزيارات والفواتير.
+                        </span>
+                    </div>
+
+                    <span class="report-link-arrow">
+                        ←
+                    </span>
+
+                </button>
+
+            </div>
+
+        </section>
+    }
+
+</div>
+
+@code
+{
+    private DateTime _fromDate =
+        new(
+            DateTime.Today.Year,
+            DateTime.Today.Month,
+            1);
+
+    private DateTime _toDate =
+        DateTime.Today;
+
+
+    private SupervisorSummaryReportDto?
+        _summary;
+
+
+    private bool _isLoading;
+
+    private string? _errorMessage;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReportAsync();
+    }
+
+
+    private async Task LoadReportAsync()
+    {
+        if (_isLoading)
+            return;
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            if (_fromDate.Date > _toDate.Date)
+            {
+                _errorMessage =
+                    "تاريخ البداية يجب أن يكون قبل تاريخ النهاية.";
+
+                return;
+            }
+
+
+            _summary =
+                await SupervisorReportApiService
+                    .GetSummaryAsync(
+                        DateOnly.FromDateTime(_fromDate),
+                        DateOnly.FromDateTime(_toDate));
+
+
+            if (_summary is null)
+            {
+                _errorMessage =
+                    "لم يتم إرجاع بيانات التقرير.";
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "تعذر الاتصال بالخادم.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OpenSalesReport()
+    {
+        NavigationManager.NavigateTo(
+            $"/supervisor/reports/sales" +
+            $"?fromDate={_fromDate:yyyy-MM-dd}" +
+            $"&toDate={_toDate:yyyy-MM-dd}");
+    }
+
+    private void OpenInvoicesReport()
+    {
+        NavigationManager.NavigateTo(
+            $"/supervisor/reports/invoices" +
+            $"?fromDate={_fromDate:yyyy-MM-dd}" +
+            $"&toDate={_toDate:yyyy-MM-dd}");
+    }
+
+    private void OpenPaymentsReport()
+    {
+        NavigationManager.NavigateTo(
+            $"/supervisor/reports/payments" +
+            $"?fromDate={_fromDate:yyyy-MM-dd}" +
+            $"&toDate={_toDate:yyyy-MM-dd}");
+    }
+
+    private void OpenReturnsReport()
+    {
+        NavigationManager.NavigateTo(
+            $"/supervisor/reports/returns" +
+            $"?fromDate={_fromDate:yyyy-MM-dd}" +
+            $"&toDate={_toDate:yyyy-MM-dd}");
+    }
+
+    private void OpenVisitsReport()
+    {
+        NavigationManager.NavigateTo(
+            $"/supervisor/reports/visits" +
+            $"?fromDate={_fromDate:yyyy-MM-dd}" +
+            $"&toDate={_toDate:yyyy-MM-dd}");
+    }
+
+    private void OpenSalesRepPerformanceReport()
+    {
+        NavigationManager.NavigateTo(
+            $"/supervisor/reports/salesrep-performance" +
+            $"?fromDate={_fromDate:yyyy-MM-dd}" +
+            $"&toDate={_toDate:yyyy-MM-dd}");
+    }
+}
