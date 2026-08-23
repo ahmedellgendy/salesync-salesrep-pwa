@@ -1,0 +1,331 @@
+﻿.salesrep-details-page {
+    width: 100%;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 20px 18px 110px;
+}
+
+.page-header {
+    margin-bottom: 18px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+    .page-header > div {
+        flex: 1;
+    }
+
+.page-eyebrow {
+    display: block;
+    margin-bottom: 4px;
+    color: #087f9c;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.page-header h1 {
+    margin: 0;
+    color: #101828;
+    font-size: 26px;
+    font-weight: 900;
+    line-height: 1.3;
+}
+
+.back-button {
+    min-height: 38px;
+    padding: 0 14px;
+    background: #ffffff;
+    border: 1px solid #d9e2ea;
+    border-radius: 10px;
+    color: #475467;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.salesrep-overview {
+    margin-bottom: 22px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    background: #ffffff;
+    border: 1px solid #e3e8ef;
+    border-radius: 18px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.035);
+}
+
+.salesrep-avatar {
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eaf7fa;
+    color: #087f9c;
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.salesrep-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.salesrep-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+    .salesrep-title-row h2 {
+        margin: 0;
+        color: #101828;
+        font-size: 17px;
+        font-weight: 900;
+        line-height: 1.5;
+    }
+
+.status-badge {
+    flex-shrink: 0;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+    .status-badge.active {
+        background: #ecfdf3;
+        color: #027a48;
+    }
+
+.salesrep-code {
+    display: block;
+    margin-top: 3px;
+    direction: ltr;
+    text-align: right;
+    color: #98a2b3;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.salesrep-phone {
+    display: block;
+    margin-top: 6px;
+    direction: ltr;
+    text-align: right;
+    color: #344054;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.section-header {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.section-eyebrow {
+    display: block;
+    margin-bottom: 3px;
+    color: #087f9c;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.section-header h2 {
+    margin: 0;
+    color: #101828;
+    font-size: 19px;
+    font-weight: 900;
+}
+
+.count-badge {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eaf7fa;
+    color: #087f9c;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.routes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+}
+
+.route-card {
+    padding: 15px;
+    background: #ffffff;
+    border: 1px solid #e3e8ef;
+    border-radius: 16px;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.03);
+}
+
+.route-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.route-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef8fb;
+    color: #087f9c;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 900;
+}
+
+.route-main-info {
+    flex: 1;
+    min-width: 0;
+}
+
+    .route-main-info h3 {
+        margin: 0;
+        color: #101828;
+        font-size: 15px;
+        font-weight: 900;
+    }
+
+    .route-main-info span {
+        display: block;
+        margin-top: 3px;
+        color: #98a2b3;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+.route-status {
+    flex-shrink: 0;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+    .route-status.active {
+        background: #ecfdf3;
+        color: #027a48;
+    }
+
+    .route-status.inactive {
+        background: #f2f4f7;
+        color: #667085;
+    }
+
+.state-card {
+    padding: 26px 18px;
+    background: #ffffff;
+    border: 1px solid #e7ebf2;
+    border-radius: 17px;
+    text-align: center;
+}
+
+    .state-card strong {
+        display: block;
+        color: #101828;
+        font-size: 14px;
+        font-weight: 900;
+    }
+
+    .state-card p {
+        margin: 7px 0 0;
+        color: #667085;
+        font-size: 12px;
+        line-height: 1.8;
+    }
+
+    .state-card.error {
+        border-color: #fecdca;
+    }
+
+.retry-button {
+    margin-top: 14px;
+    min-height: 40px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 10px;
+    background: #087f9c;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.route-card {
+    cursor: pointer;
+    transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+    .route-card:hover {
+        border-color: #b9dce5;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+    }
+
+    .route-card:active {
+        transform: scale(0.99);
+    }
+
+.route-card-footer {
+    margin-top: 13px;
+    padding-top: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #eef2f6;
+    color: #087f9c;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+@media (max-width: 480px) {
+
+    .salesrep-details-page {
+        padding: 18px 16px 105px;
+    }
+
+    .page-header h1 {
+        font-size: 24px;
+    }
+
+    .salesrep-overview {
+        padding: 15px;
+        border-radius: 16px;
+    }
+
+    .salesrep-avatar {
+        width: 46px;
+        height: 46px;
+        flex-basis: 46px;
+        border-radius: 13px;
+    }
+
+    .section-header h2 {
+        font-size: 18px;
+    }
+
+    .route-card {
+        padding: 14px;
+    }
+}
+
+

@@ -1,0 +1,262 @@
+﻿.supervisor-salesreps-page {
+    width: 100%;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 20px 18px 110px;
+}
+
+.page-header {
+    margin-bottom: 18px;
+}
+
+.page-eyebrow {
+    display: block;
+    margin-bottom: 4px;
+    color: #087f9c;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.page-header h1 {
+    margin: 0;
+    color: #101828;
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.page-header p {
+    margin: 6px 0 0;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.team-summary {
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid #e7ebf2;
+    border-radius: 16px;
+}
+
+    .team-summary span {
+        color: #667085;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .team-summary strong {
+        color: #087f9c;
+        font-size: 20px;
+        font-weight: 900;
+    }
+
+.salesreps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.salesrep-card {
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #e3e8ef;
+    border-radius: 18px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.035);
+}
+
+.salesrep-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.salesrep-avatar {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eaf7fa;
+    color: #087f9c;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.salesrep-main-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.salesrep-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+    .salesrep-name-row h2 {
+        margin: 0;
+        color: #101828;
+        font-size: 16px;
+        font-weight: 900;
+        line-height: 1.5;
+    }
+
+.salesrep-code {
+    display: block;
+    margin-top: 3px;
+    color: #98a2b3;
+    font-size: 11px;
+    font-weight: 700;
+    direction: ltr;
+    text-align: right;
+}
+
+.status-badge {
+    flex-shrink: 0;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+    .status-badge.active {
+        background: #ecfdf3;
+        color: #027a48;
+    }
+
+    .status-badge.inactive {
+        background: #f2f4f7;
+        color: #667085;
+    }
+
+.salesrep-details {
+    margin-top: 14px;
+    padding-top: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid #eef2f6;
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.detail-label {
+    color: #98a2b3;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.detail-row strong {
+    color: #344054;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.salesrep-actions {
+    margin-top: 14px;
+}
+
+.salesrep-action {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid #d7e8ed;
+    border-radius: 12px;
+    background: #f4fbfc;
+    color: #087f9c;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+    .salesrep-action:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+
+.state-card {
+    padding: 28px 18px;
+    text-align: center;
+    background: #ffffff;
+    border: 1px solid #e7ebf2;
+    border-radius: 18px;
+}
+
+    .state-card strong {
+        display: block;
+        color: #101828;
+        font-size: 15px;
+        font-weight: 900;
+    }
+
+    .state-card p {
+        margin: 7px 0 0;
+        color: #667085;
+        font-size: 12px;
+        line-height: 1.8;
+    }
+
+    .state-card.error {
+        border-color: #fecdca;
+    }
+
+.retry-button {
+    margin-top: 14px;
+    min-height: 40px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 10px;
+    background: #087f9c;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.state-spinner {
+    width: 28px;
+    height: 28px;
+    margin: 0 auto 12px;
+    border: 3px solid #dfeff3;
+    border-top-color: #087f9c;
+    border-radius: 50%;
+    animation: supervisor-spin 0.8s linear infinite;
+}
+
+@keyframes supervisor-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 480px) {
+    .supervisor-salesreps-page {
+        padding: 18px 16px 105px;
+    }
+
+    .page-header h1 {
+        font-size: 25px;
+    }
+
+    .salesrep-card {
+        padding: 15px;
+        border-radius: 16px;
+    }
+
+    .salesrep-avatar {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+        border-radius: 13px;
+    }
+}

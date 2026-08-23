@@ -1,42 +1,262 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Routing
 
-<AuthorizeView>
+
+@* =========================
+   Sales Rep Navigation
+========================= *@
+
+<AuthorizeView Roles="SalesRep">
     <Authorized>
+
         <nav class="mobile-bottom-nav"
              aria-label="القائمة الرئيسية">
 
             <NavLink class="mobile-nav-link"
                      href="/dashboard"
                      Match="NavLinkMatch.All">
-                <span class="mobile-nav-icon">⌂</span>
-                <span>الرئيسية</span>
+
+                <span class="mobile-nav-icon">
+                    ⌂
+                </span>
+
+                <span>
+                    الرئيسية
+                </span>
+
             </NavLink>
+
 
             <NavLink class="mobile-nav-link"
                      href="/routes">
-                <span class="mobile-nav-icon">☷</span>
-                <span>الخط</span>
+
+                <span class="mobile-nav-icon">
+                    ☷
+                </span>
+
+                <span>
+                    الخط
+                </span>
+
             </NavLink>
+
 
             <NavLink class="mobile-nav-link"
                      href="/inventory">
-                <span class="mobile-nav-icon">▣</span>
-                <span>المخزون</span>
+
+                <span class="mobile-nav-icon">
+                    ▣
+                </span>
+
+                <span>
+                    المخزون
+                </span>
+
             </NavLink>
+
 
             <NavLink class="mobile-nav-link"
                      href="/reports">
-                <span class="mobile-nav-icon">▤</span>
-                <span>التقارير</span>
+
+                <span class="mobile-nav-icon">
+                    ▤
+                </span>
+
+                <span>
+                    التقارير
+                </span>
+
             </NavLink>
+
 
             <NavLink class="mobile-nav-link"
                      href="/profile">
-                <span class="mobile-nav-icon">●</span>
-                <span>حسابي</span>
+
+                <span class="mobile-nav-icon">
+                    ●
+                </span>
+
+                <span>
+                    حسابي
+                </span>
+
             </NavLink>
 
         </nav>
+
+    </Authorized>
+</AuthorizeView>
+
+
+
+@* =========================
+   Supervisor Navigation
+========================= *@
+
+<AuthorizeView Roles="Supervisor">
+    <Authorized>
+
+        <nav class="mobile-bottom-nav"
+             aria-label="قائمة المشرف">
+
+            <NavLink class="mobile-nav-link"
+                     href="/operations"
+                     Match="NavLinkMatch.Prefix">
+
+                <span class="mobile-nav-icon">
+                    ◈
+                </span>
+
+                <span>
+                    المبيعات
+                </span>
+
+            </NavLink>
+
+
+            <NavLink class="mobile-nav-link"
+                     href="/supervisor/sales-reps"
+                     Match="NavLinkMatch.Prefix">
+
+                <span class="mobile-nav-icon">
+                    ◉
+                </span>
+
+                <span>
+                    المناديب
+                </span>
+
+            </NavLink>
+
+
+            <NavLink class="mobile-nav-link"
+                     href="/supervisor/customers"
+                     Match="NavLinkMatch.Prefix">
+
+                <span class="mobile-nav-icon">
+                    ◎
+                </span>
+
+                <span>
+                    العملاء
+                </span>
+
+            </NavLink>
+
+
+            <NavLink class="mobile-nav-link"
+                     href="/supervisor/reports"
+                     Match="NavLinkMatch.Prefix">
+
+                <span class="mobile-nav-icon">
+                    ▤
+                </span>
+
+                <span>
+                    التقارير
+                </span>
+
+            </NavLink>
+
+
+            <NavLink class="mobile-nav-link"
+                     href="/profile">
+
+                <span class="mobile-nav-icon">
+                    ●
+                </span>
+
+                <span>
+                    حسابي
+                </span>
+
+            </NavLink>
+
+        </nav>
+
+    </Authorized>
+</AuthorizeView>
+
+
+
+@* =========================
+   Admin Navigation
+========================= *@
+
+<AuthorizeView Roles="Admin">
+    <Authorized>
+
+        <nav class="mobile-bottom-nav"
+             aria-label="قائمة الإدارة">
+
+            <NavLink class="mobile-nav-link"
+                     href="/operations"
+                     Match="NavLinkMatch.Prefix">
+
+                <span class="mobile-nav-icon">
+                    ◈
+                </span>
+
+                <span>
+                    المبيعات
+                </span>
+
+            </NavLink>
+
+
+            <div class="mobile-nav-link mobile-nav-disabled">
+
+                <span class="mobile-nav-icon">
+                    ◉
+                </span>
+
+                <span>
+                    المناديب
+                </span>
+
+            </div>
+
+
+            <div class="mobile-nav-link mobile-nav-disabled">
+
+                <span class="mobile-nav-icon">
+                    ◎
+                </span>
+
+                <span>
+                    العملاء
+                </span>
+
+            </div>
+
+
+            <div class="mobile-nav-link mobile-nav-disabled">
+
+                <span class="mobile-nav-icon">
+                    ▤
+                </span>
+
+                <span>
+                    التقارير
+                </span>
+
+            </div>
+
+
+            <NavLink class="mobile-nav-link"
+                     href="/profile">
+
+                <span class="mobile-nav-icon">
+                    ●
+                </span>
+
+                <span>
+                    حسابي
+                </span>
+
+            </NavLink>
+
+        </nav>
+
     </Authorized>
 </AuthorizeView>

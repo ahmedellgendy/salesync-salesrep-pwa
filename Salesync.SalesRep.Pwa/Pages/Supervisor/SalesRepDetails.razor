@@ -1,0 +1,338 @@
+﻿@page "/supervisor/sales-reps/{Id:int}"
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Api.Supervisor
+
+@attribute [Authorize(Roles = "Supervisor")]
+
+@inject SupervisorSalesRepApiService SupervisorSalesRepApiService
+@inject NavigationManager NavigationManager
+
+<PageTitle>تفاصيل المندوب - Salesync</PageTitle>
+
+<div class="salesrep-details-page" dir="rtl">
+
+    <section class="page-header">
+
+        <button type="button"
+                class="back-button"
+                @onclick="GoBack">
+            رجوع
+        </button>
+
+        <div>
+            <span class="page-eyebrow">
+                فريق العمل
+            </span>
+
+            <h1>
+                تفاصيل المندوب
+            </h1>
+        </div>
+
+    </section>
+
+
+    @if (_isLoading)
+    {
+        <section class="state-card">
+            <strong>
+                جاري تحميل البيانات...
+            </strong>
+        </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <section class="state-card error">
+
+            <strong>
+                تعذر تحميل البيانات
+            </strong>
+
+            <p>
+                @_errorMessage
+            </p>
+
+            <button type="button"
+                    class="retry-button"
+                    @onclick="LoadAsync">
+                إعادة المحاولة
+            </button>
+
+        </section>
+    }
+    else
+    {
+        <section class="salesrep-overview">
+
+            <div class="salesrep-avatar">
+                @GetInitials(_salesRep?.Name)
+            </div>
+
+            <div class="salesrep-info">
+
+                <div class="salesrep-title-row">
+
+                    <h2>
+                        @_salesRep?.Name
+                    </h2>
+
+                    @if (_salesRep?.IsActive == true)
+                    {
+                        <span class="status-badge active">
+                            نشط
+                        </span>
+                    }
+
+                </div>
+
+                <span class="salesrep-code">
+                    @_salesRep?.SalesRepCode
+                </span>
+
+                <span class="salesrep-phone">
+                    @GetPhone(_salesRep)
+                </span>
+
+            </div>
+
+        </section>
+
+
+        <section class="section-header">
+
+            <div>
+                <span class="section-eyebrow">
+                    التوزيع
+                </span>
+
+                <h2>
+                    الخطوط المخصصة
+                </h2>
+            </div>
+
+            <span class="count-badge">
+                @_routes.Count
+            </span>
+
+        </section>
+
+
+        @if (_routes.Count == 0)
+        {
+            <section class="state-card">
+
+                <strong>
+                    لا توجد خطوط
+                </strong>
+
+                <p>
+                    لا توجد خطوط مخصصة لهذا المندوب حاليًا.
+                </p>
+
+            </section>
+        }
+        else
+        {
+            <section class="routes-list">
+
+                @foreach (var route in _routes)
+                {
+                    <article class="route-card"
+                             @onclick="() => OpenRoute(route.Id)">
+
+                        <div class="route-card-header">
+
+                            <div class="route-icon">
+                                ☷
+                            </div>
+
+                            <div class="route-main-info">
+
+                                <h3>
+                                    @route.Name
+                                </h3>
+
+                                <span>
+                                    @route.RouteCode
+                                </span>
+
+                            </div>
+
+                            @if (route.IsActive)
+                            {
+                                <span class="route-status active">
+                                    نشط
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="route-status inactive">
+                                    غير نشط
+                                </span>
+                            }
+
+                        </div>
+
+                        <div class="route-card-footer">
+                            عرض العملاء
+                            <span>←</span>
+                        </div>
+
+                    </article>
+                }
+
+            </section>
+        }
+    }
+
+</div>
+
+@code
+{
+    [Parameter]
+    public int Id { get; set; }
+
+
+    private SupervisorSalesRepDto? _salesRep;
+
+    private readonly List<SupervisorRouteDto>
+        _routes = new();
+
+
+    private bool _isLoading = true;
+
+    private string? _errorMessage;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var teamResponse =
+                await SupervisorSalesRepApiService
+                    .GetMyTeamAsync();
+
+
+            if (teamResponse?.Success != true ||
+                teamResponse.Data is null)
+            {
+                _errorMessage =
+                    teamResponse?.Message ??
+                    "تعذر تحميل بيانات المندوب.";
+
+                return;
+            }
+
+
+            _salesRep =
+                teamResponse.Data
+                    .FirstOrDefault(x => x.Id == Id);
+
+
+            if (_salesRep is null)
+            {
+                _errorMessage =
+                    "المندوب غير موجود ضمن فريقك.";
+
+                return;
+            }
+
+
+            var routesResponse =
+                await SupervisorSalesRepApiService
+                    .GetSalesRepRoutesAsync(Id);
+
+
+            if (routesResponse?.Success != true ||
+                routesResponse.Data is null)
+            {
+                _errorMessage =
+                    routesResponse?.Message ??
+                    "تعذر تحميل خطوط المندوب.";
+
+                return;
+            }
+
+
+            _routes.Clear();
+
+            _routes.AddRange(
+                routesResponse.Data
+                    .OrderBy(x => x.Name));
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "تعذر الاتصال بالخادم.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo(
+            "/supervisor/sales-reps");
+    }
+
+
+    private static string GetPhone(
+        SupervisorSalesRepDto? salesRep)
+    {
+        if (salesRep is null)
+            return "-";
+
+        if (!string.IsNullOrWhiteSpace(
+                salesRep.Mobile))
+        {
+            return salesRep.Mobile;
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+                salesRep.Phone))
+        {
+            return salesRep.Phone;
+        }
+
+        return "-";
+    }
+
+
+    private static string GetInitials(
+        string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "م";
+
+        var parts = name.Split(
+            ' ',
+            StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length == 1)
+            return parts[0][0].ToString();
+
+        return string.Concat(
+            parts[0][0],
+            parts[1][0]);
+    }
+
+    private void OpenRoute(int routeId)
+    {
+        NavigationManager.NavigateTo(
+            $"/supervisor/routes/{routeId}/customers");
+    }
+}

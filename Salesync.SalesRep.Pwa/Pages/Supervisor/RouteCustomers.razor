@@ -1,0 +1,333 @@
+﻿@page "/supervisor/routes/{RouteId:int}/customers"
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Api.Supervisor
+
+@attribute [Authorize(Roles = "Supervisor")]
+
+@inject SupervisorSalesRepApiService SupervisorSalesRepApiService
+@inject NavigationManager NavigationManager
+
+<PageTitle>عملاء الخط - Salesync</PageTitle>
+
+<div class="route-customers-page" dir="rtl">
+
+    <section class="page-header">
+
+        <button type="button"
+                class="back-button"
+                @onclick="GoBack">
+            رجوع
+        </button>
+
+        <div>
+            <span class="page-eyebrow">
+                الخط
+            </span>
+
+            <h1>
+                عملاء الخط
+            </h1>
+
+            <p>
+                العملاء المخصصون لهذا الخط.
+            </p>
+        </div>
+
+    </section>
+
+
+    @if (_isLoading)
+    {
+        <section class="state-card">
+            <strong>
+                جاري تحميل العملاء...
+            </strong>
+        </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <section class="state-card error">
+
+            <strong>
+                تعذر تحميل العملاء
+            </strong>
+
+            <p>
+                @_errorMessage
+            </p>
+
+            <button type="button"
+                    class="retry-button"
+                    @onclick="LoadAsync">
+                إعادة المحاولة
+            </button>
+
+        </section>
+    }
+    else if (_customers.Count == 0)
+    {
+        <section class="state-card">
+
+            <strong>
+                لا يوجد عملاء
+            </strong>
+
+            <p>
+                لا يوجد عملاء مرتبطون بهذا الخط حاليًا.
+            </p>
+
+        </section>
+    }
+    else
+    {
+        <section class="customers-summary">
+
+            <span>
+                إجمالي العملاء
+            </span>
+
+            <strong>
+                @_customers.Count
+            </strong>
+
+        </section>
+
+
+        <section class="customers-list">
+
+            @foreach (var item in _customers)
+            {
+                <article class="customer-card">
+
+                    <div class="customer-card-header">
+
+                        <div class="customer-sequence">
+                            @(item.VisitSequence > 0
+                                ? item.VisitSequence
+                                : "-")
+                        </div>
+
+                        <div class="customer-main-info">
+
+                            <div class="customer-name-row">
+
+                                <h2>
+                                    @item.Customer.Name
+                                </h2>
+
+                                <span class="@GetStatusClass(
+                                                                        item.Customer.Status)">
+                                    @GetStatusText(
+                                        item.Customer.Status)
+                                </span>
+
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                    item.Customer.Phone))
+                            {
+                                <span class="customer-phone">
+                                    @item.Customer.Phone
+                                </span>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="customer-details">
+
+                        <div class="detail-row">
+
+                            <span class="detail-label">
+                                العنوان
+                            </span>
+
+                            <strong>
+                                @GetAddress(item.Customer)
+                            </strong>
+
+                        </div>
+
+
+                        <div class="detail-row">
+
+                            <span class="detail-label">
+                                الرصيد الحالي
+                            </span>
+
+                            <strong>
+                                @item.Customer.CurrentBalance.ToString("N2")
+                            </strong>
+
+                        </div>
+
+
+                        <div class="detail-row">
+
+                            <span class="detail-label">
+                                حد الائتمان
+                            </span>
+
+                            <strong>
+                                @item.Customer.CreditLimit.ToString("N2")
+                            </strong>
+
+                        </div>
+
+
+                        @if (!string.IsNullOrWhiteSpace(
+                                item.VisitDays))
+                        {
+                            <div class="detail-row">
+
+                                <span class="detail-label">
+                                    أيام الزيارة
+                                </span>
+
+                                <strong>
+                                    @item.VisitDays
+                                </strong>
+
+                            </div>
+                        }
+
+                    </div>
+
+
+                    @if (!string.IsNullOrWhiteSpace(
+                            item.Notes))
+                    {
+                        <div class="customer-notes">
+
+                            <span>
+                                ملاحظات
+                            </span>
+
+                            <p>
+                                @item.Notes
+                            </p>
+
+                        </div>
+                    }
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+@code
+{
+    [Parameter]
+    public int RouteId { get; set; }
+
+
+    private readonly List<SupervisorRouteCustomerDto>
+        _customers = new();
+
+
+    private bool _isLoading = true;
+
+    private string? _errorMessage;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var response =
+                await SupervisorSalesRepApiService
+                    .GetRouteCustomersAsync(RouteId);
+
+
+            if (response?.Success == true &&
+                response.Data is not null)
+            {
+                _customers.Clear();
+
+                _customers.AddRange(
+                    response.Data
+                        .OrderBy(x => x.VisitSequence)
+                        .ThenBy(x => x.Customer.Name));
+
+                return;
+            }
+
+
+            _errorMessage =
+                response?.Message ??
+                "حدث خطأ أثناء تحميل العملاء.";
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "تعذر الاتصال بالخادم.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo(
+            "/supervisor/sales-reps");
+    }
+
+
+    private static string GetAddress(
+        SupervisorCustomerDto customer)
+    {
+        var parts = new[]
+        {
+            customer.Address,
+            customer.Area,
+            customer.City
+        }
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .ToArray();
+
+        return parts.Length == 0
+            ? "-"
+            : string.Join(" - ", parts);
+    }
+
+
+    private static string GetStatusText(
+        string? status)
+    {
+        return status?.Equals(
+            "Active",
+            StringComparison.OrdinalIgnoreCase) == true
+                ? "نشط"
+                : "غير نشط";
+    }
+
+
+    private static string GetStatusClass(
+        string? status)
+    {
+        return status?.Equals(
+            "Active",
+            StringComparison.OrdinalIgnoreCase) == true
+                ? "customer-status active"
+                : "customer-status inactive";
+    }
+}

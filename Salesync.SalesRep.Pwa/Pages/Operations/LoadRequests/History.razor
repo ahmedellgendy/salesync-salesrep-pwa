@@ -1,0 +1,493 @@
+﻿@page "/operations/load-requests/history"
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Api.Operations
+
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+
+@inject LoadRequestOperationsApiService LoadRequestApiService
+@inject NavigationManager NavigationManager
+
+<PageTitle>سجل طلبات التحميل</PageTitle>
+
+<div class="load-history-page" dir="rtl">
+
+    <header class="page-header">
+
+        <div class="page-header-content">
+
+            <span class="page-header-label">
+                متابعة طلبات التحميل
+            </span>
+
+            <h1>
+                سجل الطلبات
+            </h1>
+
+            <p>
+                راجع الطلبات التي انتهت من دورة المراجعة والتنفيذ.
+            </p>
+
+        </div>
+
+        <button type="button"
+                class="back-button"
+                @onclick="Back">
+            رجوع
+        </button>
+
+    </header>
+
+
+    @if (_isLoading)
+    {
+        <div class="state-card">
+
+            <div class="loading-spinner"></div>
+
+            <strong>
+                جاري تحميل السجل
+            </strong>
+
+            <span>
+                برجاء الانتظار...
+            </span>
+
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="state-card error">
+
+            <strong>
+                تعذر تحميل سجل الطلبات
+            </strong>
+
+            <span>
+                @_errorMessage
+            </span>
+
+            <button type="button"
+                    class="retry-button"
+                    @onclick="LoadAsync">
+                إعادة المحاولة
+            </button>
+
+        </div>
+    }
+    else if (_requests.Count == 0)
+    {
+        <div class="state-card">
+
+            <div class="state-icon">
+                ✓
+            </div>
+
+            <strong>
+                لا توجد طلبات في السجل
+            </strong>
+
+            <span>
+                لم تنتهِ أي طلبات تحميل حتى الآن.
+            </span>
+
+        </div>
+    }
+    else
+    {
+        <div class="history-summary">
+
+            <div class="summary-item">
+                <span>
+                    إجمالي الطلبات
+                </span>
+
+                <strong>
+                    @_requests.Count
+                </strong>
+            </div>
+
+            <div class="summary-item confirmed">
+                <span>
+                    تم التحميل
+                </span>
+
+                <strong>
+                    @GetCountByStatus(WarehouseConfirmedStatus)
+                </strong>
+            </div>
+
+            <div class="summary-item rejected">
+                <span>
+                    مرفوض
+                </span>
+
+                <strong>
+                    @GetCountByStatus(RejectedStatus)
+                </strong>
+            </div>
+
+            <div class="summary-item cancelled">
+                <span>
+                    ملغي
+                </span>
+
+                <strong>
+                    @GetCountByStatus(CancelledStatus)
+                </strong>
+            </div>
+
+        </div>
+
+
+        <section class="history-list">
+
+            @foreach (var request in _requests)
+            {
+                <article class="history-card"
+                         @key="request.Id">
+
+                    <div class="history-card-header">
+
+                        <div class="request-number">
+
+                            <span>
+                                رقم الطلب
+                            </span>
+
+                            <strong>
+                                @request.LoadRequestNumber
+                            </strong>
+
+                            <small>
+                                @FormatDate(request.RequestDate)
+                            </small>
+
+                        </div>
+
+
+                        <span class="@GetStatusClass(request.Status)">
+                            @GetStatusText(request.Status)
+                        </span>
+
+                    </div>
+
+
+                    <div class="request-info-grid">
+
+                        <div class="request-info-item">
+
+                            <span>
+                                المندوب
+                            </span>
+
+                            <strong>
+                                @GetSalesRepText(request)
+                            </strong>
+
+                        </div>
+
+
+                        <div class="request-info-item">
+
+                            <span>
+                                المخزن
+                            </span>
+
+                            <strong>
+                                @GetWarehouseText(request)
+                            </strong>
+
+                        </div>
+
+
+                        <div class="request-info-item">
+
+                            <span>
+                                عدد الأصناف
+                            </span>
+
+                            <strong>
+                                @GetItems(request).Count
+                            </strong>
+
+                        </div>
+
+
+                        <div class="request-info-item">
+
+                            <span>
+                                إجمالي الكمية المطلوبة
+                            </span>
+
+                            <strong>
+                                @GetTotalRequestedQuantity(request)
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    @if (request.Status == WarehouseConfirmedStatus)
+                    {
+                        <div class="final-state confirmed">
+
+                            <span class="final-state-icon">
+                                ✓
+                            </span>
+
+                            <div>
+                                <strong>
+                                    تم تنفيذ التحميل
+                                </strong>
+
+                                <p>
+                                    أكد المخزن تنفيذ عملية التحميل وتسليم الكميات.
+                                </p>
+                            </div>
+
+                        </div>
+                    }
+                    else if (request.Status == RejectedStatus)
+                    {
+                        <div class="final-state rejected">
+
+                            <span class="final-state-icon">
+                                ×
+                            </span>
+
+                            <div>
+                                <strong>
+                                    تم رفض الطلب
+                                </strong>
+
+                                <p>
+                                    انتهى الطلب بعد قرار الرفض.
+                                </p>
+                            </div>
+
+                        </div>
+                    }
+                    else if (request.Status == CancelledStatus)
+                    {
+                        <div class="final-state cancelled">
+
+                            <span class="final-state-icon">
+                                —
+                            </span>
+
+                            <div>
+                                <strong>
+                                    تم إلغاء الطلب
+                                </strong>
+
+                                <p>
+                                    الطلب لم يعد ضمن دورة التنفيذ.
+                                </p>
+                            </div>
+
+                        </div>
+                    }
+
+
+                    <button type="button"
+                            class="view-details-button"
+                            @onclick="() => OpenDetails(request.Id)">
+
+                        <span>
+                            عرض التفاصيل
+                        </span>
+
+                        <span class="button-arrow">
+                            ←
+                        </span>
+
+                    </button>
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+@code {
+
+    private const int RejectedStatus = 3;
+    private const int WarehouseConfirmedStatus = 4;
+    private const int CancelledStatus = 5;
+
+
+    private bool _isLoading = true;
+
+    private string? _errorMessage;
+
+    private List<LoadRequestDto> _requests = new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            _errorMessage = null;
+
+
+            var response =
+                await LoadRequestApiService
+                    .GetAllAsync();
+
+
+            if (response is null)
+            {
+                _errorMessage =
+                    "لم يتم استلام استجابة من الخادم.";
+
+                return;
+            }
+
+
+            if (!response.Success)
+            {
+                _errorMessage =
+                    response.Message
+                    ?? "فشل تحميل سجل طلبات التحميل.";
+
+                return;
+            }
+
+
+            _requests =
+                response.Data?
+                    .Where(x =>
+                        x.Status == RejectedStatus ||
+                        x.Status == WarehouseConfirmedStatus ||
+                        x.Status == CancelledStatus)
+                    .OrderByDescending(x => x.RequestDate)
+                    .ToList()
+                ?? new List<LoadRequestDto>();
+        }
+        catch
+        {
+            _errorMessage =
+                "حدث خطأ أثناء تحميل سجل طلبات التحميل.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+
+    private void OpenDetails(int id)
+    {
+        NavigationManager.NavigateTo(
+            $"/operations/load-requests/{id}");
+    }
+
+
+    private void Back()
+    {
+        NavigationManager.NavigateTo(
+            "/operations");
+    }
+
+
+    private int GetCountByStatus(int status)
+    {
+        return _requests.Count(x => x.Status == status);
+    }
+
+
+    private static List<LoadRequestItemDto> GetItems(
+        LoadRequestDto request)
+    {
+        return request.Items
+            ?? new List<LoadRequestItemDto>();
+    }
+
+
+    private static int GetTotalRequestedQuantity(
+        LoadRequestDto request)
+    {
+        return GetItems(request)
+            .Sum(x => x.RequestedQuantity);
+    }
+
+
+    private static string GetSalesRepText(
+        LoadRequestDto request)
+    {
+        if (!string.IsNullOrWhiteSpace(
+            request.SalesRepName))
+        {
+            return request.SalesRepName;
+        }
+
+
+        return $"مندوب #{request.SalesRepId}";
+    }
+
+
+    private static string GetWarehouseText(
+        LoadRequestDto request)
+    {
+        if (!string.IsNullOrWhiteSpace(
+            request.WarehouseName))
+        {
+            return request.WarehouseName;
+        }
+
+
+        return $"مخزن #{request.WarehouseId}";
+    }
+
+
+    private static string GetStatusText(int status)
+    {
+        return status switch
+        {
+            WarehouseConfirmedStatus => "تم التحميل",
+            RejectedStatus => "مرفوض",
+            CancelledStatus => "ملغي",
+            _ => "غير معروف"
+        };
+    }
+
+
+    private static string GetStatusClass(int status)
+    {
+        return status switch
+        {
+            WarehouseConfirmedStatus =>
+                "history-status confirmed",
+
+            RejectedStatus =>
+                "history-status rejected",
+
+            CancelledStatus =>
+                "history-status cancelled",
+
+            _ =>
+                "history-status"
+        };
+    }
+
+
+    private static string FormatDate(
+        DateTime value)
+    {
+        return value
+            .ToLocalTime()
+            .ToString("dd/MM/yyyy - HH:mm");
+    }
+}
