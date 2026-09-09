@@ -724,7 +724,70 @@
     background: #087f9c;
     color: #ffffff;
 }
+/* =========================================================
+   PAYMENT SUCCESS / PRINT
+========================================================= */
 
+.payment-success-actions {
+    margin-bottom: 12px;
+    padding: 11px;
+    background: #ecfdf3;
+    border: 1px solid #abefc6;
+    border-radius: 12px;
+}
+
+.payment-success-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.payment-success-icon {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #d1fadf;
+    border-radius: 50%;
+    color: #067647;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.payment-success-info strong {
+    display: block;
+    color: #067647;
+    font-size: 9px;
+    font-weight: 900;
+}
+
+.payment-success-info small {
+    display: block;
+    margin-top: 2px;
+    color: #475467;
+    font-size: 7px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.print-invoice-button {
+    width: 100%;
+    min-height: 36px;
+    margin-top: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 8px;
+    background: #087f9c;
+    color: #ffffff;
+    font-size: 8px;
+    font-weight: 800;
+    cursor: pointer;
+}
 
 /* =========================================================
    MOBILE

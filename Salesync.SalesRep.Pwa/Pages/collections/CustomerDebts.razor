@@ -53,7 +53,42 @@
 
         </div>
     }
+    @if (_showPrintAction &&
+     _lastPaidInvoiceId.HasValue)
+    {
+        <section class="payment-success-actions">
 
+            <div class="payment-success-info">
+
+                <span class="payment-success-icon">
+                    ✓
+                </span>
+
+                <div>
+                    <strong>
+                        تم تسجيل التحصيل
+                    </strong>
+
+                    <small>
+                        يمكنك الآن فتح الفاتورة وطباعتها بالقيم المحدثة.
+                    </small>
+                </div>
+
+            </div>
+
+
+            <button type="button"
+                    class="print-invoice-button"
+                    @onclick="OpenPaidInvoice">
+
+                <i class="bi bi-printer"></i>
+
+                فتح وطباعة الفاتورة
+
+            </button>
+
+        </section>
+    }
 
     @if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
@@ -613,7 +648,11 @@
 
     private bool _isLoading =
         true;
+    private bool _showPrintAction;
 
+    private int? _lastPaidInvoiceId;
+
+    private int? _lastPaidInvoiceSessionId;
 
     private bool _isSubmitting;
 
@@ -833,6 +872,15 @@
     private void OpenPaymentModal(
         OutstandingInvoiceDto invoice)
     {
+
+        _showPrintAction =
+              false;
+
+        _lastPaidInvoiceId =
+            null;
+
+        _lastPaidInvoiceSessionId =
+            null;
         _selectedInvoice =
             invoice;
 
@@ -1010,13 +1058,27 @@
             var invoiceNumber =
                 _selectedInvoice.InvoiceNumber;
 
+            
 
+            var paidInvoiceId =
+                _selectedInvoice.InvoiceId;
+
+            var paidInvoiceSessionId =
+                _selectedInvoice.OriginalSalesRepSessionId;
             /*
              * Force close after successful save.
              * Do not call ClosePaymentModal here because
              * _isSubmitting is still true.
              */
             ResetPaymentModal();
+            _lastPaidInvoiceId =
+                 paidInvoiceId;
+
+            _lastPaidInvoiceSessionId =
+                paidInvoiceSessionId;
+
+            _showPrintAction =
+                true;
 
 
             _successMessage =
@@ -1035,6 +1097,27 @@
             _isSubmitting =
                 false;
         }
+    }
+
+    private void OpenPaidInvoice()
+    {
+        if (!_lastPaidInvoiceId.HasValue)
+            return;
+
+
+        var route =
+            $"/invoices/details/{_lastPaidInvoiceId.Value}";
+
+
+        if (_lastPaidInvoiceSessionId.HasValue &&
+            _lastPaidInvoiceSessionId.Value > 0)
+        {
+            route +=
+                $"?sessionId={_lastPaidInvoiceSessionId.Value}";
+        }
+
+
+        NavigationManager.NavigateTo(route);
     }
 
 

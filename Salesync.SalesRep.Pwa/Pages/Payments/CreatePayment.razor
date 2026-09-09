@@ -37,70 +37,106 @@
             </div>
         }
 
-        @if (!string.IsNullOrWhiteSpace(_successMessage))
+        @if (_paymentCompleted)
         {
-            <div class="collect-payment-alert success">
-                @_successMessage
-            </div>
+            <section class="payment-success-card">
+
+                <div class="payment-success-icon">
+                    ✓
+                </div>
+
+                <div class="payment-success-content">
+                    <strong>
+                        تم تسجيل التحصيل بنجاح
+                    </strong>
+
+                    <p>
+                        تم تحديث الفاتورة ويمكنك الآن فتحها وطباعتها.
+                    </p>
+                </div>
+
+                <div class="payment-success-actions">
+
+                    <button type="button"
+                            class="payment-print-btn"
+                            @onclick="OpenInvoiceForPrint">
+
+                        فتح وطباعة الفاتورة
+
+                    </button>
+
+                    <button type="button"
+                            class="payment-finish-btn"
+                            @onclick="GoBack">
+
+                        العودة للفواتير
+
+                    </button>
+
+                </div>
+
+            </section>
         }
+        else
+        {
+            <section class="payment-invoice-summary">
 
-        <section class="payment-invoice-summary">
+                <div class="payment-invoice-number">
+                    <span>رقم الفاتورة</span>
+                    <strong>@GetInvoiceNumberText()</strong>
+                </div>
 
-            <div class="payment-invoice-number">
-                <span>رقم الفاتورة</span>
-                <strong>@GetInvoiceNumberText()</strong>
+                <div class="payment-amount-box">
+                    <span>المتبقي للتحصيل</span>
+                    <strong>@FormatMoney(RemainingAmount)</strong>
+                </div>
+
+            </section>
+
+            <div class="collect-payment-form-group">
+                <label>المبلغ المحصل</label>
+
+                <input type="number"
+                       step="0.01"
+                       min="0"
+                       max="@RemainingAmount"
+                       disabled="@_isProcessing"
+                       @bind="_amount" />
             </div>
 
-            <div class="payment-amount-box">
-                <span>المتبقي للتحصيل</span>
-                <strong>@FormatMoney(RemainingAmount)</strong>
+            <div class="collect-payment-form-group">
+                <label>طريقة الدفع</label>
+
+                <select disabled="@_isProcessing"
+                        @bind="_paymentMethod">
+                    <option value="1">نقدي</option>
+                    <option value="2">شيك</option>
+                    <option value="3">تحويل</option>
+                </select>
             </div>
 
-        </section>
+            <div class="collect-payment-form-group">
+                <label>ملاحظات</label>
 
-        <div class="collect-payment-form-group">
-            <label>المبلغ المحصل</label>
+                <textarea placeholder="اكتب ملاحظات التحصيل..."
+                          disabled="@_isProcessing"
+                          @bind="_notes"></textarea>
+            </div>
 
-            <input type="number"
-                   step="0.01"
-                   min="0"
-                   max="@RemainingAmount"
-                   disabled="@_isProcessing"
-                   @bind="_amount" />
-        </div>
+            <button type="button"
+                    class="collect-payment-main-btn"
+                    disabled="@_isProcessing"
+                    @onclick="CreatePaymentAsync">
+                @(_isProcessing ? "جاري تسجيل التحصيل..." : "حفظ التحصيل")
+            </button>
 
-        <div class="collect-payment-form-group">
-            <label>طريقة الدفع</label>
-
-            <select disabled="@_isProcessing"
-                    @bind="_paymentMethod">
-                <option value="1">نقدي</option>
-                <option value="2">شيك</option>
-                <option value="3">تحويل</option>
-            </select>
-        </div>
-
-        <div class="collect-payment-form-group">
-            <label>ملاحظات</label>
-
-            <textarea placeholder="اكتب ملاحظات التحصيل..."
-                      disabled="@_isProcessing"
-                      @bind="_notes"></textarea>
-        </div>
-
-        <button type="button"
-                class="collect-payment-main-btn"
-                disabled="@_isProcessing"
-                @onclick="CreatePaymentAsync">
-            @(_isProcessing ? "جاري تسجيل التحصيل..." : "حفظ التحصيل")
-        </button>
-
-        <button type="button"
-                class="collect-payment-back-btn"
-                disabled="@_isProcessing"
-                @onclick="GoBack">
-            رجوع للفواتير
-        </button>
+            <button type="button"
+                    class="collect-payment-back-btn"
+                    disabled="@_isProcessing"
+                    @onclick="GoBack">
+                رجوع للفواتير
+            </button>
+        }
 
     </section>
 
@@ -124,12 +160,15 @@
     private string? _notes;
 
     private bool _isProcessing;
+    private bool _paymentCompleted;
+
     private string? _errorMessage;
-    private string? _successMessage;
 
     protected override void OnParametersSet()
     {
-        if (RemainingAmount > 0 && _amount <= 0)
+        if (RemainingAmount > 0 &&
+            _amount <= 0 &&
+            !_paymentCompleted)
         {
             _amount = RemainingAmount;
         }
@@ -144,46 +183,53 @@
         {
             _isProcessing = true;
             _errorMessage = null;
-            _successMessage = null;
 
             var request = new CreateSalesRepMobilePaymentRequest
             {
                 InvoiceId = InvoiceId,
                 Amount = _amount,
                 PaymentMethod = _paymentMethod,
-                Notes = _notes
+                Notes = string.IsNullOrWhiteSpace(_notes)
+                    ? null
+                    : _notes.Trim()
             };
 
             var response =
-                await SalesRepPaymentApiService.CreatePaymentAsync(request);
+                await SalesRepPaymentApiService
+                    .CreatePaymentAsync(request);
 
             if (response is null)
             {
-                _errorMessage = "لم يتم استلام استجابة من الخادم.";
+                _errorMessage =
+                    "لم يتم استلام استجابة من الخادم.";
+
                 return;
             }
 
             if (!response.Success)
             {
-                _errorMessage = response.Message ?? "فشل تسجيل التحصيل.";
+                _errorMessage =
+                    response.Message
+                    ?? "فشل تسجيل التحصيل.";
 
                 if (response.Errors is { Count: > 0 })
                 {
-                    _errorMessage += " " + string.Join(" ", response.Errors);
+                    _errorMessage +=
+                        " " +
+                        string.Join(
+                            " ",
+                            response.Errors);
                 }
 
                 return;
             }
 
-            _successMessage = "تم تسجيل التحصيل بنجاح.";
-
-            await Task.Delay(700);
-
-            NavigationManager.NavigateTo($"/invoices/{SessionId}", replace: true);
+            _paymentCompleted = true;
         }
         catch
         {
-            _errorMessage = "حدث خطأ غير متوقع أثناء تسجيل التحصيل.";
+            _errorMessage =
+                "حدث خطأ غير متوقع أثناء تسجيل التحصيل.";
         }
         finally
         {
@@ -197,25 +243,34 @@
 
         if (InvoiceId <= 0)
         {
-            _errorMessage = "بيانات الفاتورة غير صحيحة.";
+            _errorMessage =
+                "بيانات الفاتورة غير صحيحة.";
+
             return false;
         }
 
         if (SessionId <= 0)
         {
-            _errorMessage = "بيانات السيشن غير صحيحة.";
+            _errorMessage =
+                "بيانات السيشن غير صحيحة.";
+
             return false;
         }
 
         if (_amount <= 0)
         {
-            _errorMessage = "المبلغ المحصل لازم يكون أكبر من صفر.";
+            _errorMessage =
+                "المبلغ المحصل لازم يكون أكبر من صفر.";
+
             return false;
         }
 
-        if (RemainingAmount > 0 && _amount > RemainingAmount)
+        if (RemainingAmount > 0 &&
+            _amount > RemainingAmount)
         {
-            _errorMessage = "المبلغ المحصل لا يمكن يكون أكبر من المتبقي.";
+            _errorMessage =
+                "المبلغ المحصل لا يمكن يكون أكبر من المتبقي.";
+
             return false;
         }
 
@@ -224,24 +279,46 @@
 
     private string GetInvoiceNumberText()
     {
-        return string.IsNullOrWhiteSpace(InvoiceNumber)
+        return string.IsNullOrWhiteSpace(
+            InvoiceNumber)
             ? "غير محدد"
             : InvoiceNumber;
     }
 
-    private static string FormatMoney(decimal value)
+    private static string FormatMoney(
+        decimal value)
     {
         return value.ToString("N2");
+    }
+
+    private void OpenInvoiceForPrint()
+    {
+        if (InvoiceId <= 0)
+            return;
+
+        if (SessionId > 0)
+        {
+            NavigationManager.NavigateTo(
+                $"/invoices/details/{InvoiceId}?sessionId={SessionId}");
+
+            return;
+        }
+
+        NavigationManager.NavigateTo(
+            $"/invoices/details/{InvoiceId}");
     }
 
     private void GoBack()
     {
         if (SessionId > 0)
         {
-            NavigationManager.NavigateTo($"/invoices/{SessionId}");
+            NavigationManager.NavigateTo(
+                $"/invoices/{SessionId}");
+
             return;
         }
 
-        NavigationManager.NavigateTo("/invoices");
+        NavigationManager.NavigateTo(
+            "/invoices");
     }
 }
