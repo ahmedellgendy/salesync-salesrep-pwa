@@ -1,0 +1,575 @@
+﻿@page "/load-requests/{Id:int}"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@inject ISalesRepLoadRequestApiService LoadRequestApiService
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>تفاصيل طلب التحميل - Salesync</PageTitle>
+
+<div class="load-details-page" dir="rtl">
+
+    @if (_isLoading)
+    {
+        <section class="state-card">
+            جاري تحميل تفاصيل طلب التحميل...
+        </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <section class="state-card error">
+
+            <strong>
+                تعذر تحميل الطلب
+            </strong>
+
+            <p>
+                @_errorMessage
+            </p>
+
+            <button type="button"
+                    class="back-button"
+                    @onclick="GoBack">
+                رجوع للطلبات
+            </button>
+
+        </section>
+    }
+    else if (_request is not null)
+    {
+        <section class="details-hero">
+
+            <div>
+
+                <span>
+                    تفاصيل طلب التحميل
+                </span>
+
+                <h1>
+                    @_request.LoadRequestNumber
+                </h1>
+
+                <p>
+                    راجع المنتجات والكميات وحالة تنفيذ الطلب.
+                </p>
+
+            </div>
+
+            <div class="details-hero-icon">
+                📦
+            </div>
+
+        </section>
+
+
+        <section class="status-card">
+
+            <span class="request-status @GetStatusClass(_request.Status)">
+                @GetStatusText(_request.Status)
+            </span>
+
+            <div>
+                <span>
+                    حالة الطلب
+                </span>
+
+                <strong>
+                    @GetStatusDescription(_request.Status)
+                </strong>
+            </div>
+
+        </section>
+
+
+        <section class="details-summary">
+
+            <div>
+                <span>
+                    الأصناف
+                </span>
+
+                <strong>
+                    @GetItems().Count
+                </strong>
+            </div>
+
+            <div>
+                <span>
+                    المطلوب
+                </span>
+
+                <strong>
+                    @GetTotalRequestedLargeQuantity()
+                </strong>
+
+                <small>
+                    كرتونة
+                </small>
+            </div>
+
+            <div>
+                <span>
+                    المعتمد
+                </span>
+
+                <strong>
+                    @GetTotalApprovedLargeQuantity()
+                </strong>
+
+                <small>
+                    كرتونة
+                </small>
+            </div>
+
+        </section>
+
+
+        <section class="details-card">
+
+            <div class="section-title">
+                بيانات الطلب
+            </div>
+
+            <div class="info-row">
+                <span>
+                    المخزن
+                </span>
+
+                <strong>
+                    @GetWarehouseText()
+                </strong>
+            </div>
+
+            <div class="info-row">
+                <span>
+                    تاريخ الطلب
+                </span>
+
+                <strong>
+                    @FormatDate(_request.RequestDate)
+                </strong>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_request.Notes))
+            {
+                <div class="request-note">
+                    <span>
+                        ملاحظات الطلب
+                    </span>
+
+                    <p>
+                        @_request.Notes
+                    </p>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_request.RejectionReason))
+            {
+                <div class="request-note rejection">
+                    <span>
+                        سبب الرفض
+                    </span>
+
+                    <p>
+                        @_request.RejectionReason
+                    </p>
+                </div>
+            }
+
+        </section>
+
+
+        <section class="details-card">
+
+            <div class="section-title">
+                الأصناف
+            </div>
+
+            <div class="items-list">
+
+                @foreach (var item in GetItems())
+                {
+                    <article class="item-card">
+
+                        <div class="item-header">
+
+                            <div>
+                                <strong>
+                                    @item.ProductName
+                                </strong>
+
+                                @if (!string.IsNullOrWhiteSpace(item.ItemCode))
+                                {
+                                    <span>
+                                        @item.ItemCode
+                                    </span>
+                                }
+                            </div>
+
+                            <span class="item-unit">
+                                @GetLargeUnit(item)
+                            </span>
+
+                        </div>
+
+
+                        <div class="conversion">
+
+                            1 @GetLargeUnit(item)
+                            =
+                            @GetUnitsPerLargeUnit(item)
+                            @GetSmallUnit(item)
+
+                        </div>
+
+
+                        <div class="quantity-grid">
+
+                            <div>
+
+                                <span>
+                                    المطلوب
+                                </span>
+
+                                <strong>
+                                    @FormatQuantity(
+                                        item.RequestedLargeQuantity,
+                                        item.RequestedQuantity,
+                                        item)
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    المعتمد
+                                </span>
+
+                                <strong>
+                                    @FormatQuantity(
+                                        item.ApprovedLargeQuantity,
+                                        item.ApprovedQuantity,
+                                        item,
+                                        "لم تتم الموافقة")
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    المؤكد من المخزن
+                                </span>
+
+                                <strong>
+                                    @FormatQuantity(
+                                        item.ConfirmedLargeQuantity,
+                                        item.ConfirmedQuantity,
+                                        item,
+                                        "لم يتم التأكيد")
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        @if (!string.IsNullOrWhiteSpace(item.Notes))
+                        {
+                            <div class="item-note">
+
+                                <span>
+                                    ملاحظات
+                                </span>
+
+                                <p>
+                                    @item.Notes
+                                </p>
+
+                            </div>
+                        }
+
+                    </article>
+                }
+
+            </div>
+
+        </section>
+
+
+        <button type="button"
+                class="details-back-button"
+                @onclick="GoBack">
+
+            رجوع لطلبات التحميل
+
+        </button>
+    }
+
+</div>
+
+
+@code
+{
+    [Parameter]
+    public int Id { get; set; }
+
+
+    private bool _isLoading = true;
+
+    private string? _errorMessage;
+
+    private int _salesRepId;
+
+    private LoadRequestDto? _request;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            _errorMessage = null;
+            _request = null;
+
+
+            _salesRepId =
+                await GetCurrentSalesRepIdAsync();
+
+
+            if (_salesRepId <= 0)
+            {
+                _errorMessage =
+                    "لم يتم تحديد المندوب الحالي.";
+
+                return;
+            }
+
+
+            var response =
+                await LoadRequestApiService
+                    .GetBySalesRepAsync(_salesRepId);
+
+
+            if (response is null)
+            {
+                _errorMessage =
+                    "لم يتم استلام استجابة من الخادم.";
+
+                return;
+            }
+
+
+            if (!response.Success)
+            {
+                _errorMessage =
+                    response.Message
+                    ?? "فشل تحميل طلب التحميل.";
+
+                return;
+            }
+
+
+            _request =
+                response.Data?
+                    .FirstOrDefault(x => x.Id == Id);
+
+
+            if (_request is null)
+            {
+                _errorMessage =
+                    "طلب التحميل غير موجود.";
+            }
+        }
+        catch
+        {
+            _errorMessage =
+                "حدث خطأ أثناء تحميل تفاصيل طلب التحميل.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+
+    private async Task<int> GetCurrentSalesRepIdAsync()
+    {
+        try
+        {
+            var client =
+                HttpClientFactory.CreateClient(
+                    "SalesyncApi");
+
+
+            var response =
+                await client.GetFromJsonAsync<
+                    ApiResponse<SalesRepMobileProfileDto>>(
+                    "api/mobile/salesrep/me");
+
+
+            return response?.Success == true &&
+                   response.Data is not null
+                ? response.Data.SalesRepId
+                : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+
+    private List<LoadRequestItemDto> GetItems()
+    {
+        return _request?.Items
+            ?? new List<LoadRequestItemDto>();
+    }
+
+
+    private int GetTotalRequestedLargeQuantity()
+    {
+        return GetItems()
+            .Sum(x => x.RequestedLargeQuantity);
+    }
+
+
+    private int GetTotalApprovedLargeQuantity()
+    {
+        return GetItems()
+            .Sum(x => x.ApprovedLargeQuantity);
+    }
+
+
+    private string GetWarehouseText()
+    {
+        if (_request is null)
+            return "-";
+
+        return !string.IsNullOrWhiteSpace(
+            _request.WarehouseName)
+            ? _request.WarehouseName
+            : $"مخزن رقم {_request.WarehouseId}";
+    }
+
+
+    private static string GetStatusText(int status)
+    {
+        return status switch
+        {
+            1 => "قيد المراجعة",
+            2 => "تمت الموافقة",
+            3 => "مرفوض",
+            4 => "تم تأكيد المخزن",
+            5 => "ملغي",
+            _ => "غير معروف"
+        };
+    }
+
+
+    private static string GetStatusDescription(int status)
+    {
+        return status switch
+        {
+            1 => "الطلب بانتظار مراجعة المشرف.",
+            2 => "تم اعتماد الطلب وهو بانتظار تنفيذ المخزن.",
+            3 => "تم رفض طلب التحميل.",
+            4 => "أكد المخزن تنفيذ طلب التحميل.",
+            5 => "تم إلغاء طلب التحميل.",
+            _ => "حالة الطلب غير معروفة."
+        };
+    }
+
+
+    private static string GetStatusClass(int status)
+    {
+        return status switch
+        {
+            1 => "pending",
+            2 => "approved",
+            3 => "rejected",
+            4 => "confirmed",
+            5 => "cancelled",
+            _ => "unknown"
+        };
+    }
+
+
+    private static string FormatQuantity(
+        int largeQuantity,
+        int smallQuantity,
+        LoadRequestItemDto item,
+        string emptyText = "0 قطعة")
+    {
+        if (largeQuantity > 0)
+        {
+            return
+                $"{largeQuantity} {GetLargeUnit(item)} = " +
+                $"{smallQuantity} {GetSmallUnit(item)}";
+        }
+
+        if (smallQuantity > 0)
+        {
+            return
+                $"{smallQuantity} {GetSmallUnit(item)}";
+        }
+
+        return emptyText;
+    }
+
+
+    private static string GetSmallUnit(
+        LoadRequestItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.SmallUnit)
+            ? "قطعة"
+            : item.SmallUnit;
+    }
+
+
+    private static string GetLargeUnit(
+        LoadRequestItemDto item)
+    {
+        return string.IsNullOrWhiteSpace(item.LargeUnit)
+            ? "كرتونة"
+            : item.LargeUnit;
+    }
+
+
+    private static int GetUnitsPerLargeUnit(
+        LoadRequestItemDto item)
+    {
+        return item.UnitsPerLargeUnit <= 0
+            ? 1
+            : item.UnitsPerLargeUnit;
+    }
+
+
+    private static string FormatDate(DateTime value)
+    {
+        return value
+            .ToLocalTime()
+            .ToString("dd/MM/yyyy - hh:mm tt");
+    }
+
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo(
+            "/load-requests");
+    }
+}

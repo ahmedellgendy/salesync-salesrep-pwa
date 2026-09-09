@@ -4,10 +4,13 @@
 @using Microsoft.AspNetCore.Authorization
 @using Salesync.SalesRep.Pwa.Models.Responses.Profile
 @using Salesync.SalesRep.Pwa.Services.Api
+@using Salesync.SalesRep.Pwa.Auth
 
 @inject ProfileApiService ProfileApiService
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
+@inject SalesyncAuthenticationStateProvider AuthenticationStateProvider
+
 
 <PageTitle>حسابي - Salesync</PageTitle>
 
@@ -258,6 +261,16 @@
 
             </button>
 
+            <button type="button"
+                    class="rep-profile-logout-btn"
+                    disabled="@_isSigningOut"
+                    @onclick="LogoutAsync">
+
+                @(_isSigningOut
+                    ? "جاري تسجيل الخروج..."
+                    : "تسجيل الخروج")
+
+            </button>
 
             <button type="button"
                     class="rep-profile-back-btn"
@@ -279,6 +292,7 @@
     private bool _isRefreshing;
 
     private string? _errorMessage;
+    private bool _isSigningOut;
 
     private CurrentUserProfileDto? _profile;
 
@@ -492,5 +506,26 @@
             new Uri(baseUrl),
             imageUrl)
             .ToString();
+    }
+
+    private async Task LogoutAsync()
+    {
+        if (_isSigningOut)
+            return;
+
+        _isSigningOut = true;
+
+        try
+        {
+            await AuthenticationStateProvider.SignOutAsync();
+
+            NavigationManager.NavigateTo(
+                "/login",
+                forceLoad: true);
+        }
+        finally
+        {
+            _isSigningOut = false;
+        }
     }
 }
