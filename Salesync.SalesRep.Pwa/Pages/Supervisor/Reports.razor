@@ -11,9 +11,11 @@
 
 <PageTitle>التقارير - Salesync</PageTitle>
 
+
 <div class="supervisor-reports-page" dir="rtl">
 
     <header class="reports-header">
+
         <span class="reports-eyebrow">
             التقارير
         </span>
@@ -25,6 +27,7 @@
         <p>
             متابعة أداء فريق المبيعات خلال الفترة المحددة.
         </p>
+
     </header>
 
 
@@ -33,22 +36,26 @@
         <div class="date-fields">
 
             <div class="filter-field">
+
                 <label>
                     من
                 </label>
 
                 <input type="date"
                        @bind="_fromDate" />
+
             </div>
 
 
             <div class="filter-field">
+
                 <label>
                     إلى
                 </label>
 
                 <input type="date"
                        @bind="_toDate" />
+
             </div>
 
         </div>
@@ -102,7 +109,9 @@
         <section class="report-section">
 
             <div class="section-heading">
+
                 <div>
+
                     <span>
                         الأداء المالي
                     </span>
@@ -110,7 +119,9 @@
                     <h2>
                         المبيعات والتحصيل
                     </h2>
+
                 </div>
+
             </div>
 
 
@@ -118,9 +129,18 @@
 
                 <article class="financial-card primary">
 
-                    <span class="metric-label">
-                        صافي المبيعات
-                    </span>
+                    <div class="metric-top">
+
+                        <span class="metric-label">
+                            صافي المبيعات
+                        </span>
+
+                        <span class="metric-tag">
+                            الرئيسي
+                        </span>
+
+                    </div>
+
 
                     <strong class="metric-value">
                         @_summary.NetSales.ToString("N2")
@@ -191,7 +211,9 @@
         <section class="report-section">
 
             <div class="section-heading">
+
                 <div>
+
                     <span>
                         النشاط
                     </span>
@@ -199,7 +221,9 @@
                     <h2>
                         حركة الفريق
                     </h2>
+
                 </div>
+
             </div>
 
 
@@ -260,10 +284,13 @@
 
         </section>
 
+
         <section class="report-section">
 
             <div class="section-heading">
+
                 <div>
+
                     <span>
                         التقارير التفصيلية
                     </span>
@@ -271,7 +298,9 @@
                     <h2>
                         تفاصيل الأداء
                     </h2>
+
                 </div>
+
             </div>
 
 
@@ -281,14 +310,20 @@
                         class="report-link-card"
                         @onclick='() => OpenReport("sales")'>
 
-                    <div>
+                    <div class="report-link-icon">
+                        ▤
+                    </div>
+
+                    <div class="report-link-content">
+
                         <strong>
                             تقرير المبيعات
                         </strong>
 
                         <span>
-                            عرض الفواتير والمبيعات خلال الفترة المحددة.
+                            الفواتير والمبيعات خلال الفترة المحددة.
                         </span>
+
                     </div>
 
                     <span class="report-link-arrow">
@@ -296,19 +331,26 @@
                     </span>
 
                 </button>
+
 
                 <button type="button"
                         class="report-link-card"
                         @onclick='() => OpenReport("invoices")'>
 
-                    <div>
+                    <div class="report-link-icon">
+                        ≡
+                    </div>
+
+                    <div class="report-link-content">
+
                         <strong>
                             تقرير الفواتير
                         </strong>
 
                         <span>
-                            متابعة إجمالي الفواتير والمدفوع والمتبقي وحالة السداد.
+                            إجمالي الفواتير والمدفوع والمتبقي وحالة السداد.
                         </span>
+
                     </div>
 
                     <span class="report-link-arrow">
@@ -316,19 +358,26 @@
                     </span>
 
                 </button>
+
 
                 <button type="button"
                         class="report-link-card"
                         @onclick='() => OpenReport("payments")'>
 
-                    <div>
+                    <div class="report-link-icon">
+                        ✓
+                    </div>
+
+                    <div class="report-link-content">
+
                         <strong>
                             تقرير التحصيلات
                         </strong>
 
                         <span>
-                            متابعة المبالغ المحصلة وطرق الدفع والفواتير المرتبطة بها.
+                            المبالغ المحصلة وطرق الدفع والفواتير المرتبطة.
                         </span>
+
                     </div>
 
                     <span class="report-link-arrow">
@@ -336,19 +385,26 @@
                     </span>
 
                 </button>
+
 
                 <button type="button"
                         class="report-link-card"
                         @onclick='() => OpenReport("returns")'>
 
-                    <div>
+                    <div class="report-link-icon">
+                        ↩
+                    </div>
+
+                    <div class="report-link-content">
+
                         <strong>
                             تقرير المرتجعات
                         </strong>
 
                         <span>
-                            متابعة المرتجعات وأسبابها وحالتها وقيمتها خلال الفترة المحددة.
+                            المرتجعات وأسبابها وحالتها وقيمتها.
                         </span>
+
                     </div>
 
                     <span class="report-link-arrow">
@@ -356,19 +412,26 @@
                     </span>
 
                 </button>
+
 
                 <button type="button"
                         class="report-link-card"
                         @onclick='() => OpenReport("visits")'>
 
-                    <div>
+                    <div class="report-link-icon">
+                        ◎
+                    </div>
+
+                    <div class="report-link-content">
+
                         <strong>
                             تقرير الزيارات
                         </strong>
 
                         <span>
-                            متابعة زيارات العملاء ونتائج الزيارات ونشاط الفريق خلال الفترة المحددة.
+                            زيارات العملاء ونتائج الزيارات ونشاط الفريق.
                         </span>
+
                     </div>
 
                     <span class="report-link-arrow">
@@ -377,18 +440,25 @@
 
                 </button>
 
+
                 <button type="button"
                         class="report-link-card"
                         @onclick='() => OpenReport("salesrep-performance")'>
 
-                    <div>
+                    <div class="report-link-icon">
+                        ◇
+                    </div>
+
+                    <div class="report-link-content">
+
                         <strong>
                             أداء المناديب
                         </strong>
 
                         <span>
-                            مقارنة أداء مندوبي الفريق من حيث المبيعات والتحصيلات والزيارات والفواتير.
+                            مقارنة المبيعات والتحصيلات والزيارات والفواتير.
                         </span>
+
                     </div>
 
                     <span class="report-link-arrow">
@@ -404,6 +474,7 @@
 
 </div>
 
+
 @code
 {
     private DateTime _fromDate =
@@ -416,8 +487,7 @@
         DateTime.Today;
 
 
-    private SupervisorSummaryReportDto?
-        _summary;
+    private SupervisorSummaryReportDto? _summary;
 
 
     private bool _isLoading;
@@ -473,6 +543,7 @@
             _isLoading = false;
         }
     }
+
 
     private void OpenReport(string reportName)
     {

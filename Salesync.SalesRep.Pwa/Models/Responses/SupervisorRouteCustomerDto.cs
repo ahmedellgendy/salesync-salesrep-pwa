@@ -28,7 +28,11 @@
         public decimal CurrentBalance { get; set; }
         public decimal OrderCeiling { get; set; }
         public string Status { get; set; } = string.Empty;
+
         public int? BranchId { get; set; }
         public string? BranchName { get; set; }
+        
+        public int? RouteId { get; set; }
+        public string? RouteName { get; set; }
     }
 }

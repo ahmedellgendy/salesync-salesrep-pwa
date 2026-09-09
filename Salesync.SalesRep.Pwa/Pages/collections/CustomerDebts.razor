@@ -1,0 +1,1097 @@
+﻿@page "/reports/customerdebts"
+
+@using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Models.Requests
+@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Services.Interfaces
+
+@attribute [Authorize(Roles = "SalesRep")]
+
+@inject ISalesRepPaymentApiService PaymentApiService
+@inject NavigationManager NavigationManager
+
+<PageTitle>مديونيات العملاء - Salesync</PageTitle>
+
+
+<div class="customer-debts-page" dir="rtl">
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header class="debts-header">
+
+        <span class="debts-eyebrow">
+            التحصيلات
+        </span>
+
+        <h1>
+            مديونيات العملاء
+        </h1>
+
+        <p>
+            متابعة الفواتير غير المسددة وتسجيل تحصيلات العملاء.
+        </p>
+
+    </header>
+
+
+    <!-- =====================================================
+         MESSAGES
+    ====================================================== -->
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <div class="message-box success-message">
+
+            <span class="message-icon">
+                ✓
+            </span>
+
+            <span>
+                @_successMessage
+            </span>
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="message-box error-message">
+
+            <span class="message-icon">
+                !
+            </span>
+
+            <span>
+                @_errorMessage
+            </span>
+
+        </div>
+    }
+
+
+    <!-- =====================================================
+         SUMMARY
+    ====================================================== -->
+
+    <section class="summary-card">
+
+        <div class="summary-main">
+
+            <span class="summary-label">
+                إجمالي المديونية
+            </span>
+
+            <div class="summary-value">
+                @TotalOutstanding.ToString("N2")
+
+                <small>
+                    ج.م
+                </small>
+            </div>
+
+        </div>
+
+
+        <div class="summary-stat">
+
+            <span>
+                العملاء
+            </span>
+
+            <strong>
+                @CustomerGroups.Count
+            </strong>
+
+        </div>
+
+
+        <div class="summary-stat">
+
+            <span>
+                الفواتير
+            </span>
+
+            <strong>
+                @_invoices.Count
+            </strong>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         SEARCH
+    ====================================================== -->
+
+    <section class="search-section">
+
+        <div class="search-box">
+
+            <span class="search-symbol">
+                ⌕
+            </span>
+
+            <input type="text"
+                   placeholder="ابحث باسم العميل أو رقم الفاتورة..."
+                   @bind="_searchText"
+                   @bind:event="oninput" />
+
+
+            @if (!string.IsNullOrWhiteSpace(_searchText))
+            {
+                <button type="button"
+                        class="clear-search"
+                        @onclick="ClearSearch">
+
+                    ×
+
+                </button>
+            }
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         STATE
+    ====================================================== -->
+    @if (_isLoading)
+    {
+        <section class="state-card">
+
+            <div class="spinner-border spinner-border-sm"></div>
+
+            <strong>
+                جاري تحميل المديونيات...
+            </strong>
+
+        </section>
+    }
+    else if (_invoices.Count == 0)
+    {
+        <section class="state-card">
+
+            <div class="state-icon success-state">
+                ✓
+            </div>
+
+            <strong>
+                لا توجد مديونيات
+            </strong>
+
+            <p>
+                لا توجد فواتير مستحقة حاليًا.
+            </p>
+
+        </section>
+    }
+    else if (!FilteredCustomerGroups.Any())
+    {
+        <section class="state-card">
+
+            <div class="state-icon">
+                ⌕
+            </div>
+
+            <strong>
+                لا توجد نتائج
+            </strong>
+
+            <p>
+                لا توجد مديونيات مطابقة للبحث.
+            </p>
+
+        </section>
+    }
+    else
+    {
+        <!-- =================================================
+             CUSTOMERS
+        ================================================== -->
+
+        <section class="customers-list">
+
+            @foreach (var customer in FilteredCustomerGroups)
+            {
+                <article class="customer-card">
+
+
+                    <!-- Customer summary -->
+
+                    <button type="button"
+                            class="customer-header"
+                            @onclick="() => ToggleCustomer(customer.CustomerId)">
+
+                        <div class="customer-avatar">
+                            ع
+                        </div>
+
+
+                        <div class="customer-info">
+
+                            <strong class="customer-name">
+                                @customer.CustomerName
+                            </strong>
+
+                            <span>
+                                @customer.InvoiceCount فاتورة مستحقة
+                            </span>
+
+                        </div>
+
+
+                        <div class="customer-debt">
+
+                            <span>
+                                المديونية
+                            </span>
+
+                            <strong>
+                                @customer.OutstandingAmount.ToString("N2")
+                            </strong>
+
+                        </div>
+
+
+                        <span class="expand-arrow">
+                            @(IsCustomerExpanded(customer.CustomerId)
+                                ? "⌃"
+                                : "⌄")
+                        </span>
+
+                    </button>
+
+
+                    <!-- Customer invoices -->
+                    @if (IsCustomerExpanded(customer.CustomerId))
+                    {
+                        <div class="customer-invoices">
+
+                            @foreach (var invoice in customer.Invoices)
+                            {
+                                <article class="invoice-card">
+
+
+                                    <div class="invoice-header">
+
+                                        <div class="invoice-info">
+
+                                            <strong class="invoice-number">
+                                                @invoice.InvoiceNumber
+                                            </strong>
+
+                                            <span class="invoice-date">
+                                                @FormatDate(invoice.InvoiceDate)
+                                            </span>
+
+                                        </div>
+
+
+                                        <span class="@GetPaymentStatusClass(invoice)">
+                                            @GetPaymentStatusText(invoice)
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="invoice-values">
+
+                                        <div class="invoice-value">
+
+                                            <span>
+                                                إجمالي
+                                            </span>
+
+                                            <strong>
+                                                @invoice.TotalAmount.ToString("N2")
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div class="invoice-value">
+
+                                            <span>
+                                                مدفوع
+                                            </span>
+
+                                            <strong class="paid-value">
+                                                @invoice.PaidAmount.ToString("N2")
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div class="invoice-value">
+
+                                            <span>
+                                                متبقي
+                                            </span>
+
+                                            <strong class="remaining-value">
+                                                @invoice.OutstandingAmount.ToString("N2")
+                                            </strong>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <button type="button"
+                                            class="collect-button"
+                                            @onclick="() => OpenPaymentModal(invoice)">
+
+                                        تحصيل
+
+                                    </button>
+
+                                </article>
+                            }
+
+                        </div>
+                    }
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+<!-- =========================================================
+     PAYMENT MODAL
+========================================================= -->
+@if (_showPaymentModal &&
+     _selectedInvoice is not null)
+{
+    <div class="payment-backdrop"
+         @onclick="ClosePaymentModal">
+    </div>
+
+
+    <section class="payment-sheet"
+             dir="rtl">
+
+        <div class="sheet-handle">
+        </div>
+
+
+        <!-- Header -->
+
+        <header class="sheet-header">
+
+            <div>
+
+                <span>
+                    تسجيل تحصيل
+                </span>
+
+                <h2>
+                    @_selectedInvoice.CustomerName
+                </h2>
+
+            </div>
+
+
+            <button type="button"
+                    class="sheet-close-button"
+                    @onclick="ClosePaymentModal"
+                    disabled="@_isSubmitting">
+
+                ×
+
+            </button>
+
+        </header>
+
+
+        <!-- Body -->
+
+        <div class="sheet-body">
+
+
+            <div class="selected-invoice-grid">
+
+                <div>
+
+                    <span>
+                        الفاتورة
+                    </span>
+
+                    <strong>
+                        @_selectedInvoice.InvoiceNumber
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        المتبقي
+                    </span>
+
+                    <strong class="selected-remaining">
+                        @_selectedInvoice.OutstandingAmount.ToString("N2")
+                        ج.م
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- Amount -->
+
+            <div class="field-group">
+
+                <label>
+                    مبلغ التحصيل
+                </label>
+
+                <InputNumber TValue="decimal?"
+                             class="field-control amount-input"
+                             @bind-Value="_paymentAmount" />
+
+            </div>
+
+
+            <!-- Quick amounts -->
+
+            <div class="quick-buttons">
+
+                <button type="button"
+                        @onclick="SetFullAmount">
+
+                    كامل المبلغ
+
+                </button>
+
+
+                @if (_selectedInvoice.OutstandingAmount >= 100m)
+                {
+                    <button type="button"
+                            @onclick="() => SetAmount(100m)">
+
+                        100
+
+                    </button>
+                }
+
+
+                @if (_selectedInvoice.OutstandingAmount >= 500m)
+                {
+                    <button type="button"
+                            @onclick="() => SetAmount(500m)">
+
+                        500
+
+                    </button>
+                }
+
+            </div>
+
+
+            <!-- Payment method -->
+
+            <div class="field-group">
+
+                <label>
+                    طريقة الدفع
+                </label>
+
+                <select class="field-control"
+                        @bind="_paymentMethod">
+
+                    <option value="1">
+                        نقدي
+                    </option>
+
+                    <option value="2">
+                        شيك
+                    </option>
+
+                    <option value="3">
+                        تحويل بنكي
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- Notes -->
+
+            <div class="field-group">
+
+                <label>
+                    ملاحظات
+                </label>
+
+                <textarea class="field-control notes-control"
+                          rows="2"
+                          @bind="_paymentNotes"
+                          placeholder="اختياري">
+                </textarea>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(_modalErrorMessage))
+            {
+                <div class="modal-error">
+
+                    <span>
+                        !
+                    </span>
+
+                    @_modalErrorMessage
+
+                </div>
+            }
+
+        </div>
+
+
+        <!-- Footer -->
+
+        <footer class="sheet-footer">
+
+            <button type="button"
+                    class="cancel-button"
+                    @onclick="ClosePaymentModal"
+                    disabled="@_isSubmitting">
+
+                إلغاء
+
+            </button>
+
+
+            <button type="button"
+                    class="confirm-button"
+                    @onclick="SubmitPaymentAsync"
+                    disabled="@_isSubmitting">
+
+                @if (_isSubmitting)
+                {
+                    <span class="spinner-border spinner-border-sm"></span>
+
+                    <span>
+                        جاري التسجيل...
+                    </span>
+                }
+                else
+                {
+                    <span>
+                        تأكيد التحصيل
+                    </span>
+                }
+
+            </button>
+
+        </footer>
+
+    </section>
+}
+
+
+@code {
+
+    private readonly List<OutstandingInvoiceDto> _invoices =
+        new();
+
+
+    private readonly HashSet<int> _expandedCustomers =
+        new();
+
+
+    private bool _isLoading =
+        true;
+
+
+    private bool _isSubmitting;
+
+
+    private string _searchText =
+        string.Empty;
+
+
+    private string? _errorMessage;
+
+    private string? _successMessage;
+
+
+    private bool _showPaymentModal;
+
+
+    private OutstandingInvoiceDto? _selectedInvoice;
+
+
+    private decimal? _paymentAmount;
+
+
+    private int _paymentMethod =
+        1;
+
+
+    private string? _paymentNotes;
+
+
+    private string? _modalErrorMessage;
+
+
+    // =========================================================
+    // SUMMARY
+    // =========================================================
+
+    private decimal TotalOutstanding =>
+        _invoices.Sum(x =>
+            x.OutstandingAmount);
+
+
+    private List<CustomerDebtGroup> CustomerGroups =>
+        _invoices
+            .GroupBy(x =>
+                new
+                {
+                    x.CustomerId,
+                    x.CustomerName
+                })
+            .Select(group =>
+                new CustomerDebtGroup
+                {
+                    CustomerId =
+                        group.Key.CustomerId,
+
+                    CustomerName =
+                        group.Key.CustomerName,
+
+                    OutstandingAmount =
+                        group.Sum(x =>
+                            x.OutstandingAmount),
+
+                    InvoiceCount =
+                        group.Count(),
+
+                    Invoices =
+                        group
+                            .OrderByDescending(x =>
+                                x.InvoiceDate)
+                            .ToList()
+                })
+            .OrderByDescending(x =>
+                x.OutstandingAmount)
+            .ToList();
+
+
+    private IEnumerable<CustomerDebtGroup>
+        FilteredCustomerGroups
+    {
+        get
+        {
+            var groups =
+                CustomerGroups.AsEnumerable();
+
+
+            if (string.IsNullOrWhiteSpace(
+                _searchText))
+            {
+                return groups;
+            }
+
+
+            var search =
+                _searchText.Trim();
+
+
+            return groups.Where(x =>
+                x.CustomerName.Contains(
+                    search,
+                    StringComparison.OrdinalIgnoreCase)
+                ||
+                x.Invoices.Any(invoice =>
+                    invoice.InvoiceNumber.Contains(
+                        search,
+                        StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
+
+    // =========================================================
+    // INIT
+    // =========================================================
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+
+    // =========================================================
+    // LOAD
+    // =========================================================
+
+    private async Task LoadAsync()
+    {
+        if (_isLoading &&
+            _invoices.Count > 0)
+        {
+            return;
+        }
+
+
+        _isLoading =
+            true;
+
+
+        _errorMessage =
+            null;
+
+
+        try
+        {
+            var response =
+                await PaymentApiService
+                    .GetOutstandingInvoicesAsync();
+
+
+            if (response?.Success != true ||
+                response.Data is null)
+            {
+                _invoices.Clear();
+
+
+                _errorMessage =
+                    response?.Message
+                    ?? "تعذر تحميل مديونيات العملاء.";
+
+
+                return;
+            }
+
+
+            _invoices.Clear();
+
+
+            _invoices.AddRange(
+                response.Data
+                    .Where(x =>
+                        x.OutstandingAmount > 0)
+                    .OrderByDescending(x =>
+                        x.InvoiceDate));
+        }
+        catch
+        {
+            _invoices.Clear();
+
+
+            _errorMessage =
+                "تعذر تحميل مديونيات العملاء.";
+        }
+        finally
+        {
+            _isLoading =
+                false;
+        }
+    }
+
+
+    // =========================================================
+    // CUSTOMER EXPANSION
+    // =========================================================
+
+    private void ToggleCustomer(
+        int customerId)
+    {
+        if (!_expandedCustomers.Add(
+            customerId))
+        {
+            _expandedCustomers.Remove(
+                customerId);
+        }
+    }
+
+
+    private bool IsCustomerExpanded(
+        int customerId)
+    {
+        return _expandedCustomers.Contains(
+            customerId);
+    }
+
+
+    // =========================================================
+    // PAYMENT MODAL
+    // =========================================================
+
+    private void OpenPaymentModal(
+        OutstandingInvoiceDto invoice)
+    {
+        _selectedInvoice =
+            invoice;
+
+
+        _paymentAmount =
+            invoice.OutstandingAmount;
+
+
+        _paymentMethod =
+            1;
+
+
+        _paymentNotes =
+            null;
+
+
+        _modalErrorMessage =
+            null;
+
+
+        _successMessage =
+            null;
+
+
+        _showPaymentModal =
+            true;
+    }
+
+
+    private void ClosePaymentModal()
+    {
+        if (_isSubmitting)
+            return;
+
+
+        ResetPaymentModal();
+    }
+
+
+    private void ResetPaymentModal()
+    {
+        _showPaymentModal =
+            false;
+
+
+        _selectedInvoice =
+            null;
+
+
+        _paymentAmount =
+            null;
+
+
+        _paymentMethod =
+            1;
+
+
+        _paymentNotes =
+            null;
+
+
+        _modalErrorMessage =
+            null;
+    }
+
+
+    private void SetFullAmount()
+    {
+        if (_selectedInvoice is null)
+            return;
+
+
+        _paymentAmount =
+            _selectedInvoice.OutstandingAmount;
+    }
+
+
+    private void SetAmount(
+        decimal amount)
+    {
+        if (_selectedInvoice is null)
+            return;
+
+
+        _paymentAmount =
+            Math.Min(
+                amount,
+                _selectedInvoice.OutstandingAmount);
+    }
+
+
+    // =========================================================
+    // SUBMIT PAYMENT
+    // =========================================================
+
+    private async Task SubmitPaymentAsync()
+    {
+        if (_selectedInvoice is null)
+            return;
+
+
+        if (!_paymentAmount.HasValue ||
+            _paymentAmount.Value <= 0)
+        {
+            _modalErrorMessage =
+                "أدخل مبلغ تحصيل أكبر من صفر.";
+
+
+            return;
+        }
+
+
+        if (_paymentAmount.Value >
+            _selectedInvoice.OutstandingAmount)
+        {
+            _modalErrorMessage =
+                $"المبلغ لا يمكن أن يتجاوز المتبقي ({_selectedInvoice.OutstandingAmount:N2} ج.م).";
+
+
+            return;
+        }
+
+
+        _isSubmitting =
+            true;
+
+
+        _modalErrorMessage =
+            null;
+
+
+        try
+        {
+            var request =
+                new CreateSalesRepMobilePaymentRequest
+                {
+                    InvoiceId =
+                        _selectedInvoice.InvoiceId,
+
+                    Amount =
+                        _paymentAmount.Value,
+
+                    PaymentMethod =
+                        _paymentMethod,
+
+                    Notes =
+                        string.IsNullOrWhiteSpace(
+                            _paymentNotes)
+                            ? null
+                            : _paymentNotes.Trim()
+                };
+
+
+            var response =
+                await PaymentApiService
+                    .CreatePaymentAsync(request);
+
+
+            if (response?.Success != true ||
+                response.Data is null)
+            {
+                _modalErrorMessage =
+                    response?.Message
+                    ?? "تعذر تسجيل التحصيل.";
+
+
+                return;
+            }
+
+
+            var paidAmount =
+                _paymentAmount.Value;
+
+
+            var invoiceNumber =
+                _selectedInvoice.InvoiceNumber;
+
+
+            /*
+             * Force close after successful save.
+             * Do not call ClosePaymentModal here because
+             * _isSubmitting is still true.
+             */
+            ResetPaymentModal();
+
+
+            _successMessage =
+                $"تم تسجيل تحصيل {paidAmount:N2} ج.م على الفاتورة {invoiceNumber}.";
+
+
+            await LoadAsync();
+        }
+        catch
+        {
+            _modalErrorMessage =
+                "حدث خطأ أثناء تسجيل التحصيل.";
+        }
+        finally
+        {
+            _isSubmitting =
+                false;
+        }
+    }
+
+
+    // =========================================================
+    // HELPERS
+    // =========================================================
+
+    private void ClearSearch()
+    {
+        _searchText =
+            string.Empty;
+    }
+
+
+    private static string FormatDate(
+        DateTime value)
+    {
+        return value
+            .ToLocalTime()
+            .ToString("dd/MM/yyyy - HH:mm");
+    }
+
+
+    private static string GetPaymentStatusText(
+        OutstandingInvoiceDto invoice)
+    {
+        return invoice.PaidAmount > 0
+            ? "مدفوع جزئيًا"
+            : "غير مدفوع";
+    }
+
+
+    private static string GetPaymentStatusClass(
+        OutstandingInvoiceDto invoice)
+    {
+        return invoice.PaidAmount > 0
+            ? "payment-status partial"
+            : "payment-status pending";
+    }
+
+
+    private sealed class CustomerDebtGroup
+    {
+        public int CustomerId { get; set; }
+
+
+        public string CustomerName { get; set; } =
+            string.Empty;
+
+
+        public decimal OutstandingAmount { get; set; }
+
+
+        public int InvoiceCount { get; set; }
+
+
+        public List<OutstandingInvoiceDto> Invoices { get; set; } =
+            new();
+    }
+}

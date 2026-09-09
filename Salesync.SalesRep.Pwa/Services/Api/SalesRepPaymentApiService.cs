@@ -48,6 +48,31 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             }
         }
 
+        public async Task<ApiResponse<IEnumerable<OutstandingInvoiceDto>>?> GetOutstandingInvoicesAsync()
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<
+                    ApiResponse<IEnumerable<OutstandingInvoiceDto>>>(
+                        "api/Payment/outstanding-invoices/current-sales-rep");
+            }
+            catch (HttpRequestException)
+            {
+                return CreateErrorResponse<IEnumerable<OutstandingInvoiceDto>>(
+                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+            }
+            catch (JsonException)
+            {
+                return CreateErrorResponse<IEnumerable<OutstandingInvoiceDto>>(
+                    "صيغة الاستجابة القادمة من الخادم غير صحيحة.");
+            }
+            catch
+            {
+                return CreateErrorResponse<IEnumerable<OutstandingInvoiceDto>>(
+                    "حدث خطأ غير متوقع أثناء تحميل مديونيات العملاء.");
+            }
+        }
+
         private static ApiResponse<T> CreateErrorResponse<T>(
             string message,
             int statusCode = 500)

@@ -10,11 +10,13 @@
 
 <PageTitle>العملاء - Salesync</PageTitle>
 
+
 <div class="supervisor-customers-page" dir="rtl">
 
     <section class="page-header">
 
         <div>
+
             <span class="page-eyebrow">
                 فريق المبيعات
             </span>
@@ -26,7 +28,25 @@
             <p>
                 جميع العملاء التابعين لخطوط مناديبك.
             </p>
+
         </div>
+
+    </section>
+
+
+    <section class="customers-view-tabs">
+
+        <button type="button"
+                class="@GetViewTabClass("customers")"
+                @onclick="ShowCustomersView">
+            العملاء
+        </button>
+
+        <button type="button"
+                class="@GetViewTabClass("routes")"
+                @onclick="ShowRoutesView">
+            الخطوط
+        </button>
 
     </section>
 
@@ -34,9 +54,11 @@
     @if (_isLoading)
     {
         <section class="state-card">
+
             <strong>
                 جاري تحميل العملاء...
             </strong>
+
         </section>
     }
     else if (!string.IsNullOrWhiteSpace(_errorMessage))
@@ -75,128 +97,410 @@
     }
     else
     {
-        <section class="customers-summary">
+        @if (_activeView == "customers")
+        {
+            <section class="customers-tools">
 
-            <span>
-                إجمالي العملاء
-            </span>
+                <div class="customers-search">
 
-            <strong>
-                @_customers.Count
-            </strong>
+                    <span class="search-icon">
+                        🔍
+                    </span>
 
-        </section>
+                    <input type="text"
+                           placeholder="ابحث باسم العميل أو الهاتف..."
+                           @bind="_searchText"
+                           @bind:event="oninput" />
+
+                </div>
 
 
-        <section class="customers-list">
+                @if (HasMultipleRoutes)
+                {
+                    <div class="route-filter">
 
-            @foreach (var customer in _customers)
+                        <label>
+                            الخط
+                        </label>
+
+                        <select @bind="_selectedRouteId">
+
+                            <option value="0">
+                                كل الخطوط
+                            </option>
+
+                            @foreach (var route in Routes)
+                            {
+                                <option value="@route.Id">
+                                    @route.Name
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+                }
+
+            </section>
+
+
+            <section class="customers-summary">
+
+                <div>
+
+                    <span>
+                        العملاء المعروضون
+                    </span>
+
+                    <strong>
+                        @FilteredCustomers.Count
+                    </strong>
+
+                </div>
+
+
+                @if (HasActiveFilter)
+                {
+                    <div class="summary-total">
+                        من إجمالي @_customers.Count عميل
+                    </div>
+                }
+
+            </section>
+
+
+            @if (FilteredCustomers.Count == 0)
             {
-                <article class="customer-card">
+                <section class="state-card filtered-empty">
 
-                    <div class="customer-card-header">
+                    <div class="empty-icon">
+                        🔎
+                    </div>
 
-                        <div class="customer-avatar">
-                            @GetInitial(customer.Name)
-                        </div>
+                    <strong>
+                        لا توجد نتائج
+                    </strong>
 
-                        <div class="customer-main-info">
+                    <p>
+                        لا يوجد عميل مطابق للبحث أو الخط المحدد.
+                    </p>
 
-                            <div class="customer-name-row">
+                    <button type="button"
+                            class="clear-filter-button"
+                            @onclick="ClearFilters">
+                        مسح البحث والفلاتر
+                    </button>
 
-                                <h2>
-                                    @customer.Name
-                                </h2>
+                </section>
+            }
+            else
+            {
+                <section class="customers-list">
 
-                                <span class="@GetStatusClass(customer.Status)">
-                                    @GetStatusText(customer.Status)
+                    @foreach (var customer in FilteredCustomers)
+                    {
+                        <article class="customer-card">
+
+                            <div class="customer-card-header">
+
+                                <div class="customer-avatar">
+                                    @GetInitial(customer.Name)
+                                </div>
+
+
+                                <div class="customer-main-info">
+
+                                    <div class="customer-name-row">
+
+                                        <h2>
+                                            @customer.Name
+                                        </h2>
+
+                                        <span class="@GetStatusClass(customer.Status)">
+                                            @GetStatusText(customer.Status)
+                                        </span>
+
+                                    </div>
+
+
+                                    @if (!string.IsNullOrWhiteSpace(customer.Phone))
+                                    {
+                                        <span class="customer-phone">
+                                            @customer.Phone
+                                        </span>
+                                    }
+
+
+                                    @if (!string.IsNullOrWhiteSpace(customer.RouteName))
+                                    {
+                                        <span class="customer-route-badge">
+                                            الخط: @customer.RouteName
+                                        </span>
+                                    }
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="customer-details">
+
+                                <div class="detail-row">
+
+                                    <span class="detail-label">
+                                        العنوان
+                                    </span>
+
+                                    <strong>
+                                        @GetAddress(customer)
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="customer-financial-grid">
+
+                                    <div class="financial-item">
+
+                                        <span>
+                                            الرصيد الحالي
+                                        </span>
+
+                                        <strong>
+                                            @customer.CurrentBalance.ToString("N2")
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div class="financial-item">
+
+                                        <span>
+                                            حد الائتمان
+                                        </span>
+
+                                        <strong>
+                                            @customer.CreditLimit.ToString("N2")
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div class="financial-item">
+
+                                        <span>
+                                            سقف الطلب
+                                        </span>
+
+                                        <strong>
+                                            @customer.OrderCeiling.ToString("N2")
+                                        </strong>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </article>
+                    }
+
+                </section>
+            }
+        }
+        else
+        {
+            <section class="routes-summary">
+
+                <div>
+
+                    <span>
+                        إجمالي الخطوط
+                    </span>
+
+                    <strong>
+                        @Routes.Count
+                    </strong>
+
+                </div>
+
+                <div>
+
+                    <span>
+                        إجمالي العملاء
+                    </span>
+
+                    <strong>
+                        @_customers.Count
+                    </strong>
+
+                </div>
+
+            </section>
+
+
+            @if (Routes.Count == 0)
+            {
+                <section class="state-card">
+
+                    <strong>
+                        لا توجد خطوط
+                    </strong>
+
+                    <p>
+                        لا توجد خطوط مرتبطة بعملاء فريقك حاليًا.
+                    </p>
+
+                </section>
+            }
+            else
+            {
+                <section class="routes-list">
+
+                    @foreach (var route in Routes)
+                    {
+                        var routeCustomers =
+                            GetCustomersByRoute(route.Id);
+
+                        <article class="route-card">
+
+                            <div class="route-card-header">
+
+                                <div class="route-title-area">
+
+                                    <div class="route-icon">
+                                        ◎
+                                    </div>
+
+                                    <div>
+
+                                        <span class="route-eyebrow">
+                                            خط المبيعات
+                                        </span>
+
+                                        <h2>
+                                            @route.Name
+                                        </h2>
+
+                                    </div>
+
+                                </div>
+
+
+                                <span class="route-count">
+                                    @routeCustomers.Count عميل
                                 </span>
 
                             </div>
 
-                            @if (!string.IsNullOrWhiteSpace(customer.Phone))
-                            {
-                                <span class="customer-phone">
-                                    @customer.Phone
-                                </span>
-                            }
 
-                        </div>
+                            <div class="route-customers">
 
-                    </div>
+                                @foreach (var customer in routeCustomers)
+                                {
+                                    <div class="route-customer-row">
 
-
-                    <div class="customer-details">
-
-                        <div class="detail-row">
-
-                            <span class="detail-label">
-                                العنوان
-                            </span>
-
-                            <strong>
-                                @GetAddress(customer)
-                            </strong>
-
-                        </div>
+                                        <div class="customer-avatar small">
+                                            @GetInitial(customer.Name)
+                                        </div>
 
 
-                        <div class="detail-row">
+                                        <div class="route-customer-info">
 
-                            <span class="detail-label">
-                                الرصيد الحالي
-                            </span>
+                                            <div class="route-customer-name">
 
-                            <strong>
-                                @customer.CurrentBalance.ToString("N2")
-                            </strong>
+                                                <strong>
+                                                    @customer.Name
+                                                </strong>
 
-                        </div>
+                                                <span class="@GetStatusClass(customer.Status)">
+                                                    @GetStatusText(customer.Status)
+                                                </span>
 
-
-                        <div class="detail-row">
-
-                            <span class="detail-label">
-                                حد الائتمان
-                            </span>
-
-                            <strong>
-                                @customer.CreditLimit.ToString("N2")
-                            </strong>
-
-                        </div>
+                                            </div>
 
 
-                        <div class="detail-row">
+                                            @if (!string.IsNullOrWhiteSpace(customer.Phone))
+                                            {
+                                                <span class="route-customer-phone">
+                                                    @customer.Phone
+                                                </span>
+                                            }
 
-                            <span class="detail-label">
-                                سقف الطلب
-                            </span>
 
-                            <strong>
-                                @customer.OrderCeiling.ToString("N2")
-                            </strong>
+                                            <small>
+                                                @GetAddress(customer)
+                                            </small>
 
-                        </div>
+                                        </div>
 
-                    </div>
+                                    </div>
+                                }
 
-                </article>
+                            </div>
+
+                        </article>
+                    }
+
+                </section>
             }
-
-        </section>
+        }
     }
 
 </div>
 
+
 @code
 {
-    private readonly List<SupervisorCustomerDto>
-        _customers = new();
+    private readonly List<SupervisorCustomerDto> _customers = new();
 
     private bool _isLoading = true;
 
     private string? _errorMessage;
+
+    private string? _searchText;
+
+    private int _selectedRouteId;
+
+    private string _activeView = "customers";
+
+
+    private List<RouteFilterItem> Routes =>
+        _customers
+            .Where(x => x.RouteId.HasValue)
+            .GroupBy(x => new
+            {
+                x.RouteId,
+                x.RouteName
+            })
+            .Select(x => new RouteFilterItem
+            {
+                Id = x.Key.RouteId!.Value,
+
+                Name =
+                    string.IsNullOrWhiteSpace(x.Key.RouteName)
+                        ? $"خط رقم {x.Key.RouteId}"
+                        : x.Key.RouteName
+            })
+            .OrderBy(x => x.Name)
+            .ToList();
+
+
+    private bool HasMultipleRoutes =>
+        Routes.Count > 1;
+
+
+    private bool HasActiveFilter =>
+        !string.IsNullOrWhiteSpace(_searchText)
+        || _selectedRouteId > 0;
+
+
+    private List<SupervisorCustomerDto> FilteredCustomers =>
+        _customers
+            .Where(MatchesRoute)
+            .Where(MatchesSearch)
+            .OrderBy(x => x.Name)
+            .ToList();
 
 
     protected override async Task OnInitializedAsync()
@@ -208,6 +512,7 @@
     private async Task LoadCustomersAsync()
     {
         _isLoading = true;
+
         _errorMessage = null;
 
         try
@@ -226,13 +531,15 @@
                     response.Data
                         .OrderBy(x => x.Name));
 
+                ValidateSelectedRoute();
+
                 return;
             }
 
 
             _errorMessage =
-                response?.Message ??
-                "حدث خطأ أثناء تحميل العملاء.";
+                response?.Message
+                ?? "حدث خطأ أثناء تحميل العملاء.";
         }
         catch (Exception)
         {
@@ -246,12 +553,112 @@
     }
 
 
-    private static string GetInitial(string? name)
+    private void ShowCustomersView()
+    {
+        _activeView = "customers";
+    }
+
+
+    private void ShowRoutesView()
+    {
+        _activeView = "routes";
+    }
+
+
+    private string GetViewTabClass(string view)
+    {
+        return _activeView == view
+            ? "customers-view-tab active"
+            : "customers-view-tab";
+    }
+
+
+    private List<SupervisorCustomerDto>
+        GetCustomersByRoute(int routeId)
+    {
+        return _customers
+            .Where(x => x.RouteId == routeId)
+            .OrderBy(x => x.Name)
+            .ToList();
+    }
+
+
+    private bool MatchesRoute(
+        SupervisorCustomerDto customer)
+    {
+        if (_selectedRouteId <= 0)
+            return true;
+
+        return customer.RouteId ==
+               _selectedRouteId;
+    }
+
+
+    private bool MatchesSearch(
+        SupervisorCustomerDto customer)
+    {
+        if (string.IsNullOrWhiteSpace(_searchText))
+            return true;
+
+        var search =
+            _searchText.Trim();
+
+
+        return
+            Contains(customer.Name, search)
+            || Contains(customer.Phone, search)
+            || Contains(customer.Email, search)
+            || Contains(customer.Address, search)
+            || Contains(customer.Area, search)
+            || Contains(customer.City, search)
+            || Contains(customer.District, search)
+            || Contains(customer.Region, search)
+            || Contains(customer.RouteName, search);
+    }
+
+
+    private static bool Contains(
+        string? value,
+        string search)
+    {
+        return
+            !string.IsNullOrWhiteSpace(value)
+            && value.Contains(
+                search,
+                StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    private void ClearFilters()
+    {
+        _searchText = null;
+
+        _selectedRouteId = 0;
+    }
+
+
+    private void ValidateSelectedRoute()
+    {
+        if (_selectedRouteId <= 0)
+            return;
+
+        if (!Routes.Any(
+                x => x.Id == _selectedRouteId))
+        {
+            _selectedRouteId = 0;
+        }
+    }
+
+
+    private static string GetInitial(
+        string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
             return "ع";
 
-        return name.Trim()[0].ToString();
+        return name
+            .Trim()[0]
+            .ToString();
     }
 
 
@@ -264,12 +671,16 @@
             customer.Area,
             customer.City
         }
-        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Where(x =>
+            !string.IsNullOrWhiteSpace(x))
         .ToArray();
+
 
         return parts.Length == 0
             ? "-"
-            : string.Join(" - ", parts);
+            : string.Join(
+                " - ",
+                parts);
     }
 
 
@@ -292,5 +703,14 @@
             StringComparison.OrdinalIgnoreCase) == true
                 ? "customer-status active"
                 : "customer-status inactive";
+    }
+
+
+    private sealed class RouteFilterItem
+    {
+        public int Id { get; set; }
+
+        public string Name { get; set; }
+            = string.Empty;
     }
 }

@@ -71,6 +71,15 @@
             </button>
 
             <button class="report-tile"
+                    @onclick="GoToCustomerDebts">
+                <div class="report-icon">💳</div>
+                <div>
+                    <strong>مديونيات العملاء</strong>
+                    <small>الفواتير القديمة والمبالغ المستحقة</small>
+                </div>
+            </button>
+
+            <button class="report-tile"
                     disabled="@(!CanOpenSessionReports)"
                     @onclick="GoToRoutes">
                 <div class="report-icon">👥</div>
@@ -196,5 +205,11 @@
     private void GoToLoadRequests()
     {
         NavigationManager.NavigateTo("/load-requests");
+    }
+
+    private void GoToCustomerDebts()
+    {
+        NavigationManager.NavigateTo(
+            "/reports/customerdebts");
     }
 }

@@ -11,17 +11,13 @@
 
 <PageTitle>تفاصيل المندوب - Salesync</PageTitle>
 
+
 <div class="salesrep-details-page" dir="rtl">
 
     <section class="page-header">
 
-        <button type="button"
-                class="back-button"
-                @onclick="GoBack">
-            رجوع
-        </button>
-
         <div>
+
             <span class="page-eyebrow">
                 فريق العمل
             </span>
@@ -29,7 +25,15 @@
             <h1>
                 تفاصيل المندوب
             </h1>
+
         </div>
+
+
+        <button type="button"
+                class="back-button"
+                @onclick="GoBack">
+            رجوع
+        </button>
 
     </section>
 
@@ -37,9 +41,11 @@
     @if (_isLoading)
     {
         <section class="state-card">
+
             <strong>
                 جاري تحميل البيانات...
             </strong>
+
         </section>
     }
     else if (!string.IsNullOrWhiteSpace(_errorMessage))
@@ -62,38 +68,77 @@
 
         </section>
     }
-    else
+    else if (_salesRep is not null)
     {
         <section class="salesrep-overview">
 
-            <div class="salesrep-avatar">
-                @GetInitials(_salesRep?.Name)
-            </div>
+            <div class="salesrep-overview-top">
 
-            <div class="salesrep-info">
+                <div class="salesrep-avatar">
+                    @GetInitials(_salesRep.Name)
+                </div>
 
-                <div class="salesrep-title-row">
 
-                    <h2>
-                        @_salesRep?.Name
-                    </h2>
+                <div class="salesrep-info">
 
-                    @if (_salesRep?.IsActive == true)
-                    {
-                        <span class="status-badge active">
-                            نشط
-                        </span>
-                    }
+                    <div class="salesrep-title-row">
+
+                        <h2>
+                            @_salesRep.Name
+                        </h2>
+
+
+                        @if (_salesRep.IsActive)
+                        {
+                            <span class="status-badge active">
+                                نشط
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="status-badge inactive">
+                                غير نشط
+                            </span>
+                        }
+
+                    </div>
+
+
+                    <span class="salesrep-code">
+                        @_salesRep.SalesRepCode
+                    </span>
 
                 </div>
 
-                <span class="salesrep-code">
-                    @_salesRep?.SalesRepCode
-                </span>
+            </div>
 
-                <span class="salesrep-phone">
-                    @GetPhone(_salesRep)
-                </span>
+
+            <div class="salesrep-info-grid">
+
+                <div class="info-item">
+
+                    <span>
+                        الهاتف
+                    </span>
+
+                    <strong class="ltr-value">
+                        @GetPhone(_salesRep)
+                    </strong>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span>
+                        البريد الإلكتروني
+                    </span>
+
+                    <strong class="email-value">
+                        @GetEmail(_salesRep)
+                    </strong>
+
+                </div>
 
             </div>
 
@@ -103,6 +148,7 @@
         <section class="section-header">
 
             <div>
+
                 <span class="section-eyebrow">
                     التوزيع
                 </span>
@@ -110,7 +156,9 @@
                 <h2>
                     الخطوط المخصصة
                 </h2>
+
             </div>
+
 
             <span class="count-badge">
                 @_routes.Count
@@ -148,6 +196,7 @@
                                 ☷
                             </div>
 
+
                             <div class="route-main-info">
 
                                 <h3>
@@ -159,6 +208,7 @@
                                 </span>
 
                             </div>
+
 
                             @if (route.IsActive)
                             {
@@ -175,9 +225,17 @@
 
                         </div>
 
+
                         <div class="route-card-footer">
-                            عرض العملاء
-                            <span>←</span>
+
+                            <span>
+                                عرض عملاء الخط
+                            </span>
+
+                            <strong>
+                                ←
+                            </strong>
+
                         </div>
 
                     </article>
@@ -189,6 +247,7 @@
 
 </div>
 
+
 @code
 {
     [Parameter]
@@ -197,9 +256,7 @@
 
     private SupervisorSalesRepDto? _salesRep;
 
-    private readonly List<SupervisorRouteDto>
-        _routes = new();
-
+    private readonly List<SupervisorRouteDto> _routes = new();
 
     private bool _isLoading = true;
 
@@ -215,6 +272,7 @@
     private async Task LoadAsync()
     {
         _isLoading = true;
+
         _errorMessage = null;
 
         try
@@ -228,8 +286,8 @@
                 teamResponse.Data is null)
             {
                 _errorMessage =
-                    teamResponse?.Message ??
-                    "تعذر تحميل بيانات المندوب.";
+                    teamResponse?.Message
+                    ?? "تعذر تحميل بيانات المندوب.";
 
                 return;
             }
@@ -237,7 +295,8 @@
 
             _salesRep =
                 teamResponse.Data
-                    .FirstOrDefault(x => x.Id == Id);
+                    .FirstOrDefault(x =>
+                        x.Id == Id);
 
 
             if (_salesRep is null)
@@ -258,8 +317,8 @@
                 routesResponse.Data is null)
             {
                 _errorMessage =
-                    routesResponse?.Message ??
-                    "تعذر تحميل خطوط المندوب.";
+                    routesResponse?.Message
+                    ?? "تعذر تحميل خطوط المندوب.";
 
                 return;
             }
@@ -291,11 +350,8 @@
 
 
     private static string GetPhone(
-        SupervisorSalesRepDto? salesRep)
+        SupervisorSalesRepDto salesRep)
     {
-        if (salesRep is null)
-            return "-";
-
         if (!string.IsNullOrWhiteSpace(
                 salesRep.Mobile))
         {
@@ -312,25 +368,43 @@
     }
 
 
+    private static string GetEmail(
+        SupervisorSalesRepDto salesRep)
+    {
+        return string.IsNullOrWhiteSpace(
+                salesRep.Email)
+            ? "-"
+            : salesRep.Email;
+    }
+
+
     private static string GetInitials(
         string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
             return "م";
 
-        var parts = name.Split(
-            ' ',
-            StringSplitOptions.RemoveEmptyEntries);
+        var parts =
+            name.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries);
+
 
         if (parts.Length == 1)
-            return parts[0][0].ToString();
+        {
+            return parts[0][0]
+                .ToString();
+        }
+
 
         return string.Concat(
             parts[0][0],
             parts[1][0]);
     }
 
-    private void OpenRoute(int routeId)
+
+    private void OpenRoute(
+        int routeId)
     {
         NavigationManager.NavigateTo(
             $"/supervisor/routes/{routeId}/customers");
