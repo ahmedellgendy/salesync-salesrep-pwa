@@ -1,6 +1,7 @@
 ﻿@page "/supervisor/sales-reps"
 
 @using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Common
 @using Salesync.SalesRep.Pwa.Models.Responses
 @using Salesync.SalesRep.Pwa.Services.Api.Supervisor
 
@@ -290,7 +291,7 @@
         catch (Exception)
         {
             _errorMessage =
-                "تعذر الاتصال بالخادم.";
+                AppMessages.ConnectionError;
         }
         finally
         {

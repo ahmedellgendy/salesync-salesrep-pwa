@@ -1,8 +1,9 @@
-﻿using System.Net.Http.Json;
-using System.Text.Json;
+﻿using Salesync.SalesRep.Pwa.Common;
 using Salesync.SalesRep.Pwa.Models.Requests;
 using Salesync.SalesRep.Pwa.Models.Responses;
 using Salesync.SalesRep.Pwa.Services.Interfaces;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Salesync.SalesRep.Pwa.Services.Api
 {
@@ -33,7 +34,7 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             catch (HttpRequestException)
             {
                 return CreateErrorResponse<SalesRepUnloadRequestDto>(
-                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+                    AppMessages.ConnectionError);
             }
             catch (JsonException)
             {
@@ -61,7 +62,7 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             catch (HttpRequestException)
             {
                 return CreateErrorResponse<IEnumerable<SalesRepUnloadRequestDto>>(
-                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+                    AppMessages.ConnectionError);
             }
             catch (JsonException)
             {
@@ -89,7 +90,7 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             catch (HttpRequestException)
             {
                 return CreateErrorResponse<SalesRepUnloadRequestDto>(
-                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+                    AppMessages.ConnectionError);
             }
             catch (JsonException)
             {
@@ -121,7 +122,7 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             catch (HttpRequestException)
             {
                 return CreateErrorResponse<string>(
-                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+                    AppMessages.ConnectionError);
             }
             catch (JsonException)
             {

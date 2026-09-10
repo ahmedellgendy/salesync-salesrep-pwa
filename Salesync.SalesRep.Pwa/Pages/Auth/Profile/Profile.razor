@@ -2,9 +2,10 @@
 @attribute [Authorize]
 
 @using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Auth
+@using Salesync.SalesRep.Pwa.Common
 @using Salesync.SalesRep.Pwa.Models.Responses.Profile
 @using Salesync.SalesRep.Pwa.Services.Api
-@using Salesync.SalesRep.Pwa.Auth
 
 @inject ProfileApiService ProfileApiService
 @inject HttpClient HttpClient
@@ -347,7 +348,7 @@
         catch (HttpRequestException)
         {
             _errorMessage =
-                "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.";
+                AppMessages.ConnectionError;
         }
         catch
         {

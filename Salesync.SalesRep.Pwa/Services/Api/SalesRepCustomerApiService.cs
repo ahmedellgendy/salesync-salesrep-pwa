@@ -1,4 +1,5 @@
-﻿using Salesync.SalesRep.Pwa.Models.Responses;
+﻿using Salesync.SalesRep.Pwa.Common;
+using Salesync.SalesRep.Pwa.Models.Responses;
 using Salesync.SalesRep.Pwa.Services.Interfaces;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -28,7 +29,7 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             catch (HttpRequestException)
             {
                 return CreateErrorResponse<IEnumerable<SalesRepMobileCustomerDto>>(
-                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+                    AppMessages.ConnectionError);
             }
             catch (JsonException)
             {
