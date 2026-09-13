@@ -1,8 +1,13 @@
 ﻿@page "/operations"
 
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Salesync.SalesRep.Pwa.Services.Api.Operations
 
 @attribute [Authorize(Roles = "Admin,Supervisor,Warehouse")]
+
+@inject LoadRequestOperationsApiService LoadRequestApiService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>لوحة العمليات - Salesync</PageTitle>
 
@@ -11,15 +16,27 @@
 
     <header class="operations-header">
 
-        <div class="operations-header-main">
+        <div class="operations-header-top">
 
             <div class="operations-logo">
-                ✓
+                <AuthorizeView Roles="Supervisor">
+                    <span>✓</span>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="Warehouse">
+                    <span>▣</span>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="Admin">
+                    <span>◆</span>
+                </AuthorizeView>
             </div>
+
 
             <div class="operations-header-content">
 
                 <AuthorizeView Roles="Supervisor">
+
                     <span class="operations-role">
                         المشرف
                     </span>
@@ -29,12 +46,14 @@
                     </h1>
 
                     <p>
-                        مراجعة واعتماد ومتابعة طلبات المناديب
+                        إدارة الفريق ومراجعة طلبات المناديب ومتابعة تنفيذها.
                     </p>
+
                 </AuthorizeView>
 
 
                 <AuthorizeView Roles="Warehouse">
+
                     <span class="operations-role">
                         المخزن
                     </span>
@@ -44,12 +63,14 @@
                     </h1>
 
                     <p>
-                        تنفيذ عمليات التحميل والتفريغ
+                        تنفيذ عمليات التحميل والتفريغ الخاصة بالمناديب.
                     </p>
+
                 </AuthorizeView>
 
 
                 <AuthorizeView Roles="Admin">
+
                     <span class="operations-role">
                         الإدارة
                     </span>
@@ -59,17 +80,29 @@
                     </h1>
 
                     <p>
-                        متابعة عمليات الفرع
+                        متابعة عمليات المبيعات والمخزن.
                     </p>
+
                 </AuthorizeView>
 
             </div>
 
         </div>
 
-        <div class="operations-header-status">
-            <span class="status-dot"></span>
-            الحساب نشط
+
+        <div class="operations-header-footer">
+
+            <div class="account-status">
+                <span class="status-dot"></span>
+                الحساب نشط
+            </div>
+
+            <AuthorizeView Roles="Supervisor">
+                <span class="header-hint">
+                    متابعة العمليات اليومية
+                </span>
+            </AuthorizeView>
+
         </div>
 
     </header>
@@ -77,16 +110,187 @@
 
     <AuthorizeView Roles="Admin,Supervisor">
 
+        @if (_isLoadingSummary)
+        {
+            <section class="operations-summary loading">
+                جاري تحميل ملخص العمليات...
+            </section>
+        }
+        else
+        {
+            <section class="operations-summary">
+
+                <a href="/operations/load-requests/pending"
+                   class="summary-card pending">
+
+                    <span class="summary-label">
+                        قيد المراجعة
+                    </span>
+
+                    <strong>
+                        @_pendingCount
+                    </strong>
+
+                    <small>
+                        طلب
+                    </small>
+
+                </a>
+
+
+                <a href="/operations/load-requests/waiting-warehouse"
+                   class="summary-card approved">
+
+                    <span class="summary-label">
+                        بانتظار المخزن
+                    </span>
+
+                    <strong>
+                        @_waitingWarehouseCount
+                    </strong>
+
+                    <small>
+                        طلب
+                    </small>
+
+                </a>
+
+
+                <a href="/operations/load-requests/history"
+                   class="summary-card history">
+
+                    <span class="summary-label">
+                        السجل
+                    </span>
+
+                    <strong>
+                        @_historyCount
+                    </strong>
+
+                    <small>
+                        طلب
+                    </small>
+
+                </a>
+
+            </section>
+        }
+
+
+        <AuthorizeView Roles="Supervisor" Context="supervisorContext">
+            <section class="supervisor-quick-section">
+
+                <div class="section-title-row">
+
+                    <div>
+                        <span>
+                            الوصول السريع
+                        </span>
+
+                        <h2>
+                            إدارة الفريق
+                        </h2>
+                    </div>
+
+                </div>
+
+
+                <div class="supervisor-quick-grid">
+
+                    <a href="/supervisor/sales-reps"
+                       class="quick-card">
+
+                        <div class="quick-icon reps">
+                            ♟
+                        </div>
+
+                        <div>
+                            <strong>
+                                المناديب
+                            </strong>
+
+                            <span>
+                                أعضاء الفريق
+                            </span>
+                        </div>
+
+                        <b>
+                            ‹
+                        </b>
+
+                    </a>
+
+
+                    <a href="/supervisor/customers"
+                       class="quick-card">
+
+                        <div class="quick-icon customers">
+                            ◎
+                        </div>
+
+                        <div>
+                            <strong>
+                                العملاء
+                            </strong>
+
+                            <span>
+                                عملاء الفريق
+                            </span>
+                        </div>
+
+                        <b>
+                            ‹
+                        </b>
+
+                    </a>
+
+
+                    <a href="/supervisor/reports"
+                       class="quick-card">
+
+                        <div class="quick-icon reports">
+                            ▤
+                        </div>
+
+                        <div>
+                            <strong>
+                                التقارير
+                            </strong>
+
+                            <span>
+                                ملخص الأداء
+                            </span>
+                        </div>
+
+                        <b>
+                            ‹
+                        </b>
+
+                    </a>
+
+                </div>
+
+            </section>
+
+        </AuthorizeView>
+
+
         <section class="operations-group">
 
             <div class="operations-group-heading">
 
-                <h2>
-                    طلبات التحميل
-                </h2>
+                <div>
+                    <span>
+                        العمليات
+                    </span>
+
+                    <h2>
+                        طلبات التحميل
+                    </h2>
+                </div>
 
                 <p>
-                    راجع طلبات المناديب وتابع الطلبات التي تم اعتمادها حتى تنفيذها بالمخزن.
+                    راجع الطلبات واعتمد الكميات ثم تابع تنفيذ المخزن.
                 </p>
 
             </div>
@@ -95,9 +299,9 @@
             <div class="load-request-actions">
 
                 <a href="/operations/load-requests/pending"
-                   class="operation-action operation-action-primary">
+                   class="operation-action pending-action">
 
-                    <div class="operation-action-icon">
+                    <div class="operation-action-icon pending">
                         ▤
                     </div>
 
@@ -105,26 +309,35 @@
 
                         <div class="operation-action-title-row">
 
-                            <strong>
-                                الطلبات المعلقة
-                            </strong>
+                            <div>
+                                <strong>
+                                    الطلبات المعلقة
+                                </strong>
+
+                                <span>
+                                    تحتاج مراجعتك واعتماد الكميات.
+                                </span>
+                            </div>
+
+                            <div class="operation-count pending">
+                                @_pendingCount
+                            </div>
+
+                        </div>
+
+
+                        <div class="operation-action-footer">
 
                             <span class="operation-status pending">
                                 تحتاج مراجعة
                             </span>
 
-                        </div>
-
-                        <p>
-                            راجع الأصناف وحدد كمية الموافقة لكل صنف.
-                        </p>
-
-                        <span class="operation-action-link">
-                            مراجعة الطلبات
-                            <span class="operation-arrow">
-                                ←
+                            <span class="operation-action-link">
+                                مراجعة الطلبات
+                                <b>←</b>
                             </span>
-                        </span>
+
+                        </div>
 
                     </div>
 
@@ -142,26 +355,35 @@
 
                         <div class="operation-action-title-row">
 
-                            <strong>
-                                بانتظار المخزن
-                            </strong>
+                            <div>
+                                <strong>
+                                    بانتظار المخزن
+                                </strong>
+
+                                <span>
+                                    طلبات تم اعتمادها وتنتظر التنفيذ.
+                                </span>
+                            </div>
+
+                            <div class="operation-count approved">
+                                @_waitingWarehouseCount
+                            </div>
+
+                        </div>
+
+
+                        <div class="operation-action-footer">
 
                             <span class="operation-status approved">
                                 تم الاعتماد
                             </span>
 
-                        </div>
-
-                        <p>
-                            تابع الطلبات التي تم اعتمادها ولم يؤكد المخزن تنفيذها بعد.
-                        </p>
-
-                        <span class="operation-action-link">
-                            متابعة الطلبات
-                            <span class="operation-arrow">
-                                ←
+                            <span class="operation-action-link">
+                                متابعة الطلبات
+                                <b>←</b>
                             </span>
-                        </span>
+
+                        </div>
 
                     </div>
 
@@ -179,26 +401,35 @@
 
                         <div class="operation-action-title-row">
 
-                            <strong>
-                                سجل طلبات التحميل
-                            </strong>
+                            <div>
+                                <strong>
+                                    سجل طلبات التحميل
+                                </strong>
+
+                                <span>
+                                    الطلبات المكتملة والمرفوضة والملغاة.
+                                </span>
+                            </div>
+
+                            <div class="operation-count history">
+                                @_historyCount
+                            </div>
+
+                        </div>
+
+
+                        <div class="operation-action-footer">
 
                             <span class="operation-status history">
                                 السجل
                             </span>
 
-                        </div>
-
-                        <p>
-                            راجع الطلبات التي تم تحميلها أو رفضها أو إلغاؤها.
-                        </p>
-
-                        <span class="operation-action-link">
-                            فتح سجل الطلبات
-                            <span class="operation-arrow">
-                                ←
+                            <span class="operation-action-link">
+                                فتح السجل
+                                <b>←</b>
                             </span>
-                        </span>
+
+                        </div>
 
                     </div>
 
@@ -211,69 +442,21 @@
     </AuthorizeView>
 
 
-    @* <AuthorizeView Roles="Admin,Supervisor">
-
-        <section class="operations-group">
-
-            <div class="operations-group-heading">
-
-                <h2>
-                    مرتجعات العملاء
-                </h2>
-
-                <p>
-                    مراجعة واعتماد طلبات المرتجعات الخاصة بالعملاء.
-                </p>
-
-            </div>
-
-
-            <div class="operation-action operation-action-disabled">
-
-                <div class="operation-action-icon return">
-                    ↩
-                </div>
-
-                <div class="operation-action-body">
-
-                    <div class="operation-action-title-row">
-
-                        <strong>
-                            مراجعة المرتجعات
-                        </strong>
-
-                        <span class="operation-status disabled">
-                            قريبًا
-                        </span>
-
-                    </div>
-
-                    <p>
-                        سيتم تفعيل مراجعة واعتماد المرتجعات في مرحلة لاحقة.
-                    </p>
-
-                    <span class="operation-action-link disabled">
-                        غير متاح حاليًا
-                    </span>
-
-                </div>
-
-            </div>
-
-        </section>
-
-    </AuthorizeView> *@
-
-
     <AuthorizeView Roles="Admin,Warehouse">
 
         <section class="operations-group">
 
             <div class="operations-group-heading">
 
-                <h2>
-                    عمليات المخزن
-                </h2>
+                <div>
+                    <span>
+                        المخزن
+                    </span>
+
+                    <h2>
+                        عمليات المخزن
+                    </h2>
+                </div>
 
                 <p>
                     تنفيذ الطلبات التي أنهت مرحلة المراجعة والاعتماد.
@@ -295,26 +478,30 @@
 
                         <div class="operation-action-title-row">
 
-                            <strong>
-                                تأكيد التحميل
-                            </strong>
+                            <div>
+                                <strong>
+                                    تأكيد التحميل
+                                </strong>
+
+                                <span>
+                                    تأكيد الكميات المسلمة فعليًا للمندوب.
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <div class="operation-action-footer">
 
                             <span class="operation-status approved">
                                 معتمد
                             </span>
 
-                        </div>
-
-                        <p>
-                            أكد الكميات التي تم تسليمها فعليًا للمندوب.
-                        </p>
-
-                        <span class="operation-action-link">
-                            الطلبات المعتمدة
-                            <span class="operation-arrow">
-                                ←
+                            <span class="operation-action-link">
+                                الطلبات المعتمدة
+                                <b>←</b>
                             </span>
-                        </span>
+
+                        </div>
 
                     </div>
 
@@ -332,26 +519,30 @@
 
                         <div class="operation-action-title-row">
 
-                            <strong>
-                                طلبات التفريغ
-                            </strong>
+                            <div>
+                                <strong>
+                                    طلبات التفريغ
+                                </strong>
+
+                                <span>
+                                    استلام البضاعة المتبقية من عهدة المندوب.
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <div class="operation-action-footer">
 
                             <span class="operation-status warehouse">
                                 للمخزن
                             </span>
 
-                        </div>
-
-                        <p>
-                            استلم البضاعة المرتجعة من عهدة المندوب.
-                        </p>
-
-                        <span class="operation-action-link">
-                            مراجعة طلبات التفريغ
-                            <span class="operation-arrow">
-                                ←
+                            <span class="operation-action-link">
+                                مراجعة الطلبات
+                                <b>←</b>
                             </span>
-                        </span>
+
+                        </div>
 
                     </div>
 
@@ -364,3 +555,80 @@
     </AuthorizeView>
 
 </div>
+
+
+@code
+{
+    private bool _isLoadingSummary;
+
+    private int _pendingCount;
+    private int _waitingWarehouseCount;
+    private int _historyCount;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState =
+            await AuthenticationStateProvider
+                .GetAuthenticationStateAsync();
+
+        var user =
+            authenticationState.User;
+
+        if (user.IsInRole("Supervisor") ||
+            user.IsInRole("Admin"))
+        {
+            await LoadSummaryAsync();
+        }
+    }
+
+
+    private async Task LoadSummaryAsync()
+    {
+        try
+        {
+            _isLoadingSummary = true;
+
+            var pendingResponse =
+                await LoadRequestApiService
+                    .GetPendingAsync();
+
+            var approvedResponse =
+                await LoadRequestApiService
+                    .GetApprovedAsync();
+
+            var allResponse =
+                await LoadRequestApiService
+                    .GetAllAsync();
+
+
+            _pendingCount =
+                pendingResponse?.Data?.Count()
+                ?? 0;
+
+
+            _waitingWarehouseCount =
+                approvedResponse?.Data?.Count()
+                ?? 0;
+
+
+            _historyCount =
+                allResponse?.Data?
+                    .Count(x =>
+                        x.Status == 3 ||
+                        x.Status == 4 ||
+                        x.Status == 5)
+                ?? 0;
+        }
+        catch
+        {
+            _pendingCount = 0;
+            _waitingWarehouseCount = 0;
+            _historyCount = 0;
+        }
+        finally
+        {
+            _isLoadingSummary = false;
+        }
+    }
+}

@@ -12,104 +12,221 @@
 @inject SalesyncAuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
+<PageTitle>تسجيل الدخول - Salesync</PageTitle>
 
-<PageTitle>Login - Salesync</PageTitle>
+<div class="login-page" dir="rtl">
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-12 col-sm-10 col-md-7 col-lg-5">
+    <div class="login-shell">
 
-            <div class="card shadow-sm">
-                <div class="card-body p-4">
+        <section class="login-brand-panel">
 
-                    <div class="text-center mb-4">
-                        <h1 class="h3">Salesync</h1>
-
-                        <p class="text-muted mb-0">
-                            Sales Representative Login
-                        </p>
-                    </div>
-
-                    @if (!string.IsNullOrWhiteSpace(errorMessage))
-                    {
-                        <div class="alert alert-danger"
-                             role="alert">
-                            @errorMessage
-                        </div>
-                    }
-
-                    <EditForm Model="loginRequest"
-                              OnValidSubmit="HandleLoginAsync">
-
-                        <DataAnnotationsValidator />
-
-                        <div class="mb-3">
-                            <label for="userName"
-                                   class="form-label">
-                                اسم المستخدم
-                            </label>
-
-                            <InputText id="userName"
-                                       class="form-control"
-                                       autocomplete="username"
-                                       disabled="@isSubmitting"
-                                       @bind-Value="loginRequest.UserName" />
-
-                            <ValidationMessage For="@(() => loginRequest.UserName)" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="password"
-                                   class="form-label">
-                                كلمة المرور
-                            </label>
-
-                            <InputText id="password"
-                                       type="password"
-                                       class="form-control"
-                                       autocomplete="current-password"
-                                       disabled="@isSubmitting"
-                                       @bind-Value="loginRequest.Password" />
-
-                            <ValidationMessage For="@(() => loginRequest.Password)" />
-                        </div>
-
-                        <button type="submit"
-                                class="btn btn-primary w-100"
-                                disabled="@isSubmitting">
-
-                            @if (isSubmitting)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2"
-                                      aria-hidden="true">
-                                </span>
-
-                                <span>جاري تسجيل الدخول...</span>
-                            }
-                            else
-                            {
-                                <span>تسجيل الدخول</span>
-                            }
-
-                        </button>
-
-                    </EditForm>
-
-                </div>
+            <div class="brand-mark">
+                S
             </div>
 
-        </div>
+            <div class="brand-content">
+
+                <span class="brand-eyebrow">
+                    SALESYNC
+                </span>
+
+                <h1>
+                    منصة إدارة المبيعات
+                    <br />
+                    والتوزيع الميداني
+                </h1>
+
+                <p>
+                    نظام موحد لإدارة فرق المبيعات، العملاء، العمليات والتقارير.
+                </p>
+
+            </div>
+
+            <div class="brand-footer">
+
+                <span class="brand-status-dot"></span>
+
+                <span>
+                    Enterprise Distribution Platform
+                </span>
+
+            </div>
+
+        </section>
+
+
+        <section class="login-card">
+
+            <div class="login-card-header">
+
+                <span class="login-eyebrow">
+                    تسجيل الدخول
+                </span>
+
+                <h2>
+                    مرحبًا بعودتك
+                </h2>
+
+                <p>
+                    أدخل بيانات حسابك للوصول إلى Salesync.
+                </p>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="login-alert"
+                     role="alert">
+
+                    <div class="alert-icon">
+                        !
+                    </div>
+
+                    <div>
+                        <strong>
+                            تعذر تسجيل الدخول
+                        </strong>
+
+                        <span>
+                            @errorMessage
+                        </span>
+                    </div>
+
+                </div>
+            }
+
+
+            <EditForm Model="loginRequest"
+                      OnValidSubmit="HandleLoginAsync"
+                      class="login-form">
+
+                <DataAnnotationsValidator />
+
+
+                <div class="form-field">
+
+                    <label for="userName">
+                        اسم المستخدم
+                    </label>
+
+                    <div class="input-shell">
+
+                        <span class="input-icon">
+                            ◉
+                        </span>
+
+                        <InputText id="userName"
+                                   class="login-input"
+                                   autocomplete="username"
+                                   disabled="@isSubmitting"
+                                   placeholder="أدخل اسم المستخدم"
+                                   @bind-Value="loginRequest.UserName" />
+
+                    </div>
+
+                    <ValidationMessage For="@(() => loginRequest.UserName)" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label for="password">
+                        كلمة المرور
+                    </label>
+
+                    <div class="input-shell">
+
+                        <span class="input-icon">
+                            ◆
+                        </span>
+
+                        <InputText id="password"
+                                   type="password"
+                                   class="login-input"
+                                   autocomplete="current-password"
+                                   disabled="@isSubmitting"
+                                   placeholder="أدخل كلمة المرور"
+                                   @bind-Value="loginRequest.Password" />
+
+                    </div>
+
+                    <ValidationMessage For="@(() => loginRequest.Password)" />
+
+                </div>
+
+
+                <button type="submit"
+                        class="login-submit"
+                        disabled="@isSubmitting">
+
+                    @if (isSubmitting)
+                    {
+                        <span class="login-spinner"></span>
+
+                        <span>
+                            جاري تسجيل الدخول...
+                        </span>
+                    }
+                    else
+                    {
+                        <span>
+                            تسجيل الدخول
+                        </span>
+
+                        <span class="login-arrow">
+                            ←
+                        </span>
+                    }
+
+                </button>
+
+            </EditForm>
+
+
+            <div class="login-security">
+
+                <span class="security-dot"></span>
+
+                <span>
+                    اتصال آمن ومحمي
+                </span>
+
+            </div>
+
+        </section>
+
     </div>
+
+
+    <footer class="login-page-footer">
+
+        <strong>
+            Salesync
+        </strong>
+
+        <span>
+            Enterprise Distribution Platform
+        </span>
+
+    </footer>
+
 </div>
 
-@code {
+
+@code
+{
     private readonly LoginRequest loginRequest = new();
 
     private bool isSubmitting;
+
     private string? errorMessage;
+
 
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string? ReturnUrl { get; set; }
+
 
     private async Task HandleLoginAsync()
     {
@@ -124,15 +241,20 @@
             errorMessage = null;
 
             var response =
-                await AuthApiService.LoginAsync(loginRequest);
+                await AuthApiService.LoginAsync(
+                    loginRequest);
 
-            if (!response.Success || response.Data is null)
+            if (!response.Success ||
+                response.Data is null)
             {
-                errorMessage = GetErrorMessage(response);
+                errorMessage =
+                    GetErrorMessage(response);
+
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(response.Data.Token))
+            if (string.IsNullOrWhiteSpace(
+                    response.Data.Token))
             {
                 errorMessage =
                     "لم يتم استلام رمز تسجيل دخول صالح من الخادم.";
@@ -140,7 +262,8 @@
                 return;
             }
 
-            if (response.Data.ExpiresAt <= DateTime.UtcNow)
+            if (response.Data.ExpiresAt <=
+                DateTime.UtcNow)
             {
                 errorMessage =
                     "رمز تسجيل الدخول منتهي الصلاحية.";
@@ -148,8 +271,13 @@
                 return;
             }
 
-            await AuthStateProvider.SignInAsync(response.Data);
-            Navigation.NavigateTo(GetDestination(response.Data.Role));
+            await AuthStateProvider
+                .SignInAsync(
+                    response.Data);
+
+            Navigation.NavigateTo(
+                GetDestination(
+                    response.Data.Role));
         }
         catch
         {
@@ -162,11 +290,15 @@
         }
     }
 
-    private string GetDestination(string role)
+
+    private string GetDestination(
+        string role)
     {
-        if (!string.IsNullOrWhiteSpace(ReturnUrl))
+        if (!string.IsNullOrWhiteSpace(
+                ReturnUrl))
         {
-            var returnUrl = ReturnUrl.Trim();
+            var returnUrl =
+                ReturnUrl.Trim();
 
             var isSafeRelativeUrl =
                 Uri.IsWellFormedUriString(
@@ -185,8 +317,8 @@
                     $"/{returnUrl.TrimStart('/')}";
 
                 if (!destination.Equals(
-                    "/login",
-                    StringComparison.OrdinalIgnoreCase))
+                        "/login",
+                        StringComparison.OrdinalIgnoreCase))
                 {
                     return destination;
                 }
@@ -207,12 +339,15 @@
         };
     }
 
+
     private static string GetErrorMessage(
         ApiResponse<TokenResponse> response)
     {
         if (response.Errors is { Count: > 0 })
         {
-            return string.Join(" ", response.Errors);
+            return string.Join(
+                " ",
+                response.Errors);
         }
 
         return response.Message

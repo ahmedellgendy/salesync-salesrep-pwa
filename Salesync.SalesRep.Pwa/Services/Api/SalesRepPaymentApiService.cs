@@ -1,8 +1,9 @@
-﻿using System.Net.Http.Json;
-using System.Text.Json;
+﻿using Salesync.SalesRep.Pwa.Common;
 using Salesync.SalesRep.Pwa.Models.Requests;
 using Salesync.SalesRep.Pwa.Models.Responses;
 using Salesync.SalesRep.Pwa.Services.Interfaces;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Salesync.SalesRep.Pwa.Services.Api
 {
@@ -34,7 +35,7 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             catch (HttpRequestException)
             {
                 return CreateErrorResponse<PaymentDto>(
-                    "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.");
+                    AppMessages.ConnectionError);
             }
             catch (JsonException)
             {
@@ -45,6 +46,31 @@ namespace Salesync.SalesRep.Pwa.Services.Api
             {
                 return CreateErrorResponse<PaymentDto>(
                     "حدث خطأ غير متوقع أثناء تسجيل التحصيل.");
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<OutstandingInvoiceDto>>?> GetOutstandingInvoicesAsync()
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<
+                    ApiResponse<IEnumerable<OutstandingInvoiceDto>>>(
+                        "api/Payment/outstanding-invoices/current-sales-rep");
+            }
+            catch (HttpRequestException)
+            {
+                return CreateErrorResponse<IEnumerable<OutstandingInvoiceDto>>(
+                    AppMessages.ConnectionError);
+            }
+            catch (JsonException)
+            {
+                return CreateErrorResponse<IEnumerable<OutstandingInvoiceDto>>(
+                    "صيغة الاستجابة القادمة من الخادم غير صحيحة.");
+            }
+            catch
+            {
+                return CreateErrorResponse<IEnumerable<OutstandingInvoiceDto>>(
+                    "حدث خطأ غير متوقع أثناء تحميل مديونيات العملاء.");
             }
         }
 

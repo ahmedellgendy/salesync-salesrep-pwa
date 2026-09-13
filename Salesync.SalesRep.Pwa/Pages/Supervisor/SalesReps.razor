@@ -1,5 +1,7 @@
 ﻿@page "/supervisor/sales-reps"
+
 @using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Common
 @using Salesync.SalesRep.Pwa.Models.Responses
 @using Salesync.SalesRep.Pwa.Services.Api.Supervisor
 
@@ -10,10 +12,13 @@
 
 <PageTitle>المناديب - Salesync</PageTitle>
 
+
 <div class="supervisor-salesreps-page" dir="rtl">
 
     <section class="page-header">
+
         <div>
+
             <span class="page-eyebrow">
                 فريق العمل
             </span>
@@ -23,25 +28,30 @@
             </h1>
 
             <p>
-                متابعة المناديب التابعين لك.
+                متابعة المناديب التابعين لفريقك.
             </p>
+
         </div>
+
     </section>
 
 
     @if (_isLoading)
     {
         <section class="state-card">
+
             <div class="state-spinner"></div>
 
             <strong>
                 جاري تحميل المناديب...
             </strong>
+
         </section>
     }
     else if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
         <section class="state-card error">
+
             <strong>
                 تعذر تحميل المناديب
             </strong>
@@ -55,11 +65,13 @@
                     @onclick="LoadTeamAsync">
                 إعادة المحاولة
             </button>
+
         </section>
     }
     else if (_salesReps.Count == 0)
     {
         <section class="state-card">
+
             <strong>
                 لا يوجد مناديب
             </strong>
@@ -67,107 +79,185 @@
             <p>
                 لا يوجد مناديب مرتبطون بحساب المشرف الحالي.
             </p>
+
         </section>
     }
     else
     {
-        <section class="team-summary">
-            <span>
-                إجمالي الفريق
-            </span>
+        <section class="salesreps-tools">
 
-            <strong>
-                @_salesReps.Count
-            </strong>
+            <div class="salesreps-search">
+
+                <span class="search-icon">
+                    🔍
+                </span>
+
+                <input type="text"
+                       placeholder="ابحث بالاسم أو الكود أو الهاتف..."
+                       @bind="_searchText"
+                       @bind:event="oninput" />
+
+            </div>
+
         </section>
 
 
-        <section class="salesreps-list">
+        <section class="team-summary">
 
-            @foreach (var salesRep in _salesReps)
+            <div>
+
+                <span>
+                    المناديب المعروضون
+                </span>
+
+                <strong>
+                    @FilteredSalesReps.Count
+                </strong>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(_searchText))
             {
-                <article class="salesrep-card">
-
-                    <div class="salesrep-card-header">
-
-                        <div class="salesrep-avatar">
-                            @GetInitials(salesRep.Name)
-                        </div>
-
-                        <div class="salesrep-main-info">
-
-                            <div class="salesrep-name-row">
-                                <h2>
-                                    @salesRep.Name
-                                </h2>
-
-                                @if (salesRep.IsActive)
-                                {
-                                    <span class="status-badge active">
-                                        نشط
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="status-badge inactive">
-                                        غير نشط
-                                    </span>
-                                }
-                            </div>
-
-                            <span class="salesrep-code">
-                                @salesRep.SalesRepCode
-                            </span>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="salesrep-details">
-
-                        <div class="detail-row">
-                            <span class="detail-label">
-                                الهاتف
-                            </span>
-
-                            <strong>
-                                @GetPhone(salesRep)
-                            </strong>
-                        </div>
-                    </div>
-
-
-                    <div class="salesrep-actions">
-
-                        <button type="button"
-                                class="salesrep-action"
-                                @onclick="() => OpenSalesRep(salesRep.Id)">
-                            عرض التفاصيل
-                        </button>
-
-                    </div>
-
-                </article>
+                <small>
+                    من إجمالي @_salesReps.Count
+                </small>
             }
 
         </section>
+
+
+        @if (FilteredSalesReps.Count == 0)
+        {
+            <section class="state-card">
+
+                <div class="empty-icon">
+                    🔎
+                </div>
+
+                <strong>
+                    لا توجد نتائج
+                </strong>
+
+                <p>
+                    لا يوجد مندوب مطابق لعملية البحث.
+                </p>
+
+                <button type="button"
+                        class="clear-button"
+                        @onclick="ClearSearch">
+                    مسح البحث
+                </button>
+
+            </section>
+        }
+        else
+        {
+            <section class="salesreps-list">
+
+                @foreach (var salesRep in FilteredSalesReps)
+                {
+                    <article class="salesrep-card"
+                             @onclick="() => OpenSalesRep(salesRep.Id)">
+
+                        <div class="salesrep-card-header">
+
+                            <div class="salesrep-avatar">
+                                @GetInitials(salesRep.Name)
+                            </div>
+
+
+                            <div class="salesrep-main-info">
+
+                                <div class="salesrep-name-row">
+
+                                    <h2>
+                                        @salesRep.Name
+                                    </h2>
+
+
+                                    @if (salesRep.IsActive)
+                                    {
+                                        <span class="status-badge active">
+                                            نشط
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge inactive">
+                                            غير نشط
+                                        </span>
+                                    }
+
+                                </div>
+
+
+                                <div class="salesrep-meta">
+
+                                    <span class="salesrep-code">
+                                        @salesRep.SalesRepCode
+                                    </span>
+
+                                    <span class="meta-separator">
+                                        •
+                                    </span>
+
+                                    <span class="salesrep-phone">
+                                        @GetPhone(salesRep)
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="salesrep-card-footer">
+
+                            <span>
+                                عرض بيانات المندوب والخطوط المخصصة
+                            </span>
+
+                            <strong>
+                                ←
+                            </strong>
+
+                        </div>
+
+                    </article>
+                }
+
+            </section>
+        }
     }
 
 </div>
 
+
 @code
 {
-    private readonly List<SupervisorSalesRepDto>_salesReps = new();
+    private readonly List<SupervisorSalesRepDto> _salesReps = new();
 
     private bool _isLoading = true;
 
     private string? _errorMessage;
 
+    private string? _searchText;
+
+
+    private List<SupervisorSalesRepDto> FilteredSalesReps =>
+        _salesReps
+            .Where(MatchesSearch)
+            .OrderBy(x => x.Name)
+            .ToList();
+
+
     protected override async Task OnInitializedAsync()
     {
         await LoadTeamAsync();
     }
+
 
     private async Task LoadTeamAsync()
     {
@@ -180,25 +270,28 @@
                 await SupervisorSalesRepApiService
                     .GetMyTeamAsync();
 
+
             if (response?.Success == true &&
                 response.Data is not null)
             {
                 _salesReps.Clear();
 
                 _salesReps.AddRange(
-                    response.Data);
+                    response.Data
+                        .OrderBy(x => x.Name));
 
                 return;
             }
 
+
             _errorMessage =
-                response?.Message ??
-                "حدث خطأ أثناء تحميل البيانات.";
+                response?.Message
+                ?? "حدث خطأ أثناء تحميل البيانات.";
         }
         catch (Exception)
         {
             _errorMessage =
-                "تعذر الاتصال بالخادم.";
+                AppMessages.ConnectionError;
         }
         finally
         {
@@ -206,7 +299,46 @@
         }
     }
 
-    private static string GetPhone(SupervisorSalesRepDto salesRep)
+
+    private bool MatchesSearch(
+        SupervisorSalesRepDto salesRep)
+    {
+        if (string.IsNullOrWhiteSpace(_searchText))
+            return true;
+
+        var search =
+            _searchText.Trim();
+
+
+        return
+            Contains(salesRep.Name, search)
+            || Contains(salesRep.SalesRepCode, search)
+            || Contains(salesRep.Phone, search)
+            || Contains(salesRep.Mobile, search)
+            || Contains(salesRep.Email, search);
+    }
+
+
+    private static bool Contains(
+        string? value,
+        string search)
+    {
+        return
+            !string.IsNullOrWhiteSpace(value)
+            && value.Contains(
+                search,
+                StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    private void ClearSearch()
+    {
+        _searchText = null;
+    }
+
+
+    private static string GetPhone(
+        SupervisorSalesRepDto salesRep)
     {
         if (!string.IsNullOrWhiteSpace(
                 salesRep.Mobile))
@@ -223,29 +355,34 @@
         return "-";
     }
 
-    private static string GetInitials(string? name)
+
+    private static string GetInitials(
+        string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
             return "م";
 
-        var parts = name
-            .Split(
+        var parts =
+            name.Split(
                 ' ',
-                StringSplitOptions
-                    .RemoveEmptyEntries);
+                StringSplitOptions.RemoveEmptyEntries);
 
         if (parts.Length == 1)
+        {
             return parts[0][0]
                 .ToString()
                 .ToUpperInvariant();
+        }
 
         return string.Concat(
-            parts[0][0],
-            parts[1][0])
+                parts[0][0],
+                parts[1][0])
             .ToUpperInvariant();
     }
 
-    private void OpenSalesRep(int salesRepId)
+
+    private void OpenSalesRep(
+        int salesRepId)
     {
         NavigationManager.NavigateTo(
             $"/supervisor/sales-reps/{salesRepId}");

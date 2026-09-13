@@ -1,0 +1,692 @@
+﻿.login-page {
+    min-height: calc(100vh - 6px);
+    padding: 42px 18px 26px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: radial-gradient( circle at top right, rgba(8, 127, 156, 0.08), transparent 34%), radial-gradient( circle at bottom left, rgba(13, 44, 84, 0.06), transparent 32%), #f5f8fb;
+    color: #172033;
+}
+
+
+.login-shell {
+    width: 100%;
+    max-width: 940px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e3e8ef;
+    border-radius: 24px;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+
+/* =========================
+   Brand
+========================= */
+
+.login-brand-panel {
+    min-height: 500px;
+    padding: 34px;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient( 145deg, #0b2a5b 0%, #0e4968 56%, #087f9c 100%);
+    color: #ffffff;
+}
+
+
+.brand-mark {
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 900;
+}
+
+
+.brand-content {
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+
+.brand-eyebrow {
+    display: block;
+    margin-bottom: 10px;
+    color: #a8dce8;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+}
+
+
+.brand-content h1 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 1.55;
+}
+
+
+.brand-content p {
+    max-width: 330px;
+    margin: 14px 0 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.9;
+}
+
+
+.brand-footer {
+    padding-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.13);
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 8px;
+    font-weight: 700;
+}
+
+
+.brand-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #65dba4;
+    box-shadow: 0 0 0 4px rgba(101, 219, 164, 0.12);
+}
+
+
+/* =========================
+   Login Card
+========================= */
+
+.login-card {
+    padding: 42px 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #ffffff;
+}
+
+
+.login-card-header {
+    margin-bottom: 24px;
+}
+
+
+.login-eyebrow {
+    display: block;
+    margin-bottom: 5px;
+    color: #087f9c;
+    font-size: 9px;
+    font-weight: 900;
+}
+
+
+.login-card-header h2 {
+    margin: 0;
+    color: #101828;
+    font-size: 25px;
+    font-weight: 900;
+    line-height: 1.35;
+}
+
+
+.login-card-header p {
+    margin: 7px 0 0;
+    color: #667085;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.7;
+}
+
+
+/* =========================
+   Form
+========================= */
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+
+    .form-field label {
+        color: #344054;
+        font-size: 9.5px;
+        font-weight: 800;
+    }
+
+
+/* Outer input container */
+
+.input-shell {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1px solid #d9e2ea;
+    border-radius: 11px;
+    overflow: hidden;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+    .input-shell:focus-within {
+        border-color: #087f9c;
+        box-shadow: 0 0 0 3px rgba(8, 127, 156, 0.07);
+    }
+
+
+.input-icon {
+    flex-shrink: 0;
+    color: #98a2b3;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+
+/* =========================
+   Blazor InputText
+   IMPORTANT:
+   CSS isolation requires ::deep
+========================= */
+
+::deep input.login-input {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    outline: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    color: #101828 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 44px !important;
+}
+
+
+    ::deep input.login-input:hover,
+    ::deep input.login-input:focus,
+    ::deep input.login-input:focus-visible,
+    ::deep input.login-input:active {
+        border: 0 !important;
+        outline: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+
+    ::deep input.login-input::placeholder {
+        color: #98a2b3 !important;
+        opacity: 1;
+    }
+
+
+    ::deep input.login-input:disabled {
+        opacity: 0.6;
+    }
+
+
+    /* Force remove bootstrap/browser input styling */
+
+    ::deep input.login-input.form-control,
+    ::deep input.login-input.form-control:hover,
+    ::deep input.login-input.form-control:focus,
+    ::deep input.login-input.form-control:active {
+        border: 0 !important;
+        outline: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+
+/* Validation */
+
+::deep .validation-message {
+    color: #b42318;
+    font-size: 8px;
+    font-weight: 700;
+}
+
+
+/* =========================
+   Alert
+========================= */
+
+.login-alert {
+    margin-bottom: 18px;
+    padding: 11px 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    background: #fef3f2;
+    border: 1px solid #fecdca;
+    border-radius: 11px;
+}
+
+
+.alert-icon {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fee4e2;
+    border-radius: 7px;
+    color: #b42318;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+
+.login-alert strong {
+    display: block;
+    color: #b42318;
+    font-size: 9px;
+    font-weight: 900;
+}
+
+
+.login-alert span {
+    display: block;
+    margin-top: 2px;
+    color: #d92d20;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+
+/* =========================
+   Submit Button
+========================= */
+
+.login-submit {
+    width: 100%;
+    min-height: 46px;
+    margin-top: 2px;
+    padding: 0 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 11px;
+    background: linear-gradient( 135deg, #087f9c, #096f8a);
+    color: #ffffff;
+    font-size: 10.5px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(8, 127, 156, 0.16);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+    .login-submit:hover:not(:disabled) {
+        box-shadow: 0 10px 22px rgba(8, 127, 156, 0.22);
+    }
+
+
+    .login-submit:active:not(:disabled) {
+        transform: scale(0.995);
+    }
+
+
+    .login-submit:disabled {
+        opacity: 0.65;
+        cursor: default;
+    }
+
+
+.login-arrow {
+    font-size: 14px;
+}
+
+
+.login-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: login-spin 0.7s linear infinite;
+}
+
+
+@keyframes login-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* =========================
+   Security
+========================= */
+
+.login-security {
+    margin-top: 18px;
+    padding-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-top: 1px solid #eef2f6;
+    color: #98a2b3;
+    font-size: 8px;
+    font-weight: 700;
+}
+
+
+.security-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #12b76a;
+}
+
+
+/* =========================
+   Footer
+========================= */
+
+.login-page-footer {
+    margin: 18px auto 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: #98a2b3;
+    font-size: 7.5px;
+    font-weight: 700;
+}
+
+
+    .login-page-footer strong {
+        color: #667085;
+        font-size: 8px;
+        font-weight: 900;
+    }
+
+
+/* =========================
+   Tablet / Mobile
+========================= */
+
+@media (max-width: 760px) {
+
+    .login-page {
+        min-height: 100vh;
+        padding: 0;
+        display: block;
+        background: #f7fafc;
+    }
+
+
+    .login-shell {
+        width: 100%;
+        max-width: none;
+        min-height: 100vh;
+        margin: 0;
+        display: block;
+        overflow: visible;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+
+    /* Mobile Brand */
+
+    .login-brand-panel {
+        min-height: auto;
+        padding: 34px 22px 22px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        background: transparent;
+        color: #101828;
+    }
+
+
+    .brand-mark {
+        width: 54px;
+        height: 54px;
+        margin: 0 auto;
+        border: 0;
+        border-radius: 16px;
+        background: linear-gradient( 145deg, #0b2a5b, #087f9c);
+        color: #ffffff;
+        font-size: 21px;
+        font-weight: 900;
+        box-shadow: 0 8px 18px rgba(8, 127, 156, 0.15);
+    }
+
+
+    .brand-content {
+        margin: 14px 0 0;
+        text-align: center;
+    }
+
+
+    .brand-eyebrow {
+        margin-bottom: 5px;
+        color: #087f9c;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 1px;
+    }
+
+
+    .brand-content h1 {
+        margin: 0;
+        color: #101828;
+        font-size: 19px;
+        font-weight: 900;
+        line-height: 1.5;
+    }
+
+
+    .brand-content p {
+        max-width: 290px;
+        margin: 7px auto 0;
+        color: #667085;
+        font-size: 9px;
+        font-weight: 600;
+        line-height: 1.7;
+    }
+
+
+    .brand-footer {
+        display: none;
+    }
+
+
+    /* Mobile Form */
+
+    .login-card {
+        width: calc(100% - 28px);
+        max-width: 430px;
+        margin: 0 auto;
+        padding: 21px 18px;
+        display: block;
+        background: #ffffff;
+        border: 1px solid #e3e8ef;
+        border-radius: 18px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+
+
+    .login-card-header {
+        margin-bottom: 19px;
+        text-align: right;
+    }
+
+
+    .login-eyebrow {
+        margin-bottom: 4px;
+        color: #087f9c;
+        font-size: 8.5px;
+        font-weight: 900;
+    }
+
+
+    .login-card-header h2 {
+        font-size: 20px;
+    }
+
+
+    .login-card-header p {
+        margin-top: 5px;
+        font-size: 9px;
+        line-height: 1.6;
+    }
+
+
+    .login-form {
+        gap: 13px;
+    }
+
+
+    .form-field {
+        gap: 5px;
+    }
+
+
+        .form-field label {
+            font-size: 8.5px;
+        }
+
+
+    .input-shell {
+        min-height: 46px;
+        padding: 0 11px;
+        border-radius: 11px;
+        background: #f8fafc;
+    }
+
+
+    ::deep input.login-input {
+        height: 44px !important;
+        line-height: 44px !important;
+        font-size: 11px !important;
+    }
+
+
+    .login-submit {
+        min-height: 48px;
+        margin-top: 3px;
+        border-radius: 12px;
+        font-size: 10.5px;
+        box-shadow: none;
+    }
+
+
+    .login-security {
+        margin-top: 15px;
+        padding-top: 12px;
+        font-size: 7.5px;
+    }
+
+
+    .login-page-footer {
+        display: none;
+    }
+}
+
+
+/* =========================
+   Small Mobile
+========================= */
+
+@media (max-width: 480px) {
+
+    .login-brand-panel {
+        padding: 28px 18px 18px;
+    }
+
+
+    .brand-mark {
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+        font-size: 19px;
+    }
+
+
+    .brand-content {
+        margin-top: 12px;
+    }
+
+
+        .brand-content h1 {
+            font-size: 17px;
+        }
+
+
+        .brand-content p {
+            font-size: 8.5px;
+        }
+
+
+    .login-card {
+        width: calc(100% - 22px);
+        padding: 19px 16px;
+        border-radius: 17px;
+    }
+
+
+    .login-card-header h2 {
+        font-size: 19px;
+    }
+
+
+    .input-shell {
+        min-height: 45px;
+    }
+
+
+    ::deep input.login-input {
+        height: 43px !important;
+        line-height: 43px !important;
+    }
+
+
+    .login-submit {
+        min-height: 47px;
+    }
+}

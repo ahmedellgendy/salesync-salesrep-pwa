@@ -1,17 +1,19 @@
 ﻿@page "/profile"
 @attribute [Authorize]
 
-@using System.Net.Http.Json
-@using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
-@using Salesync.SalesRep.Pwa.Models.Responses
+@using Salesync.SalesRep.Pwa.Auth
+@using Salesync.SalesRep.Pwa.Common
+@using Salesync.SalesRep.Pwa.Models.Responses.Profile
+@using Salesync.SalesRep.Pwa.Services.Api
 
+@inject ProfileApiService ProfileApiService
 @inject HttpClient HttpClient
-@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
+@inject SalesyncAuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Profile - Salesync</PageTitle>
+
+<PageTitle>حسابي - Salesync</PageTitle>
 
 <div class="rep-profile-page" dir="rtl">
 
@@ -34,7 +36,7 @@
             إعادة المحاولة
         </button>
     }
-    else
+    else if (_profile is not null)
     {
         <section class="rep-profile-header">
 
@@ -42,46 +44,87 @@
                 @if (HasProfileImage())
                 {
                     <img src="@GetProfileImageUrl()"
-                         alt="صورة المندوب"
+                         alt="صورة المستخدم"
                          onerror="this.style.display='none';" />
                 }
                 else
                 {
-                    <span>@GetInitials(GetDisplayName())</span>
+                    <span>
+                        @GetInitials(_profile.FullName)
+                    </span>
                 }
             </div>
 
             <div class="rep-profile-main">
-                <span>مندوب مبيعات</span>
-                <h1>@GetDisplayName()</h1>
-                <p>@DisplayValue(_profile?.SalesRepCode)</p>
+
+                <span>
+                    @GetRoleDisplayName()
+                </span>
+
+                <h1>
+                    @DisplayValue(_profile.FullName)
+                </h1>
+
+                @if (!string.IsNullOrWhiteSpace(_profile.SalesRepCode))
+                {
+                    <p>
+                        @_profile.SalesRepCode
+                    </p>
+                }
+
             </div>
 
         </section>
+
 
         <section class="rep-profile-summary">
 
             <div class="rep-summary-row">
-                <span>الفرع</span>
-                <strong>@DisplayValue(_profile?.BranchName)</strong>
+                <span>
+                    الفرع
+                </span>
+
+                <strong>
+                    @DisplayValue(_profile.BranchName)
+                </strong>
             </div>
 
-            <div class="rep-summary-row">
-                <span>رقم الفرع</span>
-                <strong>@DisplayValue(GetBranchIdText())</strong>
-            </div>
 
             <div class="rep-summary-row">
-                <span>الصلاحية</span>
-                <strong>@DisplayValue(_role)</strong>
+                <span>
+                    رقم الفرع
+                </span>
+
+                <strong>
+                    @DisplayValue(
+                        _profile.BranchId?.ToString())
+                </strong>
             </div>
 
+
             <div class="rep-summary-row">
-                <span>اسم المستخدم</span>
-                <strong>@DisplayValue(_userName)</strong>
+                <span>
+                    الصلاحية
+                </span>
+
+                <strong>
+                    @GetRoleDisplayName()
+                </strong>
+            </div>
+
+
+            <div class="rep-summary-row">
+                <span>
+                    اسم المستخدم
+                </span>
+
+                <strong>
+                    @DisplayValue(_profile.UserName)
+                </strong>
             </div>
 
         </section>
+
 
         <section class="rep-profile-contact-card">
 
@@ -89,31 +132,46 @@
                 بيانات التواصل
             </div>
 
-            <div class="rep-contact-item">
-                <div class="rep-contact-icon">☎</div>
-                <div>
-                    <span>رقم الهاتف</span>
-                    <strong>@DisplayValue(_profile?.Phone)</strong>
-                </div>
-            </div>
 
             <div class="rep-contact-item">
-                <div class="rep-contact-icon">📱</div>
-                <div>
-                    <span>الموبايل</span>
-                    <strong>@DisplayValue(_profile?.Mobile)</strong>
+
+                <div class="rep-contact-icon">
+                    ☎
                 </div>
+
+                <div>
+                    <span>
+                        رقم الهاتف
+                    </span>
+
+                    <strong>
+                        @DisplayValue(_profile.Phone)
+                    </strong>
+                </div>
+
             </div>
 
+
             <div class="rep-contact-item">
-                <div class="rep-contact-icon">✉</div>
-                <div>
-                    <span>البريد الإلكتروني</span>
-                    <strong>@DisplayValue(_profile?.Email)</strong>
+
+                <div class="rep-contact-icon">
+                    ✉
                 </div>
+
+                <div>
+                    <span>
+                        البريد الإلكتروني
+                    </span>
+
+                    <strong>
+                        @DisplayValue(_profile.Email)
+                    </strong>
+                </div>
+
             </div>
 
         </section>
+
 
         <section class="rep-profile-contact-card">
 
@@ -121,23 +179,75 @@
                 بيانات إضافية
             </div>
 
-            <div class="rep-contact-item">
-                <div class="rep-contact-icon">🏢</div>
-                <div>
-                    <span>Business Unit</span>
-                    <strong>@DisplayValue(GetBusinessUnitText())</strong>
-                </div>
-            </div>
 
-            <div class="rep-contact-item">
-                <div class="rep-contact-icon">#</div>
-                <div>
-                    <span>Sales Rep ID</span>
-                    <strong>@DisplayValue(_profile?.SalesRepId.ToString())</strong>
+            @if (_profile.BusinessUnitId.HasValue)
+            {
+                <div class="rep-contact-item">
+
+                    <div class="rep-contact-icon">
+                        🏢
+                    </div>
+
+                    <div>
+                        <span>
+                            Business Unit
+                        </span>
+
+                        <strong>
+                            @_profile.BusinessUnitId.Value
+                        </strong>
+                    </div>
+
                 </div>
-            </div>
+            }
+
+
+            @if (_profile.SalesRepId.HasValue)
+            {
+                <div class="rep-contact-item">
+
+                    <div class="rep-contact-icon">
+                        #
+                    </div>
+
+                    <div>
+                        <span>
+                            @GetProfileIdLabel()
+                        </span>
+
+                        <strong>
+                            @_profile.SalesRepId.Value
+                        </strong>
+                    </div>
+
+                </div>
+            }
+
+
+            @if (!string.IsNullOrWhiteSpace(
+                    _profile.SalesRepCode))
+            {
+                <div class="rep-contact-item">
+
+                    <div class="rep-contact-icon">
+                        ID
+                    </div>
+
+                    <div>
+                        <span>
+                            @GetProfileCodeLabel()
+                        </span>
+
+                        <strong>
+                            @_profile.SalesRepCode
+                        </strong>
+                    </div>
+
+                </div>
+            }
 
         </section>
+
 
         <section class="rep-profile-actions">
 
@@ -145,13 +255,30 @@
                     class="rep-profile-main-btn"
                     disabled="@_isRefreshing"
                     @onclick="RefreshProfileAsync">
-                @(_isRefreshing ? "جاري التحديث..." : "تحديث البيانات")
+
+                @(_isRefreshing
+                    ? "جاري التحديث..."
+                    : "تحديث البيانات")
+
+            </button>
+
+            <button type="button"
+                    class="rep-profile-logout-btn"
+                    disabled="@_isSigningOut"
+                    @onclick="LogoutAsync">
+
+                @(_isSigningOut
+                    ? "جاري تسجيل الخروج..."
+                    : "تسجيل الخروج")
+
             </button>
 
             <button type="button"
                     class="rep-profile-back-btn"
-                    @onclick="GoToDashboard">
+                    @onclick="GoToHome">
+
                 رجوع للرئيسية
+
             </button>
 
         </section>
@@ -159,64 +286,25 @@
 
 </div>
 
-@code {
+
+@code
+{
     private bool _isLoading = true;
     private bool _isRefreshing;
 
     private string? _errorMessage;
+    private bool _isSigningOut;
 
-    private SalesRepMobileProfileDto? _profile;
+    private CurrentUserProfileDto? _profile;
 
-    private string? _claimFullName;
-    private string? _userName;
-    private string? _role;
-    private string? _branchIdFromClaims;
-    private string? _businessUnitIdFromClaims;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadClaimsAsync();
         await LoadProfileAsync();
 
         _isLoading = false;
     }
 
-    private async Task LoadClaimsAsync()
-    {
-        var authenticationState =
-            await AuthenticationStateProvider.GetAuthenticationStateAsync();
-
-        var user = authenticationState.User;
-
-        if (user.Identity?.IsAuthenticated != true)
-            return;
-
-        _claimFullName =
-            user.FindFirst("FullName")?.Value
-            ?? user.FindFirst("fullName")?.Value
-            ?? user.FindFirst(ClaimTypes.Name)?.Value
-            ?? user.FindFirst("name")?.Value
-            ?? user.Identity?.Name;
-
-        _userName =
-            user.FindFirst("user_name")?.Value
-            ?? user.FindFirst("username")?.Value
-            ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? user.Identity?.Name;
-
-        _role =
-            user.FindFirst(ClaimTypes.Role)?.Value
-            ?? user.FindFirst("role")?.Value
-            ?? "SalesRep";
-
-        _branchIdFromClaims =
-            user.FindFirst("branch_id")?.Value
-            ?? user.FindFirst("BranchId")?.Value;
-
-        _businessUnitIdFromClaims =
-            user.FindFirst("business_unit_id")?.Value
-            ?? user.FindFirst("BusinessUnitId")?.Value;
-    }
 
     private async Task LoadProfileAsync()
     {
@@ -225,35 +313,56 @@
         try
         {
             var response =
-                await HttpClient.GetFromJsonAsync<ApiResponse<SalesRepMobileProfileDto>>(
-                    "api/mobile/salesrep/me");
+                await ProfileApiService.GetMyProfileAsync();
 
             if (response is null)
             {
-                _errorMessage = "لم يتم استلام بيانات الملف الشخصي من الخادم.";
+                _errorMessage =
+                    "لم يتم استلام بيانات الملف الشخصي من الخادم.";
+
                 return;
             }
 
+
             if (!response.Success)
             {
-                _errorMessage = response.Message ?? "فشل تحميل بيانات الملف الشخصي.";
+                _errorMessage =
+                    response.Message
+                    ?? "فشل تحميل بيانات الملف الشخصي.";
+
                 return;
             }
+
+
+            if (response.Data is null)
+            {
+                _errorMessage =
+                    "بيانات الملف الشخصي غير متوفرة.";
+
+                return;
+            }
+
 
             _profile = response.Data;
         }
         catch (HttpRequestException)
         {
-            _errorMessage = "تعذر الاتصال بالخادم. تأكد من تشغيل Salesync API.";
+            _errorMessage =
+                AppMessages.ConnectionError;
         }
         catch
         {
-            _errorMessage = "حدث خطأ غير متوقع أثناء تحميل الملف الشخصي.";
+            _errorMessage =
+                "حدث خطأ غير متوقع أثناء تحميل الملف الشخصي.";
         }
     }
 
+
     private async Task RefreshProfileAsync()
     {
+        if (_isRefreshing)
+            return;
+
         _isRefreshing = true;
 
         try
@@ -266,86 +375,158 @@
         }
     }
 
-    private string GetDisplayName()
+
+    private string GetRoleDisplayName()
     {
-        if (!string.IsNullOrWhiteSpace(_profile?.Name))
-            return _profile.Name;
-
-        if (!string.IsNullOrWhiteSpace(_claimFullName))
-            return _claimFullName;
-
-        return "مندوب Salesync";
+        return _profile?.Role switch
+        {
+            "Supervisor" => "مشرف مبيعات",
+            "SalesRep" => "مندوب مبيعات",
+            "Admin" => "مدير النظام",
+            "Warehouse" => "مسؤول مخزن",
+            "Treasury" => "مسؤول خزينة",
+            _ => "مستخدم Salesync"
+        };
     }
 
-    private string GetBranchIdText()
-    {
-        if (_profile?.BranchId > 0)
-            return _profile.BranchId.ToString();
 
-        return _branchIdFromClaims ?? string.Empty;
+    private string GetProfileIdLabel()
+    {
+        return _profile?.Role switch
+        {
+            "Supervisor" => "Supervisor ID",
+            "SalesRep" => "Sales Rep ID",
+            _ => "Profile ID"
+        };
     }
 
-    private string GetBusinessUnitText()
-    {
-        if (_profile?.BusinessUnitId.HasValue == true)
-            return _profile.BusinessUnitId.Value.ToString();
 
-        return _businessUnitIdFromClaims ?? string.Empty;
+    private string GetProfileCodeLabel()
+    {
+        return _profile?.Role switch
+        {
+            "Supervisor" => "كود المشرف",
+            "SalesRep" => "كود المندوب",
+            _ => "الكود"
+        };
     }
 
-    private void GoToDashboard()
+
+    private void GoToHome()
     {
-        NavigationManager.NavigateTo("/dashboard");
+        var destination =
+            _profile?.Role switch
+            {
+                "Supervisor" => "/operations",
+                "Admin" => "/operations",
+                "Warehouse" => "/operations",
+                "SalesRep" => "/dashboard",
+                _ => "/"
+            };
+
+        NavigationManager.NavigateTo(destination);
     }
 
-    private static string DisplayValue(string? value)
+
+    private static string DisplayValue(
+        string? value)
     {
         return string.IsNullOrWhiteSpace(value)
             ? "غير متوفر"
             : value;
     }
 
-    private static string GetInitials(string? value)
+
+    private static string GetInitials(
+        string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return "SR";
+            return "SY";
 
-        var parts = value
-            .Trim()
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var parts =
+            value
+                .Trim()
+                .Split(
+                    ' ',
+                    StringSplitOptions.RemoveEmptyEntries);
+
 
         if (parts.Length == 1)
         {
             return parts[0].Length >= 2
-                ? parts[0][..2].ToUpperInvariant()
-                : parts[0].ToUpperInvariant();
+                ? parts[0][..2]
+                    .ToUpperInvariant()
+                : parts[0]
+                    .ToUpperInvariant();
         }
 
-        return $"{parts[0][0]}{parts[1][0]}".ToUpperInvariant();
+
+        return
+            $"{parts[0][0]}{parts[1][0]}"
+                .ToUpperInvariant();
     }
+
+
     private bool HasProfileImage()
     {
-        return !string.IsNullOrWhiteSpace(_profile?.ProfileImageUrl);
+        return !string.IsNullOrWhiteSpace(
+            _profile?.ProfileImageUrl);
     }
+
 
     private string GetProfileImageUrl()
     {
-        var imageUrl = _profile?.ProfileImageUrl;
+        var imageUrl =
+            _profile?.ProfileImageUrl;
 
         if (string.IsNullOrWhiteSpace(imageUrl))
             return string.Empty;
 
-        if (imageUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-            imageUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+
+        if (imageUrl.StartsWith(
+                "http://",
+                StringComparison.OrdinalIgnoreCase)
+            ||
+            imageUrl.StartsWith(
+                "https://",
+                StringComparison.OrdinalIgnoreCase))
         {
             return imageUrl;
         }
 
-        var baseUrl = HttpClient.BaseAddress?.ToString();
+
+        var baseUrl =
+            HttpClient.BaseAddress?.ToString();
 
         if (string.IsNullOrWhiteSpace(baseUrl))
             return imageUrl;
 
-        return new Uri(new Uri(baseUrl), imageUrl).ToString();
+
+        return new Uri(
+            new Uri(baseUrl),
+            imageUrl)
+            .ToString();
+    }
+
+    private async Task LogoutAsync()
+    {
+        if (_isSigningOut)
+            return;
+
+        _isSigningOut = true;
+
+        try
+        {
+            await AuthenticationStateProvider.SignOutAsync();
+
+            NavigationManager.NavigateTo(
+                "/login",
+                forceLoad: true);
+        }
+        finally
+        {
+            _isSigningOut = false;
+        }
     }
 }

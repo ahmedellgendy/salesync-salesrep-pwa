@@ -1,6 +1,7 @@
 ﻿@page "/supervisor/reports/visits"
 
 @using Microsoft.AspNetCore.Authorization
+@using Salesync.SalesRep.Pwa.Common
 @using Salesync.SalesRep.Pwa.Models.Responses.Reports
 @using Salesync.SalesRep.Pwa.Services.Api.Supervisor
 
@@ -516,7 +517,7 @@
         catch (Exception)
         {
             _errorMessage =
-                "تعذر الاتصال بالخادم.";
+                AppMessages.ConnectionError;
         }
         finally
         {

@@ -11,25 +11,38 @@
 @inject NavigationManager NavigationManager
 @inject IHttpClientFactory HttpClientFactory
 
+<PageTitle>طلب تحميل جديد - Salesync</PageTitle>
+
 <div class="create-load-page" dir="rtl">
 
     <section class="create-load-hero">
-        <div>
-            <span>طلبات التحميل</span>
-            <h1>طلب تحميل جديد</h1>
-            <p>اختر المخزن وحدد الكميات المطلوبة حسب وحدة الطلب.</p>
+
+        <div class="hero-content">
+            <span class="hero-eyebrow">
+                طلبات التحميل
+            </span>
+
+            <h1>
+                طلب تحميل جديد
+            </h1>
+
+            <p>
+                اختر المخزن وحدد المنتجات والكميات المطلوبة.
+            </p>
         </div>
 
-        <div class="create-load-hero-icon">
+        <div class="hero-icon">
             📦
         </div>
+
     </section>
+
 
     @if (_isLoading)
     {
-        <div class="create-load-loading-card">
+        <section class="state-card">
             جاري تحميل المنتجات والمخازن...
-        </div>
+        </section>
     }
     else
     {
@@ -47,19 +60,32 @@
             </div>
         }
 
-        <section class="create-load-card">
 
-            <div class="create-load-section-title">
-                <span>بيانات طلب التحميل</span>
-                <strong>اختر المخزن والمنتجات المطلوبة</strong>
+        <section class="load-options-card">
+
+            <div class="section-heading">
+                <span>
+                    بيانات الطلب
+                </span>
+
+                <strong>
+                    المخزن والمنتجات
+                </strong>
             </div>
 
-            <div class="create-load-form-group">
-                <label>المخزن</label>
+
+            <div class="warehouse-field">
+
+                <label>
+                    المخزن
+                </label>
 
                 <select disabled="@_isProcessing"
                         @bind="_selectedWarehouseId">
-                    <option value="0">اختار المخزن</option>
+
+                    <option value="0">
+                        اختر المخزن
+                    </option>
 
                     @foreach (var warehouse in _warehouses)
                     {
@@ -67,99 +93,184 @@
                             @warehouse.Name
                         </option>
                     }
+
                 </select>
+
             </div>
 
-            <section class="create-load-summary compact">
+
+            <section class="request-summary">
+
                 <div>
-                    <span>الأصناف</span>
-                    <strong>@GetSelectedItemsCount()</strong>
+                    <span>
+                        الأصناف
+                    </span>
+
+                    <strong>
+                        @GetSelectedItemsCount()
+                    </strong>
                 </div>
 
                 <div>
-                    <span>الكرتون</span>
-                    <strong>@GetTotalRequestedLargeQuantity()</strong>
+                    <span>
+                        الكراتين
+                    </span>
+
+                    <strong>
+                        @GetTotalRequestedLargeQuantity()
+                    </strong>
                 </div>
 
                 <div>
-                    <span>القطع</span>
-                    <strong>@GetTotalRequestedSmallQuantity()</strong>
+                    <span>
+                        القطع
+                    </span>
+
+                    <strong>
+                        @GetTotalRequestedSmallQuantity()
+                    </strong>
                 </div>
+
             </section>
 
-            <section class="create-load-selected-warehouse">
-                <span>المخزن</span>
-                <strong>@GetSelectedWarehouseText()</strong>
-            </section>
 
-            <section class="create-load-products-toolbar">
-                <div>
-                    <span>المنتجات</span>
-                    <strong>@_productLines.Count منتج متاح</strong>
+            <div class="products-toolbar">
+
+                <div class="products-title">
+                    <span>
+                        المنتجات
+                    </span>
+
+                    <strong>
+                        @_productLines.Count منتج متاح
+                    </strong>
                 </div>
 
-                <input class="create-load-search-input"
-                       placeholder="ابحث عن منتج أو كود..."
-                       disabled="@_isProcessing"
-                       @bind="_searchText"
-                       @bind:event="oninput" />
+                <div class="search-box">
+                    <span>
+                        🔍
+                    </span>
+
+                    <input placeholder="ابحث عن منتج أو كود..."
+                           disabled="@_isProcessing"
+                           @bind="_searchText"
+                           @bind:event="oninput" />
+                </div>
+
+            </div>
+
+        </section>
+
+
+        @if (_productLines.Count == 0)
+        {
+            <section class="state-card">
+
+                <div class="state-icon">
+                    📦
+                </div>
+
+                <strong>
+                    لا توجد منتجات
+                </strong>
+
+                <p>
+                    لا توجد منتجات متاحة لإنشاء طلب تحميل.
+                </p>
+
             </section>
+        }
+        else if (FilteredProductLines.Count == 0)
+        {
+            <section class="state-card">
 
-            @if (_productLines.Count == 0)
-            {
-                <section class="create-load-empty-card">
-                    <div>📦</div>
-                    <h3>لا توجد منتجات</h3>
-                    <p>لا توجد منتجات متاحة لإنشاء طلب تحميل.</p>
-                </section>
-            }
-            else if (FilteredProductLines.Count == 0)
-            {
-                <section class="create-load-empty-card">
-                    <div>🔍</div>
-                    <h3>لا توجد نتائج</h3>
-                    <p>لا يوجد منتج مطابق للبحث الحالي.</p>
-                </section>
-            }
-            else
-            {
-                <section class="create-load-products-list">
+                <div class="state-icon">
+                    🔍
+                </div>
 
-                    @foreach (var line in FilteredProductLines)
-                    {
-                        <article class="create-load-product-card compact @(line.RequestedLargeQuantity > 0 ? "selected" : "")" @key="line.ProductId">
+                <strong>
+                    لا توجد نتائج
+                </strong>
 
-                            <div class="create-load-product-main">
+                <p>
+                    لا يوجد منتج مطابق للبحث الحالي.
+                </p>
 
-                                <div class="create-load-product-info">
-                                    <strong>@line.ProductName</strong>
+            </section>
+        }
+        else
+        {
+            <section class="products-list">
 
-                                    @if (!string.IsNullOrWhiteSpace(line.ItemCode))
-                                    {
-                                        <span>كود: @line.ItemCode</span>
-                                    }
-                                </div>
+                @foreach (var line in FilteredProductLines)
+                {
+                    <article class="product-card @(line.RequestedLargeQuantity > 0 ? "selected" : "")"
+                             @key="line.ProductId">
 
-                                <div class="create-load-unit-pill">
-                                    @line.LargeUnit
-                                </div>
+                        <div class="product-top">
+
+                            <div class="product-details">
+
+                                <span class="product-code">
+                                    @DisplayProductCode(line.ItemCode)
+                                </span>
+
+                                <h2>
+                                    @line.ProductName
+                                </h2>
 
                             </div>
 
-                            <div class="create-load-conversion-line">
-                                <span>وحدة الطلب</span>
-                                <strong>1 @line.LargeUnit = @line.UnitsPerLargeUnit @line.SmallUnit</strong>
+
+                            <span class="unit-badge">
+                                @line.LargeUnit
+                            </span>
+
+                        </div>
+
+
+                        <div class="product-meta">
+
+                            <div>
+                                <span>
+                                    وحدة الطلب
+                                </span>
+
+                                <strong>
+                                    1 @line.LargeUnit = @line.UnitsPerLargeUnit @line.SmallUnit
+                                </strong>
                             </div>
 
-                            <div class="create-load-qty-row" dir="ltr">
+                        </div>
+
+
+                        <div class="quantity-section">
+
+                            <div class="quantity-label">
+                                <span>
+                                    الكمية المطلوبة
+                                </span>
+
+                                @if (line.RequestedLargeQuantity > 0)
+                                {
+                                    <strong>
+                                        @line.RequestedSmallQuantity @line.SmallUnit
+                                    </strong>
+                                }
+                            </div>
+
+
+                            <div class="quantity-control" dir="ltr">
+
                                 <button type="button"
-                                        class="qty-btn minus @(line.RequestedLargeQuantity <= 0 ? "disabled" : "")"
-                                        disabled="@_isProcessing"
+                                        class="quantity-btn minus"
+                                        disabled="@(_isProcessing || line.RequestedLargeQuantity <= 0)"
                                         @onclick:preventDefault="true"
                                         @onclick:stopPropagation="true"
                                         @onclick="() => DecreaseQuantity(line)">
                                     −
                                 </button>
+
 
                                 <input type="number"
                                        min="0"
@@ -168,49 +279,90 @@
                                        @bind:event="oninput"
                                        @bind:after="() => OnLineQuantityChanged(line)" />
 
+
                                 <button type="button"
-                                        class="qty-btn plus"
+                                        class="quantity-btn plus"
                                         disabled="@_isProcessing"
                                         @onclick:preventDefault="true"
                                         @onclick:stopPropagation="true"
                                         @onclick="() => IncreaseQuantity(line)">
                                     +
                                 </button>
+
                             </div>
 
-                            @if (line.RequestedLargeQuantity > 0)
-                            {
-                                <div class="create-load-selected-note">
-                                    @line.RequestedLargeQuantity @line.LargeUnit = @line.RequestedSmallQuantity @line.SmallUnit
-                                </div>
-                            }
+                        </div>
 
-                        </article>
-                    }
+                    </article>
+                }
 
-                </section>
-            }
+            </section>
+        }
 
-            <div class="create-load-form-group">
-                <label>ملاحظات اختيارية</label>
 
-                <textarea placeholder="اكتب ملاحظات طلب التحميل..."
+        <section class="request-footer-card">
+
+            <div class="notes-field">
+
+                <label>
+                    ملاحظات
+                    <span>
+                        اختياري
+                    </span>
+                </label>
+
+                <textarea placeholder="اكتب أي ملاحظات على طلب التحميل..."
                           disabled="@_isProcessing"
-                          @bind="_notes"></textarea>
+                          @bind="_notes">
+                </textarea>
+
             </div>
 
-            <button type="button"
-                    class="create-load-main-btn"
-                    disabled="@_isProcessing"
-                    @onclick="CreateLoadRequestAsync">
-                @(_isProcessing ? "جاري إرسال الطلب..." : "إرسال طلب التحميل")
-            </button>
+
+            <div class="final-summary">
+
+                <div>
+                    <span>
+                        المنتجات المختارة
+                    </span>
+
+                    <strong>
+                        @GetSelectedItemsCount()
+                    </strong>
+                </div>
+
+                <div>
+                    <span>
+                        إجمالي الكراتين
+                    </span>
+
+                    <strong>
+                        @GetTotalRequestedLargeQuantity()
+                    </strong>
+                </div>
+
+            </div>
+
 
             <button type="button"
-                    class="create-load-back-btn"
+                    class="submit-button"
+                    disabled="@_isProcessing"
+                    @onclick="CreateLoadRequestAsync">
+
+                @(_isProcessing
+                    ? "جاري إرسال الطلب..."
+                    : "إرسال طلب التحميل")
+
+            </button>
+
+
+            <button type="button"
+                    class="back-button"
                     disabled="@_isProcessing"
                     @onclick="GoBack">
+
                 رجوع للطلبات
+
             </button>
 
         </section>
@@ -218,7 +370,9 @@
 
 </div>
 
-@code {
+
+@code
+{
     private bool _isLoading = true;
     private bool _isProcessing;
 
@@ -233,6 +387,7 @@
     private List<MobileWarehouseOptionDto> _warehouses = new();
     private List<LoadRequestProductLineModel> _productLines = new();
 
+
     private List<LoadRequestProductLineModel> FilteredProductLines =>
         _productLines
             .Where(MatchesSearchText)
@@ -240,13 +395,16 @@
             .ThenBy(x => x.ProductName)
             .ToList();
 
+
     protected override async Task OnInitializedAsync()
     {
         _salesRepId = await GetCurrentSalesRepIdAsync();
 
         if (_salesRepId <= 0)
         {
-            _errorMessage = "لم يتم تحديد المندوب الحالي.";
+            _errorMessage =
+                "لم يتم تحديد المندوب الحالي.";
+
             _isLoading = false;
             return;
         }
@@ -256,6 +414,7 @@
         _isLoading = false;
     }
 
+
     private async Task LoadOptionsAsync()
     {
         await LoadWarehousesAsync();
@@ -263,74 +422,95 @@
 
         if (_warehouses.Count == 1)
         {
-            _selectedWarehouseId = _warehouses[0].Id;
+            _selectedWarehouseId =
+                _warehouses[0].Id;
         }
     }
+
 
     private async Task LoadWarehousesAsync()
     {
-        var response = await LoadRequestApiService.GetWarehousesAsync();
+        var response =
+            await LoadRequestApiService.GetWarehousesAsync();
 
         if (response is null)
         {
-            _errorMessage = "لم يتم استلام بيانات المخازن من الخادم.";
+            _errorMessage =
+                "لم يتم استلام بيانات المخازن من الخادم.";
+
             return;
         }
 
         if (!response.Success)
         {
-            _errorMessage = response.Message ?? "فشل تحميل المخازن.";
+            _errorMessage =
+                response.Message
+                ?? "فشل تحميل المخازن.";
+
             return;
         }
 
-        _warehouses = response.Data?
-            .OrderBy(x => x.Name)
-            .ToList()
+        _warehouses =
+            response.Data?
+                .OrderBy(x => x.Name)
+                .ToList()
             ?? new List<MobileWarehouseOptionDto>();
     }
 
+
     private async Task LoadProductsAsync()
     {
-        var response = await LoadRequestApiService.GetProductsAsync();
+        var response =
+            await LoadRequestApiService.GetProductsAsync();
 
         if (response is null)
         {
-            _errorMessage = "لم يتم استلام بيانات المنتجات من الخادم.";
+            _errorMessage =
+                "لم يتم استلام بيانات المنتجات من الخادم.";
+
             return;
         }
 
         if (!response.Success)
         {
-            _errorMessage = response.Message ?? "فشل تحميل المنتجات.";
+            _errorMessage =
+                response.Message
+                ?? "فشل تحميل المنتجات.";
+
             return;
         }
 
-        _productLines = response.Data?
-            .OrderBy(x => x.Name)
-            .Select(x => new LoadRequestProductLineModel
-            {
-                ProductId = x.Id,
-                ProductName = x.Name,
-                ItemCode = x.ItemCode,
-                UnitPrice = x.UnitPrice,
+        _productLines =
+            response.Data?
+                .OrderBy(x => x.Name)
+                .Select(x => new LoadRequestProductLineModel
+                {
+                    ProductId = x.Id,
+                    ProductName = x.Name,
+                    ItemCode = x.ItemCode,
+                    UnitPrice = x.UnitPrice,
 
-                SmallUnit = string.IsNullOrWhiteSpace(x.SmallUnit)
-                    ? "قطعة"
-                    : x.SmallUnit,
+                    SmallUnit =
+                        string.IsNullOrWhiteSpace(x.SmallUnit)
+                            ? "قطعة"
+                            : x.SmallUnit,
 
-                LargeUnit = string.IsNullOrWhiteSpace(x.LargeUnit)
-                    ? "كرتونة"
-                    : x.LargeUnit,
+                    LargeUnit =
+                        string.IsNullOrWhiteSpace(x.LargeUnit)
+                            ? "كرتونة"
+                            : x.LargeUnit,
 
-                UnitsPerLargeUnit = x.UnitsPerLargeUnit <= 0
-                    ? 1
-                    : x.UnitsPerLargeUnit,
+                    UnitsPerLargeUnit =
+                        x.UnitsPerLargeUnit <= 0
+                            ? 1
+                            : x.UnitsPerLargeUnit,
 
-                RequestedLargeQuantity = 0
-            })
-            .ToList()
+                    RequestedLargeQuantity = 0
+                })
+                .ToList()
             ?? new List<LoadRequestProductLineModel>();
     }
+
 
     private async Task CreateLoadRequestAsync()
     {
@@ -343,53 +523,75 @@
             _errorMessage = null;
             _successMessage = null;
 
-            var selectedItems = _productLines
-                .Where(x => x.RequestedLargeQuantity > 0)
-                .Select(x => new CreateLoadRequestItemRequest
+            var selectedItems =
+                _productLines
+                    .Where(x => x.RequestedLargeQuantity > 0)
+                    .Select(x => new CreateLoadRequestItemRequest
+                    {
+                        ProductId = x.ProductId,
+                        RequestedLargeQuantity =
+                            x.RequestedLargeQuantity,
+                        Notes = _notes
+                    })
+                    .ToList();
+
+
+            var request =
+                new CreateLoadRequestRequest
                 {
-                    ProductId = x.ProductId,
-                    RequestedLargeQuantity = x.RequestedLargeQuantity,
-                    Notes = _notes
-                })
-                .ToList();
+                    SalesRepId = _salesRepId,
+                    WarehouseId = _selectedWarehouseId,
+                    Notes = _notes,
+                    Items = selectedItems
+                };
 
-            var request = new CreateLoadRequestRequest
-            {
-                SalesRepId = _salesRepId,
-                WarehouseId = _selectedWarehouseId,
-                Notes = _notes,
-                Items = selectedItems
-            };
 
-            var response = await LoadRequestApiService.CreateAsync(request);
+            var response =
+                await LoadRequestApiService
+                    .CreateAsync(request);
+
 
             if (response is null)
             {
-                _errorMessage = "لم يتم استلام استجابة من الخادم.";
+                _errorMessage =
+                    "لم يتم استلام استجابة من الخادم.";
+
                 return;
             }
 
+
             if (!response.Success)
             {
-                _errorMessage = response.Message ?? "فشل إنشاء طلب التحميل.";
+                _errorMessage =
+                    response.Message
+                    ?? "فشل إنشاء طلب التحميل.";
 
                 if (response.Errors is { Count: > 0 })
                 {
-                    _errorMessage += " " + string.Join(" ", response.Errors);
+                    _errorMessage +=
+                        " " +
+                        string.Join(
+                            " ",
+                            response.Errors);
                 }
 
                 return;
             }
 
-            _successMessage = "تم إرسال طلب التحميل بنجاح.";
+
+            _successMessage =
+                "تم إرسال طلب التحميل بنجاح.";
 
             await Task.Delay(700);
 
-            NavigationManager.NavigateTo("/load-requests", replace: true);
+            NavigationManager.NavigateTo(
+                "/load-requests",
+                replace: true);
         }
         catch
         {
-            _errorMessage = "حدث خطأ غير متوقع أثناء إرسال طلب التحميل.";
+            _errorMessage =
+                "حدث خطأ غير متوقع أثناء إرسال طلب التحميل.";
         }
         finally
         {
@@ -397,43 +599,60 @@
         }
     }
 
+
     private bool Validate()
     {
         _errorMessage = null;
 
         if (_salesRepId <= 0)
         {
-            _errorMessage = "بيانات المندوب غير صحيحة.";
+            _errorMessage =
+                "بيانات المندوب غير صحيحة.";
+
             return false;
         }
+
 
         if (_selectedWarehouseId <= 0)
         {
-            _errorMessage = "اختار المخزن أولًا.";
+            _errorMessage =
+                "اختر المخزن أولًا.";
+
             return false;
         }
 
-        var selectedItems = _productLines
-            .Where(x => x.RequestedLargeQuantity > 0)
-            .ToList();
+
+        var selectedItems =
+            _productLines
+                .Where(x => x.RequestedLargeQuantity > 0)
+                .ToList();
+
 
         if (selectedItems.Count == 0)
         {
-            _errorMessage = "اختار كمية لمنتج واحد على الأقل.";
+            _errorMessage =
+                "اختر كمية لمنتج واحد على الأقل.";
+
             return false;
         }
+
 
         foreach (var item in _productLines)
         {
             if (item.RequestedLargeQuantity < 0)
             {
-                _errorMessage = $"كمية المنتج {item.ProductName} لا يمكن تكون أقل من صفر.";
+                _errorMessage =
+                    $"كمية المنتج {item.ProductName} لا يمكن أن تكون أقل من صفر.";
+
                 return false;
             }
 
+
             if (item.UnitsPerLargeUnit <= 0)
             {
-                _errorMessage = $"معامل تحويل المنتج {item.ProductName} غير صحيح.";
+                _errorMessage =
+                    $"معامل تحويل المنتج {item.ProductName} غير صحيح.";
+
                 return false;
             }
         }
@@ -441,17 +660,24 @@
         return true;
     }
 
+
     private async Task<int> GetCurrentSalesRepIdAsync()
     {
         try
         {
-            var httpClient = HttpClientFactory.CreateClient("SalesyncApi");
+            var httpClient =
+                HttpClientFactory.CreateClient(
+                    "SalesyncApi");
 
             var response =
-                await httpClient.GetFromJsonAsync<ApiResponse<SalesRepMobileProfileDto>>(
-                    "api/mobile/salesrep/me");
+                await httpClient
+                    .GetFromJsonAsync<
+                        ApiResponse<SalesRepMobileProfileDto>>(
+                        "api/mobile/salesrep/me");
 
-            return response?.Success == true && response.Data is not null
+
+            return response?.Success == true &&
+                   response.Data is not null
                 ? response.Data.SalesRepId
                 : 0;
         }
@@ -461,26 +687,38 @@
         }
     }
 
-    private bool MatchesSearchText(LoadRequestProductLineModel line)
+
+    private bool MatchesSearchText(
+        LoadRequestProductLineModel line)
     {
         if (string.IsNullOrWhiteSpace(_searchText))
             return true;
 
-        var search = _searchText.Trim();
+        var search =
+            _searchText.Trim();
 
-        return Contains(line.ProductName, search)
+        return
+            Contains(line.ProductName, search)
             || Contains(line.ItemCode, search)
             || Contains(line.SmallUnit, search)
             || Contains(line.LargeUnit, search);
     }
 
-    private static bool Contains(string? value, string search)
+
+    private static bool Contains(
+        string? value,
+        string search)
     {
-        return !string.IsNullOrWhiteSpace(value)
-            && value.Contains(search, StringComparison.OrdinalIgnoreCase);
+        return
+            !string.IsNullOrWhiteSpace(value)
+            && value.Contains(
+                search,
+                StringComparison.OrdinalIgnoreCase);
     }
 
-    private void OnLineQuantityChanged(LoadRequestProductLineModel line)
+
+    private void OnLineQuantityChanged(
+        LoadRequestProductLineModel line)
     {
         _errorMessage = null;
 
@@ -490,13 +728,18 @@
         }
     }
 
-    private void IncreaseQuantity(LoadRequestProductLineModel line)
+
+    private void IncreaseQuantity(
+        LoadRequestProductLineModel line)
     {
         _errorMessage = null;
+
         line.RequestedLargeQuantity++;
     }
 
-    private void DecreaseQuantity(LoadRequestProductLineModel line)
+
+    private void DecreaseQuantity(
+        LoadRequestProductLineModel line)
     {
         _errorMessage = null;
 
@@ -509,54 +752,68 @@
         line.RequestedLargeQuantity--;
     }
 
+
     private int GetSelectedItemsCount()
     {
-        return _productLines.Count(x => x.RequestedLargeQuantity > 0);
+        return _productLines.Count(
+            x => x.RequestedLargeQuantity > 0);
     }
+
 
     private int GetTotalRequestedLargeQuantity()
     {
-        return _productLines.Sum(x => x.RequestedLargeQuantity);
+        return _productLines.Sum(
+            x => x.RequestedLargeQuantity);
     }
+
 
     private int GetTotalRequestedSmallQuantity()
     {
-        return _productLines.Sum(x => x.RequestedSmallQuantity);
+        return _productLines.Sum(
+            x => x.RequestedSmallQuantity);
     }
 
-    private string GetSelectedWarehouseText()
+
+    private static string DisplayProductCode(
+        string? itemCode)
     {
-        var warehouse = _warehouses.FirstOrDefault(x => x.Id == _selectedWarehouseId);
-
-        return warehouse is null
-            ? "-"
-            : warehouse.Name;
+        return string.IsNullOrWhiteSpace(itemCode)
+            ? "بدون كود"
+            : itemCode;
     }
+
 
     private void GoBack()
     {
-        NavigationManager.NavigateTo("/load-requests");
+        NavigationManager.NavigateTo(
+            "/load-requests");
     }
 
-    private class LoadRequestProductLineModel
+
+    private sealed class LoadRequestProductLineModel
     {
         public int ProductId { get; set; }
 
-        public string ProductName { get; set; } = string.Empty;
+        public string ProductName { get; set; }
+            = string.Empty;
 
         public string? ItemCode { get; set; }
 
         public decimal UnitPrice { get; set; }
 
-        public string SmallUnit { get; set; } = "قطعة";
+        public string SmallUnit { get; set; }
+            = "قطعة";
 
-        public string LargeUnit { get; set; } = "كرتونة";
+        public string LargeUnit { get; set; }
+            = "كرتونة";
 
-        public int UnitsPerLargeUnit { get; set; } = 1;
+        public int UnitsPerLargeUnit { get; set; }
+            = 1;
 
         public int RequestedLargeQuantity { get; set; }
 
         public int RequestedSmallQuantity =>
-            RequestedLargeQuantity * UnitsPerLargeUnit;
+            RequestedLargeQuantity
+            * UnitsPerLargeUnit;
     }
 }

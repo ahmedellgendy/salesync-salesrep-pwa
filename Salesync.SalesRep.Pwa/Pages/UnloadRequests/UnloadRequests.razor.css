@@ -318,3 +318,124 @@
     color: white;
     font-weight: 800;
 }
+
+.unload-form-card {
+    margin-top: 14px;
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #e1e8ee;
+    border-radius: 20px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+}
+
+.unload-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+    .unload-form-group + .unload-form-group {
+        margin-top: 14px;
+    }
+
+    .unload-form-group label {
+        color: #344054;
+        font-size: 10px;
+        font-weight: 900;
+    }
+
+.unload-select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid #d9e2ea;
+    border-radius: 12px;
+    background: #f8fafc;
+    color: #101828;
+    font-size: 11px;
+    font-weight: 800;
+    outline: none;
+}
+
+    .unload-select:focus {
+        border-color: #087f9c;
+        box-shadow: 0 0 0 3px rgba(8, 127, 156, 0.08);
+    }
+
+.unload-textarea {
+    width: 100%;
+    min-height: 86px;
+    padding: 11px 12px;
+    resize: vertical;
+    border: 1px solid #d9e2ea;
+    border-radius: 12px;
+    background: #f8fafc;
+    color: #344054;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.7;
+    outline: none;
+}
+
+    .unload-textarea:focus {
+        border-color: #087f9c;
+        box-shadow: 0 0 0 3px rgba(8, 127, 156, 0.08);
+    }
+
+    .unload-textarea::placeholder {
+        color: #98a2b3;
+    }
+
+.unload-submit-btn {
+    width: 100%;
+    min-height: 46px;
+    margin-top: 16px;
+    border: 0;
+    border-radius: 12px;
+    background: #087f9c;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+    .unload-submit-btn:active {
+        transform: scale(0.99);
+    }
+
+    .unload-submit-btn:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
+
+.inventory-alert.error {
+    margin-top: 12px;
+    padding: 11px 12px;
+    border: 1px solid #fecdca;
+    border-radius: 11px;
+    background: #fef3f2;
+    color: #b42318;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+    .unload-form-card {
+        padding: 14px;
+        border-radius: 18px;
+    }
+
+    .unload-select {
+        min-height: 42px;
+    }
+
+    .unload-textarea {
+        min-height: 82px;
+    }
+
+    .unload-submit-btn {
+        min-height: 44px;
+    }
+}
